@@ -57,3 +57,22 @@ export const changePinSchema = z.object({
   currentPin: z.string().regex(/^\d{4}$/, { error: "PIN harus 4 digit angka." }),
   newPin: z.string().regex(/^\d{4}$/, { error: "PIN baru harus 4 digit angka." }),
 });
+
+export const programSlotSchema = z.object({
+  slotLabel: z.string().trim().max(20).optional(),
+  movementId: z.string().min(1),
+  sets: z.number().int().positive().max(20).optional(),
+  repTarget: z.string().trim().max(40).optional(),
+  targetWeight: z.number().positive().max(2000).optional(),
+  note: z.string().trim().max(280).optional(),
+});
+
+export const programDaySchema = z.object({
+  dayLabel: z.string().trim().min(1, { error: "Isi nama hari." }).max(20),
+  focusLabel: z.string().trim().max(40).optional(),
+  slots: z.array(programSlotSchema).max(30),
+});
+
+export const saveProgramWeekSchema = z.object({
+  days: z.array(programDaySchema).max(7),
+});

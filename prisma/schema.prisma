@@ -32,7 +32,9 @@ model User {
 
   setEntries           SetEntry[]
   personalRecords      PersonalRecord[]
-  dailyWorkoutsCreated DailyWorkout[]   @relation("CoachDailyWorkouts")
+  dailyWorkoutsCreated DailyWorkout[]    @relation("CoachDailyWorkouts")
+  programsAsMember     TrainingProgram[] @relation("MemberPrograms")
+  programsAsCoach      TrainingProgram[] @relation("CoachPrograms")
 }
 
 model Exercise {
@@ -94,4 +96,66 @@ model PersonalRecord {
   achievedAt   DateTime @default(now())
 
   @@unique([memberId, exerciseId, type])
+}
+
+// Master exercise dictionary for building training programs (coach-only).
+// Deliberately separate from Exercise (which members pick from when logging
+// sets) so the much larger movement library doesn't bloat that dropdown.
+model Movement {
+  id              String   @id @default(cuid())
+  code            String?
+  name            String   @unique
+  primaryMuscle   String?
+  secondaryMuscle String?
+  category        String?
+  equipment       String?
+  repRangeHint    String?
+  setRangeHint    String?
+  createdAt       DateTime @default(now())
+
+  slots ProgramSlot[]
+}
+
+model TrainingProgram {
+  id         String   @id @default(cuid())
+  memberId   String
+  member     User     @relation("MemberPrograms", fields: [memberId], references: [id])
+  weekNumber Int
+  coachId    String
+  coach      User     @relation("CoachPrograms", fields: [coachId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  days ProgramDay[]
+
+  @@unique([memberId, weekNumber])
+}
+
+model ProgramDay {
+  id         String          @id @default(cuid())
+  programId  String
+  program    TrainingProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  dayLabel   String
+  focusLabel String?
+  order      Int
+
+  slots ProgramSlot[]
+
+  @@unique([programId, order])
+}
+
+model ProgramSlot {
+  id           String     @id @default(cuid())
+  dayId        String
+  day          ProgramDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  slotLabel    String?
+  movementId   String
+  movement     Movement   @relation(fields: [movementId], references: [id])
+  sets         Int?
+  repTarget    String?
+  targetWeight Float?
+  note         String?
+  order        Int
+
+  @@index([dayId])
 }
