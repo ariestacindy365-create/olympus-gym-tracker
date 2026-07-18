@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
+import confetti from "canvas-confetti";
 import { Button } from "@/components/ui/Button";
 
 export interface PRCelebrationData {
@@ -26,6 +27,19 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
   const [error, setError] = useState<string | null>(null);
 
   const dateLabel = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+
+  useEffect(() => {
+    const colors = [POP, "#2563eb", "#ffffff", "#facc15"];
+
+    confetti({ particleCount: 90, spread: 80, startVelocity: 45, origin: { y: 0.55 }, colors, zIndex: 60 });
+
+    const end = Date.now() + 2000;
+    (function frame() {
+      confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0, y: 0.7 }, colors, zIndex: 60 });
+      confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1, y: 0.7 }, colors, zIndex: 60 });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    })();
+  }, []);
 
   async function buildImageFile(): Promise<File> {
     if (!cardRef.current) throw new Error("card not ready");
