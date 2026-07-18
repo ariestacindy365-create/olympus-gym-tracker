@@ -31,22 +31,58 @@ interface ProgressViewProps {
   exercises: ExerciseProgress[];
   /** ISO timestamp for "now", passed in from the server so the component stays pure. */
   referenceDate: string;
+  /** Lets the viewer delete a session from their own history (member's own dashboard only). */
+  canDelete?: boolean;
 }
 
-export function ProgressView({ exercises, referenceDate }: ProgressViewProps) {
+export function ProgressView({ exercises, referenceDate, canDelete = false }: ProgressViewProps) {
+  const [data, setData] = useState(exercises);
+
   const defaultExerciseId = useMemo(() => {
-    if (exercises.length === 0) return "";
-    let best = exercises[0];
-    for (const ex of exercises) {
+    if (data.length === 0) return "";
+    let best = data[0];
+    for (const ex of data) {
       const exLast = ex.sessions.at(-1)?.workoutDate ?? "";
       const bestLast = best.sessions.at(-1)?.workoutDate ?? "";
       if (exLast > bestLast) best = ex;
     }
     return best.exerciseId;
-  }, [exercises]);
+  }, [data]);
 
   const [selectedId, setSelectedId] = useState(defaultExerciseId);
-  const current = exercises.find((e) => e.exerciseId === selectedId) ?? exercises[0] ?? null;
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const current = data.find((e) => e.exerciseId === selectedId) ?? data[0] ?? null;
+
+  async function handleDelete(setId: string, exerciseId: string) {
+    if (!confirm("Hapus sesi ini? Rekor akan dihitung ulang.")) return;
+    setPendingId(setId);
+    setDeleteError(null);
+    try {
+      const res = await fetch(`/api/member/sets/${setId}`, { method: "DELETE" });
+      const body = await res.json();
+      if (!res.ok) {
+        setDeleteError(body.error ?? "Gagal menghapus sesi.");
+        return;
+      }
+      const sessions: ProgressSession[] = body.allSets.map(
+        (s: { id: string; workoutDate: string; setNumber: number; weight: number; reps: number; note: string | null; isPR: boolean }) => ({
+          id: s.id,
+          workoutDate: s.workoutDate,
+          setNumber: s.setNumber,
+          weight: s.weight,
+          reps: s.reps,
+          note: s.note,
+          isPR: s.isPR,
+        })
+      );
+      setData((prev) => prev.map((ex) => (ex.exerciseId === exerciseId ? { ...ex, sessions } : ex)));
+    } catch {
+      setDeleteError("Terjadi kesalahan. Coba lagi.");
+    } finally {
+      setPendingId(null);
+    }
+  }
 
   if (!current) {
     return (
@@ -89,7 +125,7 @@ export function ProgressView({ exercises, referenceDate }: ProgressViewProps) {
       <Card>
         <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">Gerakan</label>
         <Select value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
-          {exercises.map((ex) => (
+          {data.map((ex) => (
             <option key={ex.exerciseId} value={ex.exerciseId}>
               {ex.exerciseName}
             </option>
@@ -143,6 +179,7 @@ export function ProgressView({ exercises, referenceDate }: ProgressViewProps) {
 
       <Card>
         <h3 className="mb-3 font-display text-lg font-semibold">Riwayat Sesi</h3>
+        {deleteError && <p className="mb-2 text-sm text-danger">{deleteError}</p>}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -151,7 +188,8 @@ export function ProgressView({ exercises, referenceDate }: ProgressViewProps) {
                 <th className="pb-2 pr-3">Set</th>
                 <th className="pb-2 pr-3">Beban</th>
                 <th className="pb-2 pr-3">Rep</th>
-                <th className="pb-2">Catatan</th>
+                <th className="pb-2 pr-3">Catatan</th>
+                {canDelete && <th className="pb-2" />}
               </tr>
             </thead>
             <tbody>
@@ -170,7 +208,20 @@ export function ProgressView({ exercises, referenceDate }: ProgressViewProps) {
                   <td className="py-2 pr-3">
                     <Badge tone="muted">{s.reps} rep</Badge>
                   </td>
-                  <td className="py-2 text-muted">{s.note ?? "—"}</td>
+                  <td className="py-2 pr-3 text-muted">{s.note ?? "—"}</td>
+                  {canDelete && (
+                    <td className="py-2 text-right">
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(s.id, current.exerciseId)}
+                        disabled={pendingId === s.id}
+                        aria-label="Hapus sesi"
+                        className="text-muted hover:text-danger disabled:opacity-50"
+                      >
+                        🗑️
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

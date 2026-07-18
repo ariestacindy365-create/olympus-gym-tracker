@@ -55,14 +55,21 @@ export async function DELETE(_request: NextRequest, ctx: RouteContext<"/api/memb
     return NextResponse.json({ error: "Set tidak ditemukan." }, { status: 404 });
   }
 
-  const sets = await prisma.$transaction(async (tx) => {
+  const { sets, allSets } = await prisma.$transaction(async (tx) => {
     await tx.setEntry.delete({ where: { id: setId } });
     await recomputeExerciseRecords(tx, user.id, existing.exerciseId);
-    return tx.setEntry.findMany({
-      where: { memberId: user.id, exerciseId: existing.exerciseId, workoutDate: todayDateKey() },
-      orderBy: { setNumber: "asc" },
-    });
+    const [sets, allSets] = await Promise.all([
+      tx.setEntry.findMany({
+        where: { memberId: user.id, exerciseId: existing.exerciseId, workoutDate: todayDateKey() },
+        orderBy: { setNumber: "asc" },
+      }),
+      tx.setEntry.findMany({
+        where: { memberId: user.id, exerciseId: existing.exerciseId },
+        orderBy: [{ workoutDate: "asc" }, { setNumber: "asc" }],
+      }),
+    ]);
+    return { sets, allSets };
   });
 
-  return NextResponse.json({ sets });
+  return NextResponse.json({ sets, allSets });
 }

@@ -132,7 +132,7 @@ export default async function MemberDashboardPage() {
         />
       )}
 
-      <ProgressView exercises={progressExercises} referenceDate={new Date().toISOString()} />
+      <ProgressView exercises={progressExercises} referenceDate={new Date().toISOString()} canDelete />
     </div>
   );
 }
