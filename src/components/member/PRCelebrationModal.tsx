@@ -23,10 +23,20 @@ const POP = "#60a5fa";
 
 export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const [pending, setPending] = useState(false);
+  const [imagePending, setImagePending] = useState(false);
+  const [videoPending, setVideoPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [videoSupported, setVideoSupported] = useState(false);
 
   const dateLabel = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+
+  useEffect(() => {
+    setVideoSupported(
+      typeof MediaRecorder !== "undefined" &&
+        typeof HTMLCanvasElement !== "undefined" &&
+        typeof HTMLCanvasElement.prototype.captureStream === "function"
+    );
+  }, []);
 
   useEffect(() => {
     const colors = [POP, "#2563eb", "#ffffff", "#facc15"];
@@ -41,6 +51,25 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
     })();
   }, []);
 
+  function shareText() {
+    return data.isDebut
+      ? `Baru aja mulai catat ${data.exerciseName} di OLYMPUS Lifting Club! ${data.weight}kg x ${data.reps} 💪`
+      : `Baru aja PR ${data.exerciseName} ${data.weight}kg x ${data.reps} di OLYMPUS Lifting Club! 💪`;
+  }
+
+  async function shareOrDownload(file: File) {
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], title: "OLYMPUS Lifting Club", text: shareText() });
+    } else {
+      const url = URL.createObjectURL(file);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = file.name;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  }
+
   async function buildImageFile(): Promise<File> {
     if (!cardRef.current) throw new Error("card not ready");
     const dataUrl = await toPng(cardRef.current, { pixelRatio: 3, cacheBust: true });
@@ -48,36 +77,126 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
     return new File([blob], `olympus-pr-${Date.now()}.png`, { type: "image/png" });
   }
 
-  async function handleShare() {
+  async function handleShareImage() {
     setError(null);
-    setPending(true);
+    setImagePending(true);
     try {
       const file = await buildImageFile();
-      const shareText = data.isDebut
-        ? `Baru aja mulai catat ${data.exerciseName} di OLYMPUS Lifting Club! ${data.weight}kg x ${data.reps} 💪`
-        : `Baru aja PR ${data.exerciseName} ${data.weight}kg x ${data.reps} di OLYMPUS Lifting Club! 💪`;
-
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "OLYMPUS Lifting Club", text: shareText });
-      } else {
-        const url = URL.createObjectURL(file);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = file.name;
-        a.click();
-        URL.revokeObjectURL(url);
-      }
+      await shareOrDownload(file);
     } catch (e) {
       if ((e as { name?: string }).name !== "AbortError") {
         setError("Gagal menyiapkan gambar. Coba lagi.");
       }
     } finally {
-      setPending(false);
+      setImagePending(false);
+    }
+  }
+
+  async function buildVideoFile(): Promise<File> {
+    if (!cardRef.current) throw new Error("card not ready");
+    const node = cardRef.current;
+    const scale = 2;
+    const width = Math.round(node.offsetWidth * scale);
+    const height = Math.round(node.offsetHeight * scale);
+
+    const dataUrl = await toPng(node, { pixelRatio: scale, cacheBust: true });
+    const cardImg = new Image();
+    cardImg.src = dataUrl;
+    await new Promise<void>((resolve, reject) => {
+      cardImg.onload = () => resolve();
+      cardImg.onerror = () => reject(new Error("failed to load card image"));
+    });
+
+    const confettiCanvas = document.createElement("canvas");
+    confettiCanvas.width = width;
+    confettiCanvas.height = height;
+    const confettiInCanvas = confetti.create(confettiCanvas, { resize: false, useWorker: false });
+
+    const colors = [POP, "#2563eb", "#ffffff", "#facc15"];
+    confettiInCanvas({ particleCount: 90, spread: 80, startVelocity: 45, origin: { y: 0.5 }, colors });
+    const burstEnd = Date.now() + 1800;
+    (function burstFrame() {
+      confettiInCanvas({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0, y: 0.65 }, colors });
+      confettiInCanvas({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1, y: 0.65 }, colors });
+      if (Date.now() < burstEnd) requestAnimationFrame(burstFrame);
+    })();
+
+    const mimeType = ["video/mp4", "video/webm;codecs=vp9", "video/webm"].find(
+      (t) => MediaRecorder.isTypeSupported(t)
+    );
+    if (!mimeType) throw new Error("Video tidak didukung di perangkat ini.");
+
+    const outputCanvas = document.createElement("canvas");
+    outputCanvas.width = width;
+    outputCanvas.height = height;
+    const ctx2d = outputCanvas.getContext("2d");
+    if (!ctx2d) throw new Error("Canvas tidak didukung di perangkat ini.");
+    const ctx = ctx2d;
+
+    const stream = outputCanvas.captureStream(30);
+    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 4_000_000 });
+    const chunks: BlobPart[] = [];
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunks.push(e.data);
+    };
+    const recordingDone = new Promise<Blob>((resolve) => {
+      recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
+    });
+
+    recorder.start();
+
+    const duration = 3000;
+    const introDuration = 350;
+    const startTime = performance.now();
+    await new Promise<void>((resolve) => {
+      function draw(now: number) {
+        const elapsed = now - startTime;
+        const t = Math.min(elapsed / introDuration, 1);
+        const eased = 1 - Math.pow(1 - t, 3);
+        const s = 0.85 + 0.15 * eased;
+
+        ctx.clearRect(0, 0, width, height);
+        ctx.save();
+        ctx.globalAlpha = eased;
+        ctx.translate(width / 2, height / 2);
+        ctx.scale(s, s);
+        ctx.translate(-width / 2, -height / 2);
+        ctx.drawImage(cardImg, 0, 0, width, height);
+        ctx.restore();
+        ctx.drawImage(confettiCanvas, 0, 0, width, height);
+
+        if (elapsed < duration) {
+          requestAnimationFrame(draw);
+        } else {
+          resolve();
+        }
+      }
+      requestAnimationFrame(draw);
+    });
+
+    recorder.stop();
+    const blob = await recordingDone;
+    const ext = mimeType.startsWith("video/mp4") ? "mp4" : "webm";
+    return new File([blob], `olympus-pr-${Date.now()}.${ext}`, { type: mimeType });
+  }
+
+  async function handleShareVideo() {
+    setError(null);
+    setVideoPending(true);
+    try {
+      const file = await buildVideoFile();
+      await shareOrDownload(file);
+    } catch (e) {
+      if ((e as { name?: string }).name !== "AbortError") {
+        setError("Gagal menyiapkan video. Coba lagi.");
+      }
+    } finally {
+      setVideoPending(false);
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-md">
       <div className="absolute inset-0" onClick={onClose} />
       <div className="relative flex w-full max-w-sm flex-col items-center gap-4">
         <div ref={cardRef} className="w-full rounded-[32px] p-5" style={{ background: "#080d18" }}>
@@ -125,8 +244,18 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
 
         {error && <p className="text-sm text-danger">{error}</p>}
 
-        <Button onClick={handleShare} disabled={pending} className="w-full">
-          {pending ? "Menyiapkan..." : "📤 Bagikan Gambar"}
+        {videoSupported && (
+          <Button onClick={handleShareVideo} disabled={videoPending || imagePending} className="w-full">
+            {videoPending ? "Merekam video..." : "🎬 Bagikan Video ke Story"}
+          </Button>
+        )}
+        <Button
+          variant={videoSupported ? "secondary" : "primary"}
+          onClick={handleShareImage}
+          disabled={videoPending || imagePending}
+          className="w-full"
+        >
+          {imagePending ? "Menyiapkan..." : "📤 Bagikan Gambar"}
         </Button>
         <button onClick={onClose} className="text-sm text-nav-muted hover:text-nav-foreground">
           Nanti saja
