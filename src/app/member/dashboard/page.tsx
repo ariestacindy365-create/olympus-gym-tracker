@@ -127,6 +127,7 @@ export default async function MemberDashboardPage() {
           todaysSets={todaysSetsMap}
           lastSets={lastSetsMap}
           personalRecordsByExercise={personalRecordsByExercise}
+          memberName={user.name}
         />
       )}
 

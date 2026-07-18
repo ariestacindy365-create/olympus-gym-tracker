@@ -35,6 +35,7 @@ interface DashboardClientProps {
   todaysSets: Record<string, ExistingSet[]>;
   lastSets: Record<string, LastSet[]>;
   personalRecordsByExercise: Record<string, PRSummary>;
+  memberName: string;
 }
 
 export function DashboardClient({
@@ -43,6 +44,7 @@ export function DashboardClient({
   todaysSets,
   lastSets,
   personalRecordsByExercise,
+  memberName,
 }: DashboardClientProps) {
   const [exerciseId, setExerciseId] = useState(defaultExerciseId ?? exercises[0]?.id ?? "");
   const pr = personalRecordsByExercise[exerciseId] ?? { maxWeight: null, maxEstimated1RM: null };
@@ -54,6 +56,7 @@ export function DashboardClient({
         defaultExerciseId={defaultExerciseId}
         todaysSets={todaysSets}
         lastSets={lastSets}
+        memberName={memberName}
         onExerciseChange={setExerciseId}
       />
       <EstimasiBebanTable maxWeight={pr.maxWeight} maxEstimated1RM={pr.maxEstimated1RM} />

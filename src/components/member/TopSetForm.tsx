@@ -7,6 +7,7 @@ import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { LastPerformancePanel } from "@/components/member/LastPerformancePanel";
+import { PRCelebrationModal, type PRCelebrationData } from "@/components/member/PRCelebrationModal";
 
 interface ExerciseOption {
   id: string;
@@ -33,10 +34,18 @@ interface TopSetFormProps {
   defaultExerciseId: string | null;
   todaysSets: Record<string, ExistingSet[]>;
   lastSets: Record<string, LastSet[]>;
+  memberName: string;
   onExerciseChange?: (exerciseId: string) => void;
 }
 
-export function TopSetForm({ exercises, defaultExerciseId, todaysSets, lastSets, onExerciseChange }: TopSetFormProps) {
+export function TopSetForm({
+  exercises,
+  defaultExerciseId,
+  todaysSets,
+  lastSets,
+  memberName,
+  onExerciseChange,
+}: TopSetFormProps) {
   const initialExerciseId = defaultExerciseId ?? exercises[0]?.id ?? "";
   const [exerciseId, setExerciseId] = useState(initialExerciseId);
   const [saved, setSaved] = useState(todaysSets);
@@ -46,6 +55,7 @@ export function TopSetForm({ exercises, defaultExerciseId, todaysSets, lastSets,
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [justSavedPR, setJustSavedPR] = useState(false);
+  const [celebration, setCelebration] = useState<PRCelebrationData | null>(null);
 
   function handleExerciseChange(id: string) {
     setExerciseId(id);
@@ -93,6 +103,16 @@ export function TopSetForm({ exercises, defaultExerciseId, todaysSets, lastSets,
         [exerciseId]: [...(prev[exerciseId] ?? []), newSet],
       }));
       setJustSavedPR(newSet.isPR);
+      if (newSet.isPR) {
+        const exerciseName = exercises.find((ex) => ex.id === exerciseId)?.name ?? "";
+        setCelebration({
+          memberName,
+          exerciseName,
+          weight: weightNum,
+          reps: repsNum,
+          estimated1RM: data.setEntry.estimated1RM,
+        });
+      }
       setWeight("");
       setReps("");
       setNote("");
@@ -190,6 +210,8 @@ export function TopSetForm({ exercises, defaultExerciseId, todaysSets, lastSets,
           {pending ? "Menyimpan..." : `Log Set ${nextSetNumber}`}
         </Button>
       </form>
+
+      {celebration && <PRCelebrationModal data={celebration} onClose={() => setCelebration(null)} />}
     </Card>
   );
 }
