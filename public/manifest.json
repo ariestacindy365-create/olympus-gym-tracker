@@ -1,0 +1,16 @@
+{
+  "name": "OLYMPUS Lifting Club",
+  "short_name": "OLYMPUS",
+  "description": "Gym tracker untuk member dan pelatih OLYMPUS Lifting Club.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#eef1f6",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -15,6 +15,7 @@ interface ExerciseOption {
 }
 
 interface ExistingSet {
+  id: string;
   setNumber: number;
   weight: number;
   reps: number;
@@ -57,6 +58,12 @@ export function TopSetForm({
   const [justSavedPR, setJustSavedPR] = useState(false);
   const [celebration, setCelebration] = useState<PRCelebrationData | null>(null);
 
+  const [editingSetId, setEditingSetId] = useState<string | null>(null);
+  const [editWeight, setEditWeight] = useState("");
+  const [editReps, setEditReps] = useState("");
+  const [rowPendingId, setRowPendingId] = useState<string | null>(null);
+  const [rowError, setRowError] = useState<string | null>(null);
+
   function handleExerciseChange(id: string) {
     setExerciseId(id);
     setWeight("");
@@ -64,6 +71,7 @@ export function TopSetForm({
     setNote("");
     setJustSavedPR(false);
     setError(null);
+    setEditingSetId(null);
     onExerciseChange?.(id);
   }
 
@@ -92,6 +100,7 @@ export function TopSetForm({
       }
 
       const newSet: ExistingSet = {
+        id: data.setEntry.id,
         setNumber: data.setEntry.setNumber,
         weight: weightNum,
         reps: repsNum,
@@ -125,9 +134,90 @@ export function TopSetForm({
     }
   }
 
+  function startEdit(s: ExistingSet) {
+    setEditingSetId(s.id);
+    setEditWeight(String(s.weight));
+    setEditReps(String(s.reps));
+    setRowError(null);
+  }
+
+  function cancelEdit() {
+    setEditingSetId(null);
+    setRowError(null);
+  }
+
+  async function saveEdit(setId: string) {
+    setRowError(null);
+    const weightNum = Number(editWeight);
+    const repsNum = Number(editReps);
+    if (!weightNum || weightNum <= 0 || !repsNum || repsNum <= 0) {
+      setRowError("Isi beban dan reps yang valid.");
+      return;
+    }
+
+    setRowPendingId(setId);
+    try {
+      const res = await fetch(`/api/member/sets/${setId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ weight: weightNum, reps: repsNum }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setRowError(data.error ?? "Gagal menyimpan perubahan.");
+        return;
+      }
+      setSaved((prev) => ({
+        ...prev,
+        [exerciseId]: data.sets.map((s: ExistingSet) => ({
+          id: s.id,
+          setNumber: s.setNumber,
+          weight: s.weight,
+          reps: s.reps,
+          note: s.note,
+          isPR: s.isPR,
+        })),
+      }));
+      setEditingSetId(null);
+    } catch {
+      setRowError("Terjadi kesalahan. Coba lagi.");
+    } finally {
+      setRowPendingId(null);
+    }
+  }
+
+  async function handleDelete(setId: string) {
+    if (!confirm("Hapus set ini?")) return;
+    setRowPendingId(setId);
+    setRowError(null);
+    try {
+      const res = await fetch(`/api/member/sets/${setId}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        setRowError(data.error ?? "Gagal menghapus set.");
+        return;
+      }
+      setSaved((prev) => ({
+        ...prev,
+        [exerciseId]: data.sets.map((s: ExistingSet) => ({
+          id: s.id,
+          setNumber: s.setNumber,
+          weight: s.weight,
+          reps: s.reps,
+          note: s.note,
+          isPR: s.isPR,
+        })),
+      }));
+    } catch {
+      setRowError("Terjadi kesalahan. Coba lagi.");
+    } finally {
+      setRowPendingId(null);
+    }
+  }
+
   const currentSets = saved[exerciseId] ?? [];
   const lastExerciseSets = lastSets[exerciseId] ?? [];
-  const nextSetNumber = currentSets.length + 1;
+  const nextSetNumber = currentSets.length > 0 ? Math.max(...currentSets.map((s) => s.setNumber)) + 1 : 1;
 
   return (
     <Card>
@@ -157,20 +247,77 @@ export function TopSetForm({
 
         {currentSets.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            {currentSets.map((s) => (
-              <div
-                key={s.setNumber}
-                className="flex items-center justify-between rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm"
-              >
-                <span className="text-muted">Set {s.setNumber}</span>
-                <div className="flex items-center gap-2">
-                  <span>
-                    {s.reps} x {s.weight}kg
-                  </span>
-                  {s.isPR && <Badge tone="accent">PR</Badge>}
+            {currentSets.map((s) =>
+              editingSetId === s.id ? (
+                <div key={s.id} className="flex flex-col gap-2 rounded-md border border-accent bg-surface-2 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-12 shrink-0 text-xs text-muted">Set {s.setNumber}</span>
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      step="0.5"
+                      value={editWeight}
+                      onChange={(e) => setEditWeight(e.target.value)}
+                      className="!py-1"
+                      placeholder="kg"
+                    />
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      value={editReps}
+                      onChange={(e) => setEditReps(e.target.value)}
+                      className="!py-1"
+                      placeholder="reps"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="ghost" className="px-2 py-1 text-xs" onClick={cancelEdit}>
+                      Batal
+                    </Button>
+                    <Button
+                      type="button"
+                      className="px-2 py-1 text-xs"
+                      disabled={rowPendingId === s.id}
+                      onClick={() => saveEdit(s.id)}
+                    >
+                      {rowPendingId === s.id ? "..." : "Simpan"}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ) : (
+                <div
+                  key={s.id}
+                  className="flex items-center justify-between rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm"
+                >
+                  <span className="text-muted">Set {s.setNumber}</span>
+                  <div className="flex items-center gap-2">
+                    <span>
+                      {s.reps} x {s.weight}kg
+                    </span>
+                    {s.isPR && <Badge tone="accent">PR</Badge>}
+                    <button
+                      type="button"
+                      onClick={() => startEdit(s)}
+                      disabled={rowPendingId === s.id}
+                      aria-label="Edit set"
+                      className="text-muted hover:text-foreground disabled:opacity-50"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(s.id)}
+                      disabled={rowPendingId === s.id}
+                      aria-label="Hapus set"
+                      className="text-muted hover:text-danger disabled:opacity-50"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              )
+            )}
+            {rowError && <p className="text-sm text-danger">{rowError}</p>}
           </div>
         )}
 

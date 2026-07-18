@@ -30,9 +30,16 @@ export async function POST(request: NextRequest) {
   const workoutDate = todayDateKey();
 
   const setEntry = await prisma.$transaction(async (tx) => {
-    const setNumber =
-      parsed.data.setNumber ??
-      (await tx.setEntry.count({ where: { memberId: user.id, exerciseId, workoutDate } })) + 1;
+    let setNumber = parsed.data.setNumber;
+    if (setNumber === undefined) {
+      // MAX(setNumber), not COUNT — a prior set may have been deleted,
+      // leaving a gap that COUNT would collide with.
+      const agg = await tx.setEntry.aggregate({
+        where: { memberId: user.id, exerciseId, workoutDate },
+        _max: { setNumber: true },
+      });
+      setNumber = (agg._max.setNumber ?? 0) + 1;
+    }
 
     const saved = await tx.setEntry.upsert({
       where: { memberId_exerciseId_workoutDate_setNumber: { memberId: user.id, exerciseId, workoutDate, setNumber } },

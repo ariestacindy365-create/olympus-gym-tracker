@@ -19,6 +19,12 @@ export const setEntrySchema = z.object({
   note: z.string().trim().max(280).optional(),
 });
 
+export const editSetEntrySchema = z.object({
+  weight: z.number().positive().max(2000),
+  reps: z.number().int().positive().max(200),
+  note: z.string().trim().max(280).optional(),
+});
+
 export const dailyWorkoutSchema = z
   .object({
     exerciseId: z.string().min(1).optional(),

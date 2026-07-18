@@ -10,6 +10,7 @@ interface ExerciseOption {
 }
 
 interface ExistingSet {
+  id: string;
   setNumber: number;
   weight: number;
   reps: number;

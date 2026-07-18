@@ -29,10 +29,11 @@ export default async function MemberDashboardPage() {
 
   const todaysSetsMap: Record<
     string,
-    { setNumber: number; weight: number; reps: number; note: string | null; isPR: boolean }[]
+    { id: string; setNumber: number; weight: number; reps: number; note: string | null; isPR: boolean }[]
   > = {};
   for (const s of todaysSets) {
     (todaysSetsMap[s.exerciseId] ??= []).push({
+      id: s.id,
       setNumber: s.setNumber,
       weight: s.weight,
       reps: s.reps,
