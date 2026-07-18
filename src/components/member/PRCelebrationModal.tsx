@@ -80,46 +80,47 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
       <div className="absolute inset-0" onClick={onClose} />
       <div className="relative flex w-full max-w-sm flex-col items-center gap-4">
-        <div
-          ref={cardRef}
-          className="relative w-full rounded-3xl px-6 py-8 text-center"
-          style={{ background: "#0f172a", border: `2px solid ${POP}` }}
-        >
-          <button
-            onClick={onClose}
-            aria-label="Tutup"
-            className="absolute right-4 top-4 text-lg leading-none text-nav-muted hover:text-nav-foreground"
-          >
-            ✕
-          </button>
-
-          <p className="font-display text-2xl font-bold uppercase tracking-wide text-white">{data.memberName}</p>
-
-          <p className="mt-2 text-sm font-bold uppercase tracking-widest" style={{ color: POP }}>
-            {data.isDebut ? "✨ Debut Pertama" : "🔥 PR Baru!"}
-          </p>
-
-          <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-nav-muted">{data.exerciseName}</p>
-
-          <p className="mt-1 font-display text-6xl font-black" style={{ color: POP }}>
-            {data.weight}
-            <span className="text-2xl font-bold">kg</span>
-          </p>
-          <p className="mt-1 text-base text-nav-muted">&times; {data.reps} reps</p>
-
+        <div ref={cardRef} className="w-full rounded-[32px] p-5" style={{ background: "#080d18" }}>
           <div
-            className="mx-auto mt-5 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold"
-            style={{ background: POP, color: "#0f172a" }}
+            className="relative rounded-3xl px-6 py-8 text-center"
+            style={{ background: "#0f172a", border: `2px solid ${POP}` }}
           >
-            {data.isDebut ? "✨ Angkatan Pertama Dicatat" : "🏆 Rekor Baru!"}
+            <button
+              onClick={onClose}
+              aria-label="Tutup"
+              className="absolute right-4 top-4 text-lg leading-none text-nav-muted hover:text-nav-foreground"
+            >
+              ✕
+            </button>
+
+            <p className="font-display text-2xl font-bold uppercase tracking-wide text-white">{data.memberName}</p>
+
+            <p className="mt-2 text-sm font-bold uppercase tracking-widest" style={{ color: POP }}>
+              {data.isDebut ? "✨ Debut Pertama" : "🔥 PR Baru!"}
+            </p>
+
+            <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-nav-muted">{data.exerciseName}</p>
+
+            <p className="mt-1 font-display text-6xl font-black" style={{ color: POP }}>
+              {data.weight}
+              <span className="text-2xl font-bold">kg</span>
+            </p>
+            <p className="mt-1 text-base text-nav-muted">&times; {data.reps} reps</p>
+
+            <div
+              className="mx-auto mt-5 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold"
+              style={{ background: POP, color: "#0f172a" }}
+            >
+              {data.isDebut ? "✨ Angkatan Pertama Dicatat" : "🏆 Rekor Baru!"}
+            </div>
+
+            <p className="mt-3 text-xs text-nav-muted">{dateLabel}</p>
+
+            <div className="my-5 h-px w-full bg-white/10" />
+
+            {/* eslint-disable-next-line @next/next/no-img-element -- rendered off-DOM into a shareable PNG, next/image isn't applicable here */}
+            <img src="/olympus-logo-light.png" alt="OLYMPUS" className="mx-auto h-6 w-auto" />
           </div>
-
-          <p className="mt-3 text-xs text-nav-muted">{dateLabel}</p>
-
-          <div className="my-5 h-px w-full bg-white/10" />
-
-          {/* eslint-disable-next-line @next/next/no-img-element -- rendered off-DOM into a shareable PNG, next/image isn't applicable here */}
-          <img src="/olympus-logo-light.png" alt="OLYMPUS" className="mx-auto h-6 w-auto" />
         </div>
 
         {error && <p className="text-sm text-danger">{error}</p>}
