@@ -3,8 +3,6 @@ import { NavBar } from "@/components/ui/NavBar";
 
 const LINKS = [
   { href: "/member/dashboard", label: "Dashboard" },
-  { href: "/member/progress", label: "Progress" },
-  { href: "/member/records", label: "Records" },
   { href: "/member/account", label: "Akun" },
 ];
 

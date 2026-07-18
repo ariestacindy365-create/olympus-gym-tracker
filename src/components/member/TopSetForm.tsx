@@ -33,9 +33,10 @@ interface TopSetFormProps {
   defaultExerciseId: string | null;
   todaysSets: Record<string, ExistingSet[]>;
   lastSets: Record<string, LastSet[]>;
+  onExerciseChange?: (exerciseId: string) => void;
 }
 
-export function TopSetForm({ exercises, defaultExerciseId, todaysSets, lastSets }: TopSetFormProps) {
+export function TopSetForm({ exercises, defaultExerciseId, todaysSets, lastSets, onExerciseChange }: TopSetFormProps) {
   const initialExerciseId = defaultExerciseId ?? exercises[0]?.id ?? "";
   const [exerciseId, setExerciseId] = useState(initialExerciseId);
   const [saved, setSaved] = useState(todaysSets);
@@ -53,6 +54,7 @@ export function TopSetForm({ exercises, defaultExerciseId, todaysSets, lastSets 
     setNote("");
     setJustSavedPR(false);
     setError(null);
+    onExerciseChange?.(id);
   }
 
   async function handleSubmit(e: React.FormEvent) {
