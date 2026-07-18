@@ -105,12 +105,14 @@ export function TopSetForm({
       setJustSavedPR(newSet.isPR);
       if (newSet.isPR) {
         const exerciseName = exercises.find((ex) => ex.id === exerciseId)?.name ?? "";
+        const isDebut = lastExerciseSets.length === 0 && currentSets.length === 0;
         setCelebration({
           memberName,
           exerciseName,
           weight: weightNum,
           reps: repsNum,
           estimated1RM: data.setEntry.estimated1RM,
+          isDebut,
         });
       }
       setWeight("");
