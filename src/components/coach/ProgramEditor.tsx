@@ -1,19 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { MovementCombobox, type MovementOption } from "@/components/coach/MovementCombobox";
-
-interface SlotState {
-  slotLabel: string;
-  movementId: string;
-  sets: string;
-  repTarget: string;
-  targetWeight: string;
-  note: string;
-}
+import { type MovementOption } from "@/components/coach/MovementCombobox";
+import { SortableSlotRow, type SlotState } from "@/components/coach/SortableSlotRow";
 
 interface DayState {
   dayLabel: string;
@@ -63,15 +57,19 @@ function emptyDay(): DayState {
 }
 
 function emptySlot(): SlotState {
-  return { slotLabel: "", movementId: "", sets: "", repTarget: "", targetWeight: "", note: "" };
+  return {
+    id: crypto.randomUUID(),
+    slotLabel: "",
+    movementId: "",
+    sets: "",
+    repTarget: "",
+    targetWeight: "",
+    note: "",
+  };
 }
 
 function headerInputClass(extra = "") {
   return `w-full min-w-0 border-none bg-transparent px-1 py-0.5 font-display font-bold uppercase tracking-wide text-white placeholder:text-white/50 focus:outline-none focus:ring-1 focus:ring-white/40 ${extra}`;
-}
-
-function cellInputClass(extra = "") {
-  return `w-full min-w-0 rounded border border-transparent bg-transparent px-1.5 py-1 text-sm text-foreground placeholder:text-muted focus:border-accent focus:bg-surface-2 focus:outline-none ${extra}`;
 }
 
 const EMPTY_DAYS: DayState[] = [];
@@ -82,6 +80,7 @@ export function ProgramEditor({ movements, initialWeeks }: ProgramEditorProps) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const days = weeks[activeWeek] ?? EMPTY_DAYS;
 
@@ -154,6 +153,20 @@ export function ProgramEditor({ movements, initialWeeks }: ProgramEditorProps) {
     updateDay(dayIndex, { slots: nextSlots });
   }
 
+  function handleSlotDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const dayIndex = days.findIndex((d) => d.slots.some((s) => s.id === active.id));
+    if (dayIndex === -1) return;
+    const slots = days[dayIndex].slots;
+    const oldIndex = slots.findIndex((s) => s.id === active.id);
+    const newIndex = slots.findIndex((s) => s.id === over.id);
+    // newIndex === -1 means `over` belongs to a different day's list — ignore,
+    // slots only reorder within their own day.
+    if (oldIndex === -1 || newIndex === -1) return;
+    updateDay(dayIndex, { slots: arrayMove(slots, oldIndex, newIndex) });
+  }
+
   async function handleSave() {
     setError(null);
     setSaved(false);
@@ -194,6 +207,7 @@ export function ProgramEditor({ movements, initialWeeks }: ProgramEditorProps) {
         return;
       }
       interface SavedSlot {
+        id: string;
         slotLabel: string | null;
         movementId: string;
         sets: number | null;
@@ -210,6 +224,7 @@ export function ProgramEditor({ movements, initialWeeks }: ProgramEditorProps) {
         dayLabel: d.dayLabel,
         focusLabel: d.focusLabel ?? "",
         slots: d.slots.map((s) => ({
+          id: s.id,
           slotLabel: s.slotLabel ?? "",
           movementId: s.movementId,
           sets: s.sets != null ? String(s.sets) : "",
@@ -250,123 +265,79 @@ export function ProgramEditor({ movements, initialWeeks }: ProgramEditorProps) {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-border bg-surface-2 text-left text-xs font-semibold uppercase tracking-wide text-muted">
-                <th className="w-16 px-3 py-2">Slot</th>
-                <th className="px-3 py-2">Nama Gerakan</th>
-                <th className="w-16 px-3 py-2">Set</th>
-                <th className="w-24 px-3 py-2">Rep Target</th>
-                <th className="w-24 px-3 py-2">Beban (kg)</th>
-                <th className="px-3 py-2">Catatan</th>
-                <th className="w-8 px-2 py-2" />
-              </tr>
-            </thead>
-            {days.map((day, dayIndex) => (
-              <tbody key={dayIndex}>
-                <tr>
-                  <td colSpan={7} className="p-0" style={{ background: DAY_COLORS[dayIndex % DAY_COLORS.length] }}>
-                    <div className="flex items-center gap-2 px-3 py-2">
-                      <input
-                        placeholder="HARI"
-                        value={day.dayLabel}
-                        onChange={(e) => updateDay(dayIndex, { dayLabel: e.target.value.toUpperCase() })}
-                        className={headerInputClass("max-w-[110px] shrink-0")}
-                      />
-                      <span className="text-white/60">&middot;</span>
-                      <input
-                        placeholder="FOKUS"
-                        value={day.focusLabel}
-                        onChange={(e) => updateDay(dayIndex, { focusLabel: e.target.value })}
-                        className={headerInputClass("flex-1")}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeDay(dayIndex)}
-                        className="shrink-0 rounded px-2 py-1 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white"
-                      >
-                        Hapus Hari
-                      </button>
-                    </div>
-                  </td>
+          <DndContext
+            id="program-slots-dnd"
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleSlotDragEnd}
+          >
+            <table className="w-full min-w-[720px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border bg-surface-2 text-left text-xs font-semibold uppercase tracking-wide text-muted">
+                  <th className="w-24 px-3 py-2">Slot</th>
+                  <th className="px-3 py-2">Nama Gerakan</th>
+                  <th className="w-16 px-3 py-2">Set</th>
+                  <th className="w-24 px-3 py-2">Rep Target</th>
+                  <th className="w-24 px-3 py-2">Beban (kg)</th>
+                  <th className="px-3 py-2">Catatan</th>
+                  <th className="w-8 px-2 py-2" />
                 </tr>
-                {day.slots.map((slot, slotIndex) => (
-                  <tr key={slotIndex} className={slotIndex % 2 === 0 ? "bg-surface" : "bg-surface-2/40"}>
-                    <td className="border-b border-border px-2 py-1 align-top">
-                      <input
-                        placeholder="-"
-                        value={slot.slotLabel}
-                        onChange={(e) => updateSlot(dayIndex, slotIndex, { slotLabel: e.target.value })}
-                        className={cellInputClass("font-semibold text-muted")}
-                      />
+              </thead>
+              {days.map((day, dayIndex) => (
+                <tbody key={dayIndex}>
+                  <tr>
+                    <td colSpan={7} className="p-0" style={{ background: DAY_COLORS[dayIndex % DAY_COLORS.length] }}>
+                      <div className="flex items-center gap-2 px-3 py-2">
+                        <input
+                          placeholder="HARI"
+                          value={day.dayLabel}
+                          onChange={(e) => updateDay(dayIndex, { dayLabel: e.target.value.toUpperCase() })}
+                          className={headerInputClass("max-w-[110px] shrink-0")}
+                        />
+                        <span className="text-white/60">&middot;</span>
+                        <input
+                          placeholder="FOKUS"
+                          value={day.focusLabel}
+                          onChange={(e) => updateDay(dayIndex, { focusLabel: e.target.value })}
+                          className={headerInputClass("flex-1")}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeDay(dayIndex)}
+                          className="shrink-0 rounded px-2 py-1 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white"
+                        >
+                          Hapus Hari
+                        </button>
+                      </div>
                     </td>
-                    <td className="border-b border-border px-2 py-1 align-top">
-                      <MovementCombobox
+                  </tr>
+                  <SortableContext items={day.slots.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+                    {day.slots.map((slot, slotIndex) => (
+                      <SortableSlotRow
+                        key={slot.id}
+                        slot={slot}
+                        striped={slotIndex % 2 === 0}
                         movements={movements}
-                        value={slot.movementId}
-                        onChange={(movementId) => updateSlot(dayIndex, slotIndex, { movementId })}
+                        onChange={(patch) => updateSlot(dayIndex, slotIndex, patch)}
+                        onRemove={() => removeSlot(dayIndex, slotIndex)}
                       />
-                    </td>
-                    <td className="border-b border-border px-2 py-1 align-top">
-                      <input
-                        type="number"
-                        placeholder="-"
-                        value={slot.sets}
-                        onChange={(e) => updateSlot(dayIndex, slotIndex, { sets: e.target.value })}
-                        className={cellInputClass()}
-                      />
-                    </td>
-                    <td className="border-b border-border px-2 py-1 align-top">
-                      <input
-                        placeholder="-"
-                        value={slot.repTarget}
-                        onChange={(e) => updateSlot(dayIndex, slotIndex, { repTarget: e.target.value })}
-                        className={cellInputClass()}
-                      />
-                    </td>
-                    <td className="border-b border-border px-2 py-1 align-top">
-                      <input
-                        type="number"
-                        placeholder="-"
-                        value={slot.targetWeight}
-                        onChange={(e) => updateSlot(dayIndex, slotIndex, { targetWeight: e.target.value })}
-                        className={cellInputClass()}
-                      />
-                    </td>
-                    <td className="border-b border-border px-2 py-1 align-top">
-                      <input
-                        placeholder="-"
-                        value={slot.note}
-                        onChange={(e) => updateSlot(dayIndex, slotIndex, { note: e.target.value })}
-                        className={cellInputClass()}
-                      />
-                    </td>
-                    <td className="border-b border-border px-1 py-1 align-top text-center">
+                    ))}
+                  </SortableContext>
+                  <tr>
+                    <td colSpan={7} className="border-b border-border bg-surface px-3 py-2">
                       <button
                         type="button"
-                        onClick={() => removeSlot(dayIndex, slotIndex)}
-                        className="text-muted hover:text-danger"
-                        aria-label="Hapus gerakan"
+                        onClick={() => addSlot(dayIndex)}
+                        className="text-xs font-semibold text-accent hover:underline"
                       >
-                        &#10005;
+                        + Tambah Gerakan
                       </button>
                     </td>
                   </tr>
-                ))}
-                <tr>
-                  <td colSpan={7} className="border-b border-border bg-surface px-3 py-2">
-                    <button
-                      type="button"
-                      onClick={() => addSlot(dayIndex)}
-                      className="text-xs font-semibold text-accent hover:underline"
-                    >
-                      + Tambah Gerakan
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            ))}
-          </table>
+                </tbody>
+              ))}
+            </table>
+          </DndContext>
         </div>
 
         <div className="px-3 py-3">

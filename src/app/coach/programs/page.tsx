@@ -40,6 +40,7 @@ function mapDays(
     dayLabel: string;
     focusLabel: string | null;
     slots: {
+      id: string;
       slotLabel: string | null;
       movementId: string;
       sets: number | null;
@@ -53,6 +54,7 @@ function mapDays(
     dayLabel: d.dayLabel,
     focusLabel: d.focusLabel ?? "",
     slots: d.slots.map((s) => ({
+      id: s.id,
       slotLabel: s.slotLabel ?? "",
       movementId: s.movementId,
       sets: s.sets != null ? String(s.sets) : "",
