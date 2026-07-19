@@ -58,6 +58,7 @@ function mapDays(
       movementId: string;
       sets: number | null;
       repTarget: string | null;
+      targetWeight: number | null;
       note: string | null;
     }[];
   }[]
@@ -70,6 +71,7 @@ function mapDays(
       movementId: s.movementId,
       sets: s.sets != null ? String(s.sets) : "",
       repTarget: s.repTarget ?? "",
+      targetWeight: s.targetWeight != null ? String(s.targetWeight) : "",
       note: s.note ?? "",
     })),
   }));
