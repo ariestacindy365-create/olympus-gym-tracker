@@ -7,22 +7,17 @@ import { Role } from "@/generated/prisma/client";
 
 export async function PUT(
   request: NextRequest,
-  ctx: RouteContext<"/api/coach/programs/[memberId]/[weekNumber]">
+  ctx: RouteContext<"/api/coach/programs/[weekNumber]">
 ) {
   const coach = await getCurrentUser();
   if (!coach || coach.role !== Role.COACH) {
     return NextResponse.json({ error: "Not authorized." }, { status: 401 });
   }
 
-  const { memberId, weekNumber: weekNumberRaw } = await ctx.params;
+  const { weekNumber: weekNumberRaw } = await ctx.params;
   const weekNumber = Number(weekNumberRaw);
   if (!Number.isInteger(weekNumber) || weekNumber < 1 || weekNumber > 4) {
     return NextResponse.json({ error: "Minggu harus antara 1-4." }, { status: 400 });
-  }
-
-  const member = await prisma.user.findUnique({ where: { id: memberId } });
-  if (!member || member.role !== Role.MEMBER) {
-    return NextResponse.json({ error: "Member tidak ditemukan." }, { status: 404 });
   }
 
   const body = await request.json().catch(() => null);
@@ -33,8 +28,8 @@ export async function PUT(
 
   const days = await prisma.$transaction(async (tx) => {
     const program = await tx.trainingProgram.upsert({
-      where: { memberId_weekNumber: { memberId, weekNumber } },
-      create: { memberId, weekNumber, coachId: coach.id },
+      where: { weekNumber },
+      create: { weekNumber, coachId: coach.id },
       update: { coachId: coach.id },
     });
 

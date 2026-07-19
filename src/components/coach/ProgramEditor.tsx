@@ -22,7 +22,6 @@ interface DayState {
 }
 
 interface ProgramEditorProps {
-  memberId: string;
   movements: MovementOption[];
   initialWeeks: Record<number, DayState[]>;
 }
@@ -77,7 +76,7 @@ function cellInputClass(extra = "") {
 
 const EMPTY_DAYS: DayState[] = [];
 
-export function ProgramEditor({ memberId, movements, initialWeeks }: ProgramEditorProps) {
+export function ProgramEditor({ movements, initialWeeks }: ProgramEditorProps) {
   const [weeks, setWeeks] = useState(initialWeeks);
   const [activeWeek, setActiveWeek] = useState(1);
   const [pending, setPending] = useState(false);
@@ -184,7 +183,7 @@ export function ProgramEditor({ memberId, movements, initialWeeks }: ProgramEdit
 
     setPending(true);
     try {
-      const res = await fetch(`/api/coach/programs/${memberId}/${activeWeek}`, {
+      const res = await fetch(`/api/coach/programs/${activeWeek}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

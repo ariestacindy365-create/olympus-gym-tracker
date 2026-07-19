@@ -33,7 +33,6 @@ model User {
   setEntries           SetEntry[]
   personalRecords      PersonalRecord[]
   dailyWorkoutsCreated DailyWorkout[]    @relation("CoachDailyWorkouts")
-  programsAsMember     TrainingProgram[] @relation("MemberPrograms")
   programsAsCoach      TrainingProgram[] @relation("CoachPrograms")
 }
 
@@ -116,19 +115,17 @@ model Movement {
   slots ProgramSlot[]
 }
 
+// A single shared weekly bootcamp-class program, visible to every coach —
+// not tied to an individual member.
 model TrainingProgram {
   id         String   @id @default(cuid())
-  memberId   String
-  member     User     @relation("MemberPrograms", fields: [memberId], references: [id])
-  weekNumber Int
+  weekNumber Int      @unique
   coachId    String
   coach      User     @relation("CoachPrograms", fields: [coachId], references: [id])
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   days ProgramDay[]
-
-  @@unique([memberId, weekNumber])
 }
 
 model ProgramDay {

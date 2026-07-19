@@ -1,40 +1,64 @@
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { Card } from "@/components/ui/Card";
-import { Role } from "@/generated/prisma/client";
+import { ProgramEditor } from "@/components/coach/ProgramEditor";
 
 export default async function CoachProgramsPage() {
-  const members = await prisma.user.findMany({
-    where: { role: Role.MEMBER },
-    orderBy: { name: "asc" },
-  });
+  const [programs, movements] = await Promise.all([
+    prisma.trainingProgram.findMany({
+      include: {
+        days: {
+          orderBy: { order: "asc" },
+          include: { slots: { orderBy: { order: "asc" } } },
+        },
+      },
+    }),
+    prisma.movement.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, category: true, equipment: true, primaryMuscle: true },
+    }),
+  ]);
+
+  const initialWeeks: Record<number, ReturnType<typeof mapDays>> = {};
+  for (let w = 1; w <= 4; w++) {
+    const program = programs.find((p) => p.weekNumber === w);
+    initialWeeks[w] = mapDays(program?.days ?? []);
+  }
 
   return (
     <div className="flex flex-col gap-4">
       <div>
         <h1 className="font-display text-2xl font-bold">Program Latihan</h1>
-        <p className="text-sm text-muted">Pilih member untuk membuat atau mengubah program latihan mingguan.</p>
+        <p className="text-sm text-muted">Program bootcamp class mingguan, berlaku untuk semua member.</p>
       </div>
 
-      {members.length === 0 ? (
-        <Card>
-          <p className="text-sm text-muted">Belum ada member.</p>
-        </Card>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {members.map((member) => (
-            <Link key={member.id} href={`/coach/programs/${member.id}`}>
-              <Card className="flex items-center justify-between transition hover:border-accent">
-                <div>
-                  <p className="font-medium">{member.name}</p>
-                  <p className="text-xs text-muted">{member.email}</p>
-                </div>
-                <span className="text-muted">&rarr;</span>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      )}
+      <ProgramEditor movements={movements} initialWeeks={initialWeeks} />
     </div>
   );
+}
+
+function mapDays(
+  days: {
+    dayLabel: string;
+    focusLabel: string | null;
+    slots: {
+      slotLabel: string | null;
+      movementId: string;
+      sets: number | null;
+      repTarget: string | null;
+      targetWeight: number | null;
+      note: string | null;
+    }[];
+  }[]
+) {
+  return days.map((d) => ({
+    dayLabel: d.dayLabel,
+    focusLabel: d.focusLabel ?? "",
+    slots: d.slots.map((s) => ({
+      slotLabel: s.slotLabel ?? "",
+      movementId: s.movementId,
+      sets: s.sets != null ? String(s.sets) : "",
+      repTarget: s.repTarget ?? "",
+      targetWeight: s.targetWeight != null ? String(s.targetWeight) : "",
+      note: s.note ?? "",
+    })),
+  }));
 }
