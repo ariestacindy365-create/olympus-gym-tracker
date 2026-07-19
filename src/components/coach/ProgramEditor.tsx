@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { MovementCombobox, type MovementOption } from "@/components/coach/MovementCombobox";
 
@@ -30,6 +31,34 @@ const WEEKS = [1, 2, 3, 4];
 
 const DAY_COLORS = ["#1e3a5f", "#7c2d12", "#065f46", "#4c1d95", "#7f1d1d", "#134e4a"];
 
+// Weekly volume landmarks per primary muscle group, matching the coach's
+// reference (8-16 sets/muscle for a 3x/week program). Only these muscles are
+// tracked — sub-categories like "Bahu Depan" or conditioning tags like
+// "Kardio" aren't primary hypertrophy targets, so they're excluded.
+const MUSCLE_TARGETS: { label: string; emoji: string; min: number; max: number }[] = [
+  { label: "Dada", emoji: "💪", min: 8, max: 15 },
+  { label: "Bahu", emoji: "💪", min: 8, max: 15 },
+  { label: "Trisep", emoji: "💪", min: 8, max: 14 },
+  { label: "Paha Depan", emoji: "🦵", min: 9, max: 16 },
+  { label: "Glutes", emoji: "🍑", min: 9, max: 16 },
+  { label: "Hamstring", emoji: "🦵", min: 8, max: 14 },
+  { label: "Punggung Atas", emoji: "🔙", min: 9, max: 16 },
+  { label: "Punggung Bawah", emoji: "🔙", min: 6, max: 10 },
+  { label: "Bisep", emoji: "💪", min: 8, max: 14 },
+  { label: "Betis", emoji: "🦵", min: 8, max: 12 },
+  { label: "Core", emoji: "🔲", min: 6, max: 12 },
+];
+
+// Kamus Gerakan tags some movements with a regional sub-category instead of
+// the parent muscle group used above; roll those into the parent bucket so
+// they still count toward its weekly volume.
+const MUSCLE_ROLLUP: Record<string, string> = {
+  "Bahu Depan": "Bahu",
+  "Bahu Samping": "Bahu",
+  "Glutes Med": "Glutes",
+  "Dada Atas": "Dada",
+};
+
 function emptyDay(): DayState {
   return { dayLabel: "", focusLabel: "", slots: [] };
 }
@@ -46,6 +75,8 @@ function cellInputClass(extra = "") {
   return `w-full min-w-0 rounded border border-transparent bg-transparent px-1.5 py-1 text-sm text-foreground placeholder:text-muted focus:border-accent focus:bg-surface-2 focus:outline-none ${extra}`;
 }
 
+const EMPTY_DAYS: DayState[] = [];
+
 export function ProgramEditor({ memberId, movements, initialWeeks }: ProgramEditorProps) {
   const [weeks, setWeeks] = useState(initialWeeks);
   const [activeWeek, setActiveWeek] = useState(1);
@@ -53,7 +84,45 @@ export function ProgramEditor({ memberId, movements, initialWeeks }: ProgramEdit
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const days = weeks[activeWeek] ?? [];
+  const days = weeks[activeWeek] ?? EMPTY_DAYS;
+
+  const movementMuscle = useMemo(
+    () => new Map(movements.map((m) => [m.id, m.primaryMuscle])),
+    [movements]
+  );
+
+  const volumeSummary = useMemo(() => {
+    const totals = new Map<string, number>();
+    for (const day of days) {
+      for (const slot of day.slots) {
+        if (!slot.movementId) continue;
+        // FINISHER-block conditioning work (unlabeled continuation rows and
+        // the "FINISHER" row itself) doesn't count toward muscle volume —
+        // only the 6 main lettered slots (A1/A2/B1/B2/C1/C2) do.
+        const label = slot.slotLabel.trim().toUpperCase();
+        if (!label || label === "FINISHER") continue;
+        const rawMuscle = movementMuscle.get(slot.movementId);
+        if (!rawMuscle) continue;
+        const muscle = MUSCLE_ROLLUP[rawMuscle] ?? rawMuscle;
+        const setsNum = Number(slot.sets) || 0;
+        totals.set(muscle, (totals.get(muscle) ?? 0) + setsNum);
+      }
+    }
+    return MUSCLE_TARGETS.map((mt) => {
+      const total = totals.get(mt.label) ?? 0;
+      let status: { text: string; tone: "success" | "danger" | "accent" | "muted" };
+      if (total === 0) {
+        status = { text: "—", tone: "muted" };
+      } else if (total < mt.min) {
+        status = { text: `⚠️ Kurang (min ${mt.min} set)`, tone: "danger" };
+      } else if (total > mt.max) {
+        status = { text: "⚡ Lebih", tone: "accent" };
+      } else {
+        status = { text: "✅ Oke", tone: "success" };
+      }
+      return { ...mt, total, status };
+    });
+  }, [days, movementMuscle]);
 
   function updateDays(next: DayState[]) {
     setWeeks((prev) => ({ ...prev, [activeWeek]: next }));
@@ -306,6 +375,48 @@ export function ProgramEditor({ memberId, movements, initialWeeks }: ProgramEdit
             + Tambah Hari
           </Button>
         </div>
+      </Card>
+
+      <Card className="p-0">
+        <div className="rounded-t-lg bg-[#0f172a] px-4 py-3 text-center font-display text-lg font-bold uppercase tracking-wide text-white">
+          Rangkuman Volume Otot &mdash; Minggu {activeWeek}
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-border bg-surface-2 text-left text-xs font-semibold uppercase tracking-wide text-muted">
+                <th className="px-3 py-2">Otot</th>
+                <th className="w-24 px-3 py-2">Total Set</th>
+                <th className="w-24 px-3 py-2">Target Min</th>
+                <th className="w-24 px-3 py-2">Target Maks</th>
+                <th className="w-40 px-3 py-2">Status</th>
+                <th className="px-3 py-2">Catatan</th>
+              </tr>
+            </thead>
+            <tbody>
+              {volumeSummary.map((row, i) => (
+                <tr key={row.label} className={i % 2 === 0 ? "bg-surface" : "bg-surface-2/40"}>
+                  <td className="border-b border-border px-3 py-2 font-medium">
+                    {row.emoji} {row.label}
+                  </td>
+                  <td className="border-b border-border px-3 py-2 font-semibold">{row.total}</td>
+                  <td className="border-b border-border px-3 py-2 text-muted">{row.min}</td>
+                  <td className="border-b border-border px-3 py-2 text-muted">{row.max}</td>
+                  <td className="border-b border-border px-3 py-2">
+                    <Badge tone={row.status.tone}>{row.status.text}</Badge>
+                  </td>
+                  <td className="border-b border-border px-3 py-2 text-muted">-</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="px-4 py-3 text-xs text-muted">
+          📊 Hanya otot PRIMER, dari {movements.length} gerakan di Kamus Gerakan. Target volume mingguan mengacu pada
+          rekomendasi 8-16 set/otot untuk program 3x/minggu.
+        </p>
       </Card>
 
       {error && <p className="text-sm text-danger">{error}</p>}

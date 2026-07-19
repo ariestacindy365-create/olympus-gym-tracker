@@ -27,7 +27,7 @@ export default async function CoachProgramMemberPage({
     }),
     prisma.movement.findMany({
       orderBy: { name: "asc" },
-      select: { id: true, name: true, category: true, equipment: true },
+      select: { id: true, name: true, category: true, equipment: true, primaryMuscle: true },
     }),
   ]);
 

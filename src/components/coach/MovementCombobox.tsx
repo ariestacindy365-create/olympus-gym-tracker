@@ -9,6 +9,7 @@ export interface MovementOption {
   name: string;
   category: string | null;
   equipment: string | null;
+  primaryMuscle: string | null;
 }
 
 interface MovementComboboxProps {
