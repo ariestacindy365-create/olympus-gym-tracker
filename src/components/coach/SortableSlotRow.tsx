@@ -20,13 +20,21 @@ interface SortableSlotRowProps {
   movements: MovementOption[];
   onChange: (patch: Partial<SlotState>) => void;
   onRemove: () => void;
+  onMovementCreated: (movement: MovementOption) => void;
 }
 
 function cellInputClass(extra = "") {
   return `w-full min-w-0 rounded border border-transparent bg-transparent px-1.5 py-1 text-sm text-foreground placeholder:text-muted focus:border-accent focus:bg-surface-2 focus:outline-none ${extra}`;
 }
 
-export function SortableSlotRow({ slot, striped, movements, onChange, onRemove }: SortableSlotRowProps) {
+export function SortableSlotRow({
+  slot,
+  striped,
+  movements,
+  onChange,
+  onRemove,
+  onMovementCreated,
+}: SortableSlotRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: slot.id });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -63,6 +71,7 @@ export function SortableSlotRow({ slot, striped, movements, onChange, onRemove }
           movements={movements}
           value={slot.movementId}
           onChange={(movementId) => onChange({ movementId })}
+          onMovementCreated={onMovementCreated}
         />
       </td>
       <td className="border-b border-border px-2 py-1 align-top">

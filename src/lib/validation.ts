@@ -76,3 +76,13 @@ export const programDaySchema = z.object({
 export const saveProgramWeekSchema = z.object({
   days: z.array(programDaySchema).max(7),
 });
+
+export const createMovementSchema = z.object({
+  name: z.string().trim().min(2, { error: "Nama gerakan minimal 2 karakter." }).max(120),
+  primaryMuscle: z.string().trim().min(1, { error: "Isi otot primer." }).max(60),
+  secondaryMuscle: z.string().trim().max(120).optional(),
+  category: z.string().trim().min(1, { error: "Isi kategori." }).max(60),
+  equipment: z.string().trim().min(1, { error: "Isi alat." }).max(60),
+  repRangeHint: z.string().trim().max(40).optional(),
+  setRangeHint: z.string().trim().max(20).optional(),
+});

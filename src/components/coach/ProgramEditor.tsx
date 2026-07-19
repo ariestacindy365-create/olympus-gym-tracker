@@ -74,13 +74,18 @@ function headerInputClass(extra = "") {
 
 const EMPTY_DAYS: DayState[] = [];
 
-export function ProgramEditor({ movements, initialWeeks }: ProgramEditorProps) {
+export function ProgramEditor({ movements: initialMovements, initialWeeks }: ProgramEditorProps) {
   const [weeks, setWeeks] = useState(initialWeeks);
+  const [movements, setMovements] = useState(initialMovements);
   const [activeWeek, setActiveWeek] = useState(1);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  function handleMovementCreated(movement: MovementOption) {
+    setMovements((prev) => [...prev, movement].sort((a, b) => a.name.localeCompare(b.name)));
+  }
 
   const days = weeks[activeWeek] ?? EMPTY_DAYS;
 
@@ -320,6 +325,7 @@ export function ProgramEditor({ movements, initialWeeks }: ProgramEditorProps) {
                         movements={movements}
                         onChange={(patch) => updateSlot(dayIndex, slotIndex, patch)}
                         onRemove={() => removeSlot(dayIndex, slotIndex)}
+                        onMovementCreated={handleMovementCreated}
                       />
                     ))}
                   </SortableContext>
