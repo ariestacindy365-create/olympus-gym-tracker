@@ -72,7 +72,7 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
 
   async function buildImageFile(): Promise<File> {
     if (!cardRef.current) throw new Error("card not ready");
-    const dataUrl = await toPng(cardRef.current, { pixelRatio: 3, cacheBust: true });
+    const dataUrl = await toPng(cardRef.current, { pixelRatio: 3 });
     const blob = await (await fetch(dataUrl)).blob();
     return new File([blob], `olympus-pr-${Date.now()}.png`, { type: "image/png" });
   }
@@ -85,7 +85,9 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
       await shareOrDownload(file);
     } catch (e) {
       if ((e as { name?: string }).name !== "AbortError") {
-        setError("Gagal menyiapkan gambar. Coba lagi.");
+        console.error("PR image share failed:", e);
+        const detail = e instanceof Error && e.message ? ` (${e.message})` : "";
+        setError(`Gagal menyiapkan gambar. Coba lagi.${detail}`);
       }
     } finally {
       setImagePending(false);
@@ -99,12 +101,12 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
     const width = Math.round(node.offsetWidth * scale);
     const height = Math.round(node.offsetHeight * scale);
 
-    const dataUrl = await toPng(node, { pixelRatio: scale, cacheBust: true });
+    const dataUrl = await toPng(node, { pixelRatio: scale });
     const cardImg = new Image();
     cardImg.src = dataUrl;
     await new Promise<void>((resolve, reject) => {
       cardImg.onload = () => resolve();
-      cardImg.onerror = () => reject(new Error("failed to load card image"));
+      cardImg.onerror = () => reject(new Error("Gagal memuat gambar kartu."));
     });
 
     const confettiCanvas = document.createElement("canvas");
@@ -194,7 +196,9 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
       await shareOrDownload(file);
     } catch (e) {
       if ((e as { name?: string }).name !== "AbortError") {
-        setError("Gagal menyiapkan video. Coba lagi.");
+        console.error("PR video share failed:", e);
+        const detail = e instanceof Error && e.message ? ` (${e.message})` : "";
+        setError(`Gagal menyiapkan video. Coba lagi.${detail}`);
       }
     } finally {
       setVideoPending(false);
