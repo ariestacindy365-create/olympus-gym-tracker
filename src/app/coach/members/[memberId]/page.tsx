@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { MemberStatusBadge } from "@/components/coach/MemberStatusBadge";
 import { ProgressView, type ExerciseProgress } from "@/components/shared/ProgressView";
+import { CoachSetLogger } from "@/components/coach/CoachSetLogger";
 import { Role } from "@/generated/prisma/client";
 
 export default async function CoachMemberDetailPage({
@@ -20,7 +21,7 @@ export default async function CoachMemberDetailPage({
     notFound();
   }
 
-  const [setEntries, records, loggedToday] = await Promise.all([
+  const [setEntries, records, loggedToday, exercises] = await Promise.all([
     prisma.setEntry.findMany({
       where: { memberId },
       include: { exercise: true },
@@ -32,6 +33,7 @@ export default async function CoachMemberDetailPage({
       orderBy: [{ exercise: { name: "asc" } }, { type: "asc" }],
     }),
     hasLoggedToday(memberId),
+    prisma.exercise.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   const byExercise = new Map<string, typeof records>();
@@ -94,7 +96,10 @@ export default async function CoachMemberDetailPage({
         )}
       </Card>
 
+      <CoachSetLogger memberId={memberId} exercises={exercises} />
+
       <ProgressView
+        key={setEntries.length}
         exercises={progressExercises}
         referenceDate={new Date().toISOString()}
         canEdit
