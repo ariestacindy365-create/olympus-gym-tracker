@@ -9,6 +9,7 @@ import { PRToast, type PREvent } from "@/components/coach/PRToast";
 import { CLASS_SESSIONS, getCurrentClassSession, isWithinSession } from "@/lib/classSessions";
 
 const POLL_INTERVAL_MS = 4000;
+const ALL_EXERCISES = "__all__";
 
 interface Member {
   id: string;
@@ -80,8 +81,10 @@ export function LiveBoard({ exercises, defaultExerciseId }: LiveBoardProps) {
     return CLASS_SESSIONS.find((s) => s.id === sessionFilter) ?? null;
   }, [sessionFilter]);
 
+  const showingAllExercises = exerciseFilter === ALL_EXERCISES;
+
   const { ranked, showingAllFallback } = useMemo(() => {
-    const forExercise = rows.filter((r) => r.exerciseId === exerciseFilter);
+    const forExercise = showingAllExercises ? rows : rows.filter((r) => r.exerciseId === exerciseFilter);
     const bySession = forExercise.filter(
       (r) => !activeSession || isWithinSession(new Date(r.updatedAt), activeSession)
     );
@@ -90,8 +93,13 @@ export function LiveBoard({ exercises, defaultExerciseId }: LiveBoardProps) {
     // to today's full list rather than showing a misleading "no data" board.
     const fallback = sessionFilter === "auto" && activeSession !== null && bySession.length === 0;
     const filtered = fallback ? forExercise : bySession;
-    return { ranked: [...filtered].sort((a, b) => b.weight - a.weight), showingAllFallback: fallback };
-  }, [rows, exerciseFilter, activeSession, sessionFilter]);
+    // Weight isn't comparable across different exercises, so "Semua Gerakan"
+    // orders by most recent activity instead of a false weight leaderboard.
+    const sorted = showingAllExercises
+      ? [...filtered].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      : [...filtered].sort((a, b) => b.weight - a.weight);
+    return { ranked: sorted, showingAllFallback: fallback };
+  }, [rows, exerciseFilter, activeSession, sessionFilter, showingAllExercises]);
 
   const rankedMemberIds = new Set(ranked.map((r) => r.memberId));
   const missingMembers = members.filter((m) => !rankedMemberIds.has(m.id));
@@ -116,6 +124,7 @@ export function LiveBoard({ exercises, defaultExerciseId }: LiveBoardProps) {
               onChange={(e) => setExerciseFilter(e.target.value)}
               className="sm:max-w-xs"
             >
+              <option value={ALL_EXERCISES}>Semua Gerakan</option>
               {exercises.map((ex) => (
                 <option key={ex.id} value={ex.id}>
                   {ex.name}
@@ -141,7 +150,7 @@ export function LiveBoard({ exercises, defaultExerciseId }: LiveBoardProps) {
             {ranked.map((row, i) => (
               <LiveBoardRow
                 key={row.id}
-                rank={i + 1}
+                rank={showingAllExercises ? null : i + 1}
                 memberId={row.memberId}
                 memberName={row.memberName}
                 online={row.online}
