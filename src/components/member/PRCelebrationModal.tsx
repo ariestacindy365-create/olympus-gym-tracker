@@ -27,6 +27,11 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
   const [videoPending, setVideoPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [videoSupported, setVideoSupported] = useState(false);
+  // navigator.share() must run inside a fresh user gesture — it can't be
+  // called after the multi-second async video build, or browsers reject it
+  // ("Must be handling a user gesture"). So building and sharing become two
+  // taps: the first builds the file, the second (a brand new click) shares it.
+  const [videoReady, setVideoReady] = useState<File | null>(null);
 
   const dateLabel = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 
@@ -190,13 +195,33 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
 
   async function handleShareVideo() {
     setError(null);
+
+    if (videoReady) {
+      // Second tap: this click is itself a fresh user gesture, so the
+      // share/download call happens synchronously within it.
+      setVideoPending(true);
+      try {
+        await shareOrDownload(videoReady);
+        setVideoReady(null);
+      } catch (e) {
+        if ((e as { name?: string }).name !== "AbortError") {
+          console.error("PR video share failed:", e);
+          const detail = e instanceof Error && e.message ? ` (${e.message})` : "";
+          setError(`Gagal membagikan video. Coba lagi.${detail}`);
+        }
+      } finally {
+        setVideoPending(false);
+      }
+      return;
+    }
+
     setVideoPending(true);
     try {
       const file = await buildVideoFile();
-      await shareOrDownload(file);
+      setVideoReady(file);
     } catch (e) {
       if ((e as { name?: string }).name !== "AbortError") {
-        console.error("PR video share failed:", e);
+        console.error("PR video build failed:", e);
         const detail = e instanceof Error && e.message ? ` (${e.message})` : "";
         setError(`Gagal menyiapkan video. Coba lagi.${detail}`);
       }
@@ -256,7 +281,13 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
 
         {videoSupported && (
           <Button onClick={handleShareVideo} disabled={videoPending || imagePending} className="w-full">
-            {videoPending ? "Merekam video..." : "🎬 Bagikan Video ke Story"}
+            {videoPending
+              ? videoReady
+                ? "Membagikan..."
+                : "Merekam video..."
+              : videoReady
+                ? "✅ Video siap — tap untuk bagikan"
+                : "🎬 Bagikan Video ke Story"}
           </Button>
         )}
         <Button
