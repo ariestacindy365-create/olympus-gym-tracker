@@ -80,12 +80,18 @@ export function LiveBoard({ exercises, defaultExerciseId }: LiveBoardProps) {
     return CLASS_SESSIONS.find((s) => s.id === sessionFilter) ?? null;
   }, [sessionFilter]);
 
-  const ranked = useMemo(() => {
-    const filtered = rows
-      .filter((r) => r.exerciseId === exerciseFilter)
-      .filter((r) => !activeSession || isWithinSession(new Date(r.updatedAt), activeSession));
-    return [...filtered].sort((a, b) => b.weight - a.weight);
-  }, [rows, exerciseFilter, activeSession]);
+  const { ranked, showingAllFallback } = useMemo(() => {
+    const forExercise = rows.filter((r) => r.exerciseId === exerciseFilter);
+    const bySession = forExercise.filter(
+      (r) => !activeSession || isWithinSession(new Date(r.updatedAt), activeSession)
+    );
+    // In "auto" mode, don't let an empty current-class window hide sets a
+    // member already logged earlier today in a different class — fall back
+    // to today's full list rather than showing a misleading "no data" board.
+    const fallback = sessionFilter === "auto" && activeSession !== null && bySession.length === 0;
+    const filtered = fallback ? forExercise : bySession;
+    return { ranked: [...filtered].sort((a, b) => b.weight - a.weight), showingAllFallback: fallback };
+  }, [rows, exerciseFilter, activeSession, sessionFilter]);
 
   const rankedMemberIds = new Set(ranked.map((r) => r.memberId));
   const missingMembers = members.filter((m) => !rankedMemberIds.has(m.id));
@@ -119,6 +125,12 @@ export function LiveBoard({ exercises, defaultExerciseId }: LiveBoardProps) {
             {isTodaysMovement && <Badge tone="accent">Gerakan Hari Ini</Badge>}
           </div>
         </div>
+
+        {showingAllFallback && (
+          <p className="mb-2 text-xs text-muted">
+            Belum ada yang catat di jam kelas sekarang — menampilkan semua catatan hari ini.
+          </p>
+        )}
 
         {!loaded ? (
           <p className="text-sm text-muted">Memuat live board...</p>
