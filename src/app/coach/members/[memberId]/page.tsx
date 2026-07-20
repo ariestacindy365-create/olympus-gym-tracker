@@ -94,7 +94,13 @@ export default async function CoachMemberDetailPage({
         )}
       </Card>
 
-      <ProgressView exercises={progressExercises} referenceDate={new Date().toISOString()} />
+      <ProgressView
+        exercises={progressExercises}
+        referenceDate={new Date().toISOString()}
+        canEdit
+        canDelete
+        basePath={`/api/coach/members/${memberId}/sets`}
+      />
     </div>
   );
 }

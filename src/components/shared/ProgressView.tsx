@@ -4,8 +4,11 @@ import { useMemo, useState } from "react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Dot } from "recharts";
 import { Card } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Select";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
 import { StatTile } from "@/components/ui/StatTile";
 import { Badge } from "@/components/ui/Badge";
+import { parseWeightInput } from "@/lib/parseWeight";
 
 export interface ProgressSession {
   id: string;
@@ -31,12 +34,25 @@ interface ProgressViewProps {
   exercises: ExerciseProgress[];
   /** ISO timestamp for "now", passed in from the server so the component stays pure. */
   referenceDate: string;
-  /** Lets the viewer delete a session from their own history (member's own dashboard only). */
+  /** Lets the viewer delete a session from history (member's own dashboard, or a coach on a member's page). */
   canDelete?: boolean;
+  /** Lets the viewer edit a session's weight/reps (coach fixing a bad entry, e.g. phone comma-decimal trouble). */
+  canEdit?: boolean;
+  /** API base to hit for edit/delete, e.g. "/api/member/sets" or "/api/coach/members/{id}/sets". */
+  basePath?: string;
 }
 
-export function ProgressView({ exercises, referenceDate, canDelete = false }: ProgressViewProps) {
+export function ProgressView({
+  exercises,
+  referenceDate,
+  canDelete = false,
+  canEdit = false,
+  basePath = "/api/member/sets",
+}: ProgressViewProps) {
   const [data, setData] = useState(exercises);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editWeight, setEditWeight] = useState("");
+  const [editReps, setEditReps] = useState("");
 
   const defaultExerciseId = useMemo(() => {
     if (data.length === 0) return "";
@@ -54,29 +70,74 @@ export function ProgressView({ exercises, referenceDate, canDelete = false }: Pr
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const current = data.find((e) => e.exerciseId === selectedId) ?? data[0] ?? null;
 
+  function applySessions(exerciseId: string, rawSessions: unknown[]) {
+    const sessions: ProgressSession[] = (
+      rawSessions as { id: string; workoutDate: string; setNumber: number; weight: number; reps: number; note: string | null; isPR: boolean }[]
+    ).map((s) => ({
+      id: s.id,
+      workoutDate: s.workoutDate,
+      setNumber: s.setNumber,
+      weight: s.weight,
+      reps: s.reps,
+      note: s.note,
+      isPR: s.isPR,
+    }));
+    setData((prev) => prev.map((ex) => (ex.exerciseId === exerciseId ? { ...ex, sessions } : ex)));
+  }
+
   async function handleDelete(setId: string, exerciseId: string) {
     if (!confirm("Hapus sesi ini? Rekor akan dihitung ulang.")) return;
     setPendingId(setId);
     setDeleteError(null);
     try {
-      const res = await fetch(`/api/member/sets/${setId}`, { method: "DELETE" });
+      const res = await fetch(`${basePath}/${setId}`, { method: "DELETE" });
       const body = await res.json();
       if (!res.ok) {
         setDeleteError(body.error ?? "Gagal menghapus sesi.");
         return;
       }
-      const sessions: ProgressSession[] = body.allSets.map(
-        (s: { id: string; workoutDate: string; setNumber: number; weight: number; reps: number; note: string | null; isPR: boolean }) => ({
-          id: s.id,
-          workoutDate: s.workoutDate,
-          setNumber: s.setNumber,
-          weight: s.weight,
-          reps: s.reps,
-          note: s.note,
-          isPR: s.isPR,
-        })
-      );
-      setData((prev) => prev.map((ex) => (ex.exerciseId === exerciseId ? { ...ex, sessions } : ex)));
+      applySessions(exerciseId, body.allSets ?? body.sets);
+    } catch {
+      setDeleteError("Terjadi kesalahan. Coba lagi.");
+    } finally {
+      setPendingId(null);
+    }
+  }
+
+  function startEdit(s: ProgressSession) {
+    setEditingId(s.id);
+    setEditWeight(String(s.weight));
+    setEditReps(String(s.reps));
+    setDeleteError(null);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+  }
+
+  async function saveEdit(setId: string, exerciseId: string) {
+    const weightNum = parseWeightInput(editWeight);
+    const repsNum = Number(editReps);
+    if (!weightNum || !repsNum || repsNum <= 0) {
+      setDeleteError("Isi beban dan reps yang valid.");
+      return;
+    }
+
+    setPendingId(setId);
+    setDeleteError(null);
+    try {
+      const res = await fetch(`${basePath}/${setId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ weight: weightNum, reps: repsNum }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        setDeleteError(body.error ?? "Gagal menyimpan perubahan.");
+        return;
+      }
+      applySessions(exerciseId, body.allSets ?? body.sets);
+      setEditingId(null);
     } catch {
       setDeleteError("Terjadi kesalahan. Coba lagi.");
     } finally {
@@ -189,41 +250,99 @@ export function ProgressView({ exercises, referenceDate, canDelete = false }: Pr
                 <th className="pb-2 pr-3">Beban</th>
                 <th className="pb-2 pr-3">Rep</th>
                 <th className="pb-2 pr-3">Catatan</th>
-                {canDelete && <th className="pb-2" />}
+                {(canEdit || canDelete) && <th className="pb-2" />}
               </tr>
             </thead>
             <tbody>
-              {tableRows.map((s) => (
-                <tr key={s.id} className="border-b border-border last:border-0">
-                  <td className="py-2 pr-3">{formatDate(s.workoutDate)}</td>
-                  <td className="py-2 pr-3 text-muted">#{s.setNumber}</td>
-                  <td className="py-2 pr-3">
-                    {s.weight}kg{" "}
-                    {s.isPR && (
-                      <Badge tone="accent" className="ml-1">
-                        PR
-                      </Badge>
-                    )}
-                  </td>
-                  <td className="py-2 pr-3">
-                    <Badge tone="muted">{s.reps} rep</Badge>
-                  </td>
-                  <td className="py-2 pr-3 text-muted">{s.note ?? "—"}</td>
-                  {canDelete && (
-                    <td className="py-2 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(s.id, current.exerciseId)}
-                        disabled={pendingId === s.id}
-                        aria-label="Hapus sesi"
-                        className="text-muted hover:text-danger disabled:opacity-50"
-                      >
-                        🗑️
-                      </button>
+              {tableRows.map((s) =>
+                editingId === s.id ? (
+                  <tr key={s.id} className="border-b border-border bg-surface-2 last:border-0">
+                    <td className="py-2 pr-3">{formatDate(s.workoutDate)}</td>
+                    <td className="py-2 pr-3 text-muted">#{s.setNumber}</td>
+                    <td className="py-2 pr-3">
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        value={editWeight}
+                        onChange={(e) => setEditWeight(e.target.value)}
+                        className="!py-1 w-20"
+                        placeholder="kg"
+                      />
                     </td>
-                  )}
-                </tr>
-              ))}
+                    <td className="py-2 pr-3">
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        value={editReps}
+                        onChange={(e) => setEditReps(e.target.value)}
+                        className="!py-1 w-16"
+                        placeholder="reps"
+                      />
+                    </td>
+                    <td className="py-2 pr-3 text-muted">{s.note ?? "—"}</td>
+                    <td className="py-2 text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button type="button" variant="ghost" className="px-2 py-1 text-xs" onClick={cancelEdit}>
+                          Batal
+                        </Button>
+                        <Button
+                          type="button"
+                          className="px-2 py-1 text-xs"
+                          disabled={pendingId === s.id}
+                          onClick={() => saveEdit(s.id, current.exerciseId)}
+                        >
+                          {pendingId === s.id ? "..." : "Simpan"}
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  <tr key={s.id} className="border-b border-border last:border-0">
+                    <td className="py-2 pr-3">{formatDate(s.workoutDate)}</td>
+                    <td className="py-2 pr-3 text-muted">#{s.setNumber}</td>
+                    <td className="py-2 pr-3">
+                      {s.weight}kg{" "}
+                      {s.isPR && (
+                        <Badge tone="accent" className="ml-1">
+                          PR
+                        </Badge>
+                      )}
+                    </td>
+                    <td className="py-2 pr-3">
+                      <Badge tone="muted">{s.reps} rep</Badge>
+                    </td>
+                    <td className="py-2 pr-3 text-muted">{s.note ?? "—"}</td>
+                    {(canEdit || canDelete) && (
+                      <td className="py-2 text-right">
+                        <div className="flex justify-end gap-2">
+                          {canEdit && (
+                            <button
+                              type="button"
+                              onClick={() => startEdit(s)}
+                              disabled={pendingId === s.id}
+                              aria-label="Edit sesi"
+                              className="text-muted hover:text-foreground disabled:opacity-50"
+                            >
+                              ✏️
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(s.id, current.exerciseId)}
+                              disabled={pendingId === s.id}
+                              aria-label="Hapus sesi"
+                              className="text-muted hover:text-danger disabled:opacity-50"
+                            >
+                              🗑️
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                )
+              )}
             </tbody>
           </table>
         </div>

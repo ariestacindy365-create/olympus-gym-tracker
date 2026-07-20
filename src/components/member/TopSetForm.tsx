@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { LastPerformancePanel } from "@/components/member/LastPerformancePanel";
 import { PRCelebrationModal, type PRCelebrationData } from "@/components/member/PRCelebrationModal";
+import { parseWeightInput } from "@/lib/parseWeight";
 
 interface ExerciseOption {
   id: string;
@@ -79,9 +80,9 @@ export function TopSetForm({
     e.preventDefault();
     setError(null);
 
-    const weightNum = Number(weight);
+    const weightNum = parseWeightInput(weight);
     const repsNum = Number(reps);
-    if (!weightNum || weightNum <= 0 || !repsNum || repsNum <= 0) {
+    if (!weightNum || !repsNum || repsNum <= 0) {
       setError("Isi beban dan reps yang valid.");
       return;
     }
@@ -148,9 +149,9 @@ export function TopSetForm({
 
   async function saveEdit(setId: string) {
     setRowError(null);
-    const weightNum = Number(editWeight);
+    const weightNum = parseWeightInput(editWeight);
     const repsNum = Number(editReps);
-    if (!weightNum || weightNum <= 0 || !repsNum || repsNum <= 0) {
+    if (!weightNum || !repsNum || repsNum <= 0) {
       setRowError("Isi beban dan reps yang valid.");
       return;
     }
@@ -253,9 +254,8 @@ export function TopSetForm({
                   <div className="flex items-center gap-2">
                     <span className="w-12 shrink-0 text-xs text-muted">Set {s.setNumber}</span>
                     <Input
-                      type="number"
+                      type="text"
                       inputMode="decimal"
-                      step="0.5"
                       value={editWeight}
                       onChange={(e) => setEditWeight(e.target.value)}
                       className="!py-1"
@@ -327,9 +327,8 @@ export function TopSetForm({
               Beban (kg)
             </label>
             <Input
-              type="number"
+              type="text"
               inputMode="decimal"
-              step="0.5"
               value={weight}
               onChange={(e) => setWeight(e.target.value)}
             />

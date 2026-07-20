@@ -1,5 +1,17 @@
 import { z } from "zod";
 
+// Some phones (notably Indonesian keyboard layouts) type "," instead of "."
+// for decimals on a numeric input, which a plain z.number() rejects outright.
+// Normalize before validating so "82,5" and "82.5" both work.
+const flexibleWeight = z.preprocess((val) => {
+  if (typeof val === "string") {
+    const normalized = val.trim().replace(",", ".");
+    const num = Number(normalized);
+    return Number.isFinite(num) ? num : val;
+  }
+  return val;
+}, z.number().positive().max(2000));
+
 export const loginSchema = z.object({
   email: z.email({ error: "Enter a valid email address." }),
   pin: z.string().regex(/^\d{4}$/, { error: "PIN must be exactly 4 digits." }),
@@ -14,13 +26,19 @@ export const registerSchema = z.object({
 export const setEntrySchema = z.object({
   exerciseId: z.string().min(1),
   setNumber: z.number().int().positive().optional(),
-  weight: z.number().positive().max(2000),
+  weight: flexibleWeight,
   reps: z.number().int().positive().max(200),
   note: z.string().trim().max(280).optional(),
 });
 
 export const editSetEntrySchema = z.object({
-  weight: z.number().positive().max(2000),
+  weight: flexibleWeight,
+  reps: z.number().int().positive().max(200),
+  note: z.string().trim().max(280).optional(),
+});
+
+export const coachEditSetEntrySchema = z.object({
+  weight: flexibleWeight,
   reps: z.number().int().positive().max(200),
   note: z.string().trim().max(280).optional(),
 });
