@@ -19,61 +19,46 @@ export interface LiveRow {
   updatedAt: string;
 }
 
-const MEDAL_COLORS: Record<number, string> = {
-  1: "#d4af37",
-  2: "#a8a9ad",
-  3: "#cd7f32",
-};
-
 interface LiveBoardRowProps {
-  rank: number | null;
   memberId: string;
   memberName: string;
   online: boolean;
   row: LiveRow | null;
 }
 
-export function LiveBoardRow({ rank, memberId, memberName, online, row }: LiveBoardRowProps) {
-  const medalColor = rank ? MEDAL_COLORS[rank] : undefined;
-
+export function LiveBoardRow({ memberId, memberName, online, row }: LiveBoardRowProps) {
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-border bg-surface-2 p-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center gap-3">
-        <span
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-background"
-          style={{ backgroundColor: medalColor ?? "var(--surface)", color: medalColor ? "#1a1a1a" : "var(--muted)" }}
-        >
-          {rank ?? "-"}
-        </span>
-        <div>
+    <div className="flex flex-col gap-3 rounded-md border border-border bg-surface-2 p-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-1.5">
           <Link href={`/coach/members/${memberId}`} className="font-medium hover:text-accent">
             {memberName}
           </Link>
-          {row && <p className="text-xs text-muted">{row.exerciseName}</p>}
+          {row?.isPR && <Badge tone="accent">PR</Badge>}
+          {row?.isDebut ? (
+            <Badge tone="accent">DEBUT</Badge>
+          ) : (
+            row?.estimated1RMDelta != null && (
+              <Badge tone="success">+{row.estimated1RMDelta.toFixed(1)} est</Badge>
+            )
+          )}
         </div>
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+          <MemberStatusBadge online={online} loggedToday={row !== null} />
+        </div>
+        {row?.note && <p className="mt-1 text-xs text-muted">&ldquo;{row.note}&rdquo;</p>}
       </div>
 
-      <div className="flex flex-1 items-center justify-between gap-4 sm:justify-end">
+      <div className="shrink-0 sm:text-right">
         {row ? (
-          <div className="text-sm">
-            <p className="flex items-center gap-2">
-              {row.reps} x {row.weight}kg
-              {row.isPR && <Badge tone="accent">PR</Badge>}
-              {row.isDebut ? (
-                <Badge tone="accent">DEBUT</Badge>
-              ) : (
-                row.estimated1RMDelta != null && (
-                  <Badge tone="success">+{row.estimated1RMDelta.toFixed(1)} est</Badge>
-                )
-              )}
-            </p>
-            {row.note && <p className="text-xs text-muted">&ldquo;{row.note}&rdquo;</p>}
-          </div>
+          <p className="font-display text-2xl font-bold">
+            {row.weight}
+            <span className="text-sm font-semibold text-muted">kg</span>{" "}
+            <span className="text-sm font-normal text-muted">&times; {row.reps}</span>
+          </p>
         ) : (
           <p className="text-sm text-muted">belum ada data</p>
         )}
-
-        <MemberStatusBadge online={online} loggedToday={row !== null} />
       </div>
     </div>
   );

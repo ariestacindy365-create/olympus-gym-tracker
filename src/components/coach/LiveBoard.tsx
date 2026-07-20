@@ -83,7 +83,7 @@ export function LiveBoard({ exercises, defaultExerciseId }: LiveBoardProps) {
 
   const showingAllExercises = exerciseFilter === ALL_EXERCISES;
 
-  const { ranked, showingAllFallback } = useMemo(() => {
+  const { filteredRows, showingAllFallback } = useMemo(() => {
     const forExercise = showingAllExercises ? rows : rows.filter((r) => r.exerciseId === exerciseFilter);
     const bySession = forExercise.filter(
       (r) => !activeSession || isWithinSession(new Date(r.updatedAt), activeSession)
@@ -92,18 +92,14 @@ export function LiveBoard({ exercises, defaultExerciseId }: LiveBoardProps) {
     // member already logged earlier today in a different class — fall back
     // to today's full list rather than showing a misleading "no data" board.
     const fallback = sessionFilter === "auto" && activeSession !== null && bySession.length === 0;
-    const filtered = fallback ? forExercise : bySession;
-    // Weight isn't comparable across different exercises, so "Semua Gerakan"
-    // orders by most recent activity instead of a false weight leaderboard.
-    const sorted = showingAllExercises
-      ? [...filtered].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-      : [...filtered].sort((a, b) => b.weight - a.weight);
-    return { ranked: sorted, showingAllFallback: fallback };
+    return { filteredRows: fallback ? forExercise : bySession, showingAllFallback: fallback };
   }, [rows, exerciseFilter, activeSession, sessionFilter, showingAllExercises]);
 
-  const rankedMemberIds = new Set(ranked.map((r) => r.memberId));
-  const missingMembers = members.filter((m) => !rankedMemberIds.has(m.id));
   const isTodaysMovement = exerciseFilter.length > 0 && exerciseFilter === defaultExerciseId;
+
+  // No leaderboard ranking — every member's card, alphabetical by name.
+  const rowByMemberId = new Map(filteredRows.map((r) => [r.memberId, r]));
+  const allMembers = [...members].sort((a, b) => a.name.localeCompare(b.name, "id"));
 
   return (
     <div className="flex flex-col gap-4">
@@ -143,22 +139,18 @@ export function LiveBoard({ exercises, defaultExerciseId }: LiveBoardProps) {
 
         {!loaded ? (
           <p className="text-sm text-muted">Memuat live board...</p>
-        ) : ranked.length === 0 && missingMembers.length === 0 ? (
+        ) : allMembers.length === 0 ? (
           <p className="text-sm text-muted">Belum ada member terdaftar.</p>
         ) : (
-          <div className="flex flex-col gap-2">
-            {ranked.map((row, i) => (
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {allMembers.map((m) => (
               <LiveBoardRow
-                key={row.id}
-                rank={showingAllExercises ? null : i + 1}
-                memberId={row.memberId}
-                memberName={row.memberName}
-                online={row.online}
-                row={row}
+                key={m.id}
+                memberId={m.id}
+                memberName={m.name}
+                online={m.online}
+                row={rowByMemberId.get(m.id) ?? null}
               />
-            ))}
-            {missingMembers.map((m) => (
-              <LiveBoardRow key={m.id} rank={null} memberId={m.id} memberName={m.name} online={m.online} row={null} />
             ))}
           </div>
         )}
