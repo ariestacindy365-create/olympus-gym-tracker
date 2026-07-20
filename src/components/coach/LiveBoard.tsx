@@ -97,9 +97,9 @@ export function LiveBoard({ exercises, defaultExerciseId }: LiveBoardProps) {
 
   const isTodaysMovement = exerciseFilter.length > 0 && exerciseFilter === defaultExerciseId;
 
-  // No leaderboard ranking — every member's card, alphabetical by name.
+  // No leaderboard ranking — only members currently online, alphabetical by name.
   const rowByMemberId = new Map(filteredRows.map((r) => [r.memberId, r]));
-  const allMembers = [...members].sort((a, b) => a.name.localeCompare(b.name, "id"));
+  const allMembers = members.filter((m) => m.online).sort((a, b) => a.name.localeCompare(b.name, "id"));
 
   return (
     <div className="flex flex-col gap-4">
@@ -140,7 +140,7 @@ export function LiveBoard({ exercises, defaultExerciseId }: LiveBoardProps) {
         {!loaded ? (
           <p className="text-sm text-muted">Memuat live board...</p>
         ) : allMembers.length === 0 ? (
-          <p className="text-sm text-muted">Belum ada member terdaftar.</p>
+          <p className="text-sm text-muted">Belum ada member yang online.</p>
         ) : (
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {allMembers.map((m) => (
