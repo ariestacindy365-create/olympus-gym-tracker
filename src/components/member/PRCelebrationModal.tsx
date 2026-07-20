@@ -112,14 +112,21 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
     confettiCanvas.height = height;
     const confettiInCanvas = confetti.create(confettiCanvas, { resize: false, useWorker: false });
 
+    const duration = 8000;
+
     const colors = [POP, "#2563eb", "#ffffff", "#facc15"];
     confettiInCanvas({ particleCount: 90, spread: 80, startVelocity: 45, origin: { y: 0.5 }, colors });
-    const burstEnd = Date.now() + 1800;
+    // Keep confetti falling for most of the clip so a longer video doesn't
+    // go static for its back half — one more pop near the end for a finish.
+    const burstEnd = Date.now() + duration * 0.7;
     (function burstFrame() {
       confettiInCanvas({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0, y: 0.65 }, colors });
       confettiInCanvas({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1, y: 0.65 }, colors });
       if (Date.now() < burstEnd) requestAnimationFrame(burstFrame);
     })();
+    window.setTimeout(() => {
+      confettiInCanvas({ particleCount: 60, spread: 90, startVelocity: 40, origin: { y: 0.5 }, colors });
+    }, duration - 1200);
 
     const mimeType = ["video/mp4", "video/webm;codecs=vp9", "video/webm"].find(
       (t) => MediaRecorder.isTypeSupported(t)
@@ -145,7 +152,6 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
 
     recorder.start();
 
-    const duration = 3000;
     const introDuration = 350;
     const startTime = performance.now();
     await new Promise<void>((resolve) => {
