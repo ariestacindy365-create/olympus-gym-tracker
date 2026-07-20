@@ -147,13 +147,14 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
       confettiInCanvas({ particleCount: 60, spread: 90, startVelocity: 40, origin: { y: 0.5 }, colors });
     }, duration - 1200);
 
-    // WebM first: MediaRecorder never writes a duration into the file it
-    // produces (by design — it's a live stream, not a seekable file), and
-    // browsers guess at playback length from other cues. WebM's guess is
-    // reliably wrong without a fix-up pass (below); Chrome's MP4 recorder is
-    // newer and was worse in testing — clips came out visibly shorter than
-    // recorded once opened in Instagram.
-    const mimeType = ["video/webm;codecs=vp9", "video/webm", "video/mp4"].find((t) =>
+    // MP4 first: it's what actually gets accepted by the Android share
+    // sheet on real devices — WebM made navigator.share() itself fail with
+    // "Permission denied" (confirmed on-device; image/png sharing to the
+    // same targets works fine, so this is specific to the video MIME type,
+    // not a general share permission problem). WebM stays as a fallback for
+    // devices that can't record MP4 at all, with its duration patched below
+    // since MediaRecorder never writes real duration metadata for it.
+    const mimeType = ["video/mp4", "video/webm;codecs=vp9", "video/webm"].find((t) =>
       MediaRecorder.isTypeSupported(t)
     );
     if (!mimeType) throw new Error("Video tidak didukung di perangkat ini.");
