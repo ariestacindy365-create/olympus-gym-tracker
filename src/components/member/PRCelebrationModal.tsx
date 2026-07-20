@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import confetti from "canvas-confetti";
+import fixWebmDuration from "fix-webm-duration";
 import { Button } from "@/components/ui/Button";
 
 export interface PRCelebrationData {
@@ -135,8 +136,14 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
       confettiInCanvas({ particleCount: 60, spread: 90, startVelocity: 40, origin: { y: 0.5 }, colors });
     }, duration - 1200);
 
-    const mimeType = ["video/mp4", "video/webm;codecs=vp9", "video/webm"].find(
-      (t) => MediaRecorder.isTypeSupported(t)
+    // WebM first: MediaRecorder never writes a duration into the file it
+    // produces (by design — it's a live stream, not a seekable file), and
+    // browsers guess at playback length from other cues. WebM's guess is
+    // reliably wrong without a fix-up pass (below); Chrome's MP4 recorder is
+    // newer and was worse in testing — clips came out visibly shorter than
+    // recorded once opened in Instagram.
+    const mimeType = ["video/webm;codecs=vp9", "video/webm", "video/mp4"].find((t) =>
+      MediaRecorder.isTypeSupported(t)
     );
     if (!mimeType) throw new Error("Video tidak didukung di perangkat ini.");
 
@@ -157,6 +164,7 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
       recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
     });
 
+    const recordingStart = performance.now();
     recorder.start();
 
     const introDuration = 350;
@@ -187,8 +195,12 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
       requestAnimationFrame(draw);
     });
 
+    const actualDurationMs = performance.now() - recordingStart;
     recorder.stop();
-    const blob = await recordingDone;
+    const rawBlob = await recordingDone;
+    const blob = mimeType.startsWith("video/webm")
+      ? await fixWebmDuration(rawBlob, actualDurationMs, { logger: false })
+      : rawBlob;
     const ext = mimeType.startsWith("video/mp4") ? "mp4" : "webm";
     return new File([blob], `olympus-pr-${Date.now()}.${ext}`, { type: mimeType });
   }
