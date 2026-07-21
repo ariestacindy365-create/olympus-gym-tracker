@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { todayDateKey } from "@/lib/workout";
+import { todayDateKey, dateKeyFromString } from "@/lib/workout";
 import { bodyMetricSchema } from "@/lib/validation";
 import { Role } from "@/generated/prisma/client";
 
@@ -24,11 +24,13 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/coach/m
     return NextResponse.json({ error: "Isi berat badan yang valid." }, { status: 400 });
   }
   const { weight, bodyFatPercent, skeletalMuscleMass, note } = parsed.data;
-  // Date-only strings ("YYYY-MM-DD") parse as UTC midnight, matching how
-  // todayDateKey() stores every other date-keyed row in this app.
-  const recordedDate = parsed.data.recordedDate ? new Date(parsed.data.recordedDate) : todayDateKey();
+  // Must use the exact same local-midnight convention as todayDateKey(), or
+  // a coach picking "today" from the date picker keys to a different
+  // timestamp than the member's own same-day entry and creates a duplicate
+  // row instead of updating it.
+  const recordedDate = parsed.data.recordedDate ? dateKeyFromString(parsed.data.recordedDate) : todayDateKey();
 
-  await prisma.bodyMetric.upsert({
+  const entry = await prisma.bodyMetric.upsert({
     where: { memberId_recordedDate: { memberId, recordedDate } },
     create: { memberId, recordedDate, weight, bodyFatPercent, skeletalMuscleMass, note },
     update: {
@@ -44,5 +46,5 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/coach/m
     orderBy: { recordedDate: "asc" },
   });
 
-  return NextResponse.json({ entries });
+  return NextResponse.json({ entry, entries });
 }

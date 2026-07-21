@@ -28,7 +28,7 @@ export default async function MemberBodyPage() {
         <p className="text-sm text-muted">Pantau berat badan, body fat, dan skeletal muscle mass kamu.</p>
       </div>
 
-      <BodyMetricForm basePath="/api/member/body-metrics" />
+      <BodyMetricForm basePath="/api/member/body-metrics" memberName={user.name} />
 
       <BodyMetricsView key={entries.length} entries={mapped} canEdit canDelete basePath="/api/member/body-metrics" />
     </div>

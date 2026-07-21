@@ -6,6 +6,15 @@ export function todayDateKey(): Date {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
+// Same local-midnight convention as todayDateKey(), for a specific
+// "YYYY-MM-DD" string (e.g. a coach picking a date to backfill) — so
+// picking today's date always produces the exact same key todayDateKey()
+// would, instead of colliding on a near-miss and creating a duplicate row.
+export function dateKeyFromString(dateString: string): Date {
+  const [year, month, day] = dateString.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
 export async function getTodayDailyWorkout() {
   return prisma.dailyWorkout.findUnique({
     where: { workoutDate: todayDateKey() },

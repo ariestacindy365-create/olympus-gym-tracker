@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
   const { weight, bodyFatPercent, skeletalMuscleMass, note } = parsed.data;
   const recordedDate = todayDateKey();
 
-  await prisma.bodyMetric.upsert({
+  const entry = await prisma.bodyMetric.upsert({
     where: { memberId_recordedDate: { memberId: user.id, recordedDate } },
     create: { memberId: user.id, recordedDate, weight, bodyFatPercent, skeletalMuscleMass, note },
     update: {
@@ -36,5 +36,5 @@ export async function POST(request: NextRequest) {
     orderBy: { recordedDate: "asc" },
   });
 
-  return NextResponse.json({ entries });
+  return NextResponse.json({ entry, entries });
 }

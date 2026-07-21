@@ -6,6 +6,55 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { parseWeightInput } from "@/lib/parseWeight";
+import {
+  BodyMetricCelebrationModal,
+  type BodyMetricCelebrationData,
+  type BodyMetricWin,
+} from "@/components/shared/BodyMetricCelebrationModal";
+
+interface BodyMetricEntryLite {
+  id: string;
+  recordedDate: string;
+  weight: number;
+  bodyFatPercent: number | null;
+  skeletalMuscleMass: number | null;
+}
+
+function findWins(entries: BodyMetricEntryLite[], savedEntryId: string): BodyMetricWin[] {
+  const sorted = [...entries].sort((a, b) => a.recordedDate.localeCompare(b.recordedDate));
+  const index = sorted.findIndex((e) => e.id === savedEntryId);
+  if (index <= 0) return [];
+  const current = sorted[index];
+  const previous = sorted[index - 1];
+
+  const wins: BodyMetricWin[] = [];
+  if (current.weight < previous.weight) {
+    wins.push({
+      icon: "⬇️",
+      label: "Berat Badan Turun",
+      detail: `-${(previous.weight - current.weight).toFixed(1)}kg → ${current.weight}kg`,
+    });
+  }
+  if (current.bodyFatPercent != null && previous.bodyFatPercent != null && current.bodyFatPercent < previous.bodyFatPercent) {
+    wins.push({
+      icon: "⬇️",
+      label: "Body Fat Turun",
+      detail: `-${(previous.bodyFatPercent - current.bodyFatPercent).toFixed(1)}% → ${current.bodyFatPercent}%`,
+    });
+  }
+  if (
+    current.skeletalMuscleMass != null &&
+    previous.skeletalMuscleMass != null &&
+    current.skeletalMuscleMass > previous.skeletalMuscleMass
+  ) {
+    wins.push({
+      icon: "⬆️",
+      label: "Skeletal Muscle Naik",
+      detail: `+${(current.skeletalMuscleMass - previous.skeletalMuscleMass).toFixed(1)}kg → ${current.skeletalMuscleMass}kg`,
+    });
+  }
+  return wins;
+}
 
 function todayInputValue() {
   const now = new Date();
@@ -17,6 +66,7 @@ function todayInputValue() {
 
 interface BodyMetricFormProps {
   basePath: string;
+  memberName: string;
   title?: string;
   description?: string;
   /** Coach backfilling a weigh-in from a day the member didn't have their phone. */
@@ -25,6 +75,7 @@ interface BodyMetricFormProps {
 
 export function BodyMetricForm({
   basePath,
+  memberName,
   title = "Catat Berat Badan",
   description = "Berat badan, body fat, dan skeletal muscle mass hari ini.",
   showDatePicker = false,
@@ -38,6 +89,7 @@ export function BodyMetricForm({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [celebration, setCelebration] = useState<BodyMetricCelebrationData | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -81,6 +133,10 @@ export function BodyMetricForm({
       if (!res.ok) {
         setError(data.error ?? "Gagal menyimpan data.");
         return;
+      }
+      const wins = findWins(data.entries, data.entry.id);
+      if (wins.length > 0) {
+        setCelebration({ memberName, wins });
       }
       setWeight("");
       setBodyFatPercent("");
@@ -163,6 +219,8 @@ export function BodyMetricForm({
           {pending ? "Menyimpan..." : "Simpan"}
         </Button>
       </form>
+
+      {celebration && <BodyMetricCelebrationModal data={celebration} onClose={() => setCelebration(null)} />}
     </Card>
   );
 }
