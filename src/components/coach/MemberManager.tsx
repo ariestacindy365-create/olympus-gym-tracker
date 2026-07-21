@@ -24,6 +24,9 @@ export function MemberManager({ members: initialMembers }: { members: Member[] }
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [actionPendingId, setActionPendingId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
+  const filteredMembers = members.filter((m) => m.name.toLowerCase().includes(search.trim().toLowerCase()));
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -125,8 +128,18 @@ export function MemberManager({ members: initialMembers }: { members: Member[] }
         {error && <p className="mt-2 text-sm text-danger">{error}</p>}
       </Card>
 
+      <Input
+        type="text"
+        placeholder="🔍 Cari nama member..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
+
       <div className="flex flex-col gap-3">
-        {members.map((member) => (
+        {filteredMembers.length === 0 && (
+          <p className="text-sm text-muted">Tidak ada member dengan nama &ldquo;{search}&rdquo;.</p>
+        )}
+        {filteredMembers.map((member) => (
           <Card key={member.id} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex-1">
               {editingId === member.id ? (
