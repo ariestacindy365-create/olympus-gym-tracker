@@ -24,7 +24,9 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/coach/m
     return NextResponse.json({ error: "Isi berat badan yang valid." }, { status: 400 });
   }
   const { weight, bodyFatPercent, skeletalMuscleMass, note } = parsed.data;
-  const recordedDate = todayDateKey();
+  // Date-only strings ("YYYY-MM-DD") parse as UTC midnight, matching how
+  // todayDateKey() stores every other date-keyed row in this app.
+  const recordedDate = parsed.data.recordedDate ? new Date(parsed.data.recordedDate) : todayDateKey();
 
   await prisma.bodyMetric.upsert({
     where: { memberId_recordedDate: { memberId, recordedDate } },

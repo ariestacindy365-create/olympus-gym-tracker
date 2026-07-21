@@ -122,7 +122,7 @@ export default async function CoachMemberDetailPage({
       <div>
         <h2 className="mb-3 font-display text-lg font-semibold">Body Metrics</h2>
         <div className="flex flex-col gap-4">
-          <BodyMetricForm basePath={`/api/coach/members/${memberId}/body-metrics`} />
+          <BodyMetricForm basePath={`/api/coach/members/${memberId}/body-metrics`} showDatePicker />
           <BodyMetricsView
             key={bodyMetrics.length}
             entries={mappedBodyMetrics}

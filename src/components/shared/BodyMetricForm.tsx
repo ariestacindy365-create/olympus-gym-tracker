@@ -7,18 +7,30 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { parseWeightInput } from "@/lib/parseWeight";
 
+function todayInputValue() {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 interface BodyMetricFormProps {
   basePath: string;
   title?: string;
   description?: string;
+  /** Coach backfilling a weigh-in from a day the member didn't have their phone. */
+  showDatePicker?: boolean;
 }
 
 export function BodyMetricForm({
   basePath,
   title = "Catat Berat Badan",
   description = "Berat badan, body fat, dan skeletal muscle mass hari ini.",
+  showDatePicker = false,
 }: BodyMetricFormProps) {
   const router = useRouter();
+  const [date, setDate] = useState(todayInputValue);
   const [weight, setWeight] = useState("");
   const [bodyFatPercent, setBodyFatPercent] = useState("");
   const [skeletalMuscleMass, setSkeletalMuscleMass] = useState("");
@@ -32,6 +44,10 @@ export function BodyMetricForm({
     setError(null);
     setSaved(false);
 
+    if (showDatePicker && !date) {
+      setError("Pilih tanggal.");
+      return;
+    }
     const weightNum = parseWeightInput(weight);
     if (!weightNum) {
       setError("Isi berat badan yang valid.");
@@ -58,6 +74,7 @@ export function BodyMetricForm({
           bodyFatPercent: bodyFatNum ?? undefined,
           skeletalMuscleMass: muscleNum ?? undefined,
           note: note || undefined,
+          recordedDate: showDatePicker ? date : undefined,
         }),
       });
       const data = await res.json();
@@ -69,6 +86,7 @@ export function BodyMetricForm({
       setBodyFatPercent("");
       setSkeletalMuscleMass("");
       setNote("");
+      setDate(todayInputValue());
       setSaved(true);
       router.refresh();
     } catch {
@@ -84,6 +102,20 @@ export function BodyMetricForm({
       <p className="mb-4 text-xs text-muted">{description}</p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {showDatePicker && (
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
+              Tanggal Timbang
+            </label>
+            <Input
+              type="date"
+              value={date}
+              max={todayInputValue()}
+              onChange={(e) => setDate(e.target.value)}
+              className="max-w-xs"
+            />
+          </div>
+        )}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div>
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
