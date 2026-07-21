@@ -3,14 +3,18 @@ import { z } from "zod";
 // Some phones (notably Indonesian keyboard layouts) type "," instead of "."
 // for decimals on a numeric input, which a plain z.number() rejects outright.
 // Normalize before validating so "82,5" and "82.5" both work.
-const flexibleWeight = z.preprocess((val) => {
-  if (typeof val === "string") {
-    const normalized = val.trim().replace(",", ".");
-    const num = Number(normalized);
-    return Number.isFinite(num) ? num : val;
-  }
-  return val;
-}, z.number().positive().max(2000));
+function flexibleNumber(max: number) {
+  return z.preprocess((val) => {
+    if (typeof val === "string") {
+      const normalized = val.trim().replace(",", ".");
+      const num = Number(normalized);
+      return Number.isFinite(num) ? num : val;
+    }
+    return val;
+  }, z.number().positive().max(max));
+}
+
+const flexibleWeight = flexibleNumber(2000);
 
 export const loginSchema = z.object({
   email: z.email({ error: "Enter a valid email address." }),
@@ -93,6 +97,13 @@ export const programDaySchema = z.object({
 
 export const saveProgramWeekSchema = z.object({
   days: z.array(programDaySchema).max(7),
+});
+
+export const bodyMetricSchema = z.object({
+  weight: flexibleWeight,
+  bodyFatPercent: flexibleNumber(100).optional(),
+  skeletalMuscleMass: flexibleWeight.optional(),
+  note: z.string().trim().max(280).optional(),
 });
 
 export const createMovementSchema = z.object({

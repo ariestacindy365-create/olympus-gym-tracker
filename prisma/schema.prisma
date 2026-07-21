@@ -32,6 +32,7 @@ model User {
 
   setEntries           SetEntry[]
   personalRecords      PersonalRecord[]
+  bodyMetrics          BodyMetric[]
   dailyWorkoutsCreated DailyWorkout[]    @relation("CoachDailyWorkouts")
   programsAsCoach      TrainingProgram[] @relation("CoachPrograms")
 }
@@ -79,6 +80,25 @@ model SetEntry {
 
   @@unique([memberId, exerciseId, workoutDate, setNumber])
   @@index([workoutDate])
+}
+
+// One weigh-in per member per day — weight, body fat %, and skeletal muscle
+// mass together, since a smart scale reads all three at once. Re-saving the
+// same day upserts rather than creating a new row.
+model BodyMetric {
+  id                 String   @id @default(cuid())
+  memberId           String
+  member             User     @relation(fields: [memberId], references: [id])
+  recordedDate       DateTime
+  weight             Float
+  bodyFatPercent     Float?
+  skeletalMuscleMass Float?
+  note               String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([memberId, recordedDate])
+  @@index([recordedDate])
 }
 
 model PersonalRecord {

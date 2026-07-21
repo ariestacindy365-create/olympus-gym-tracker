@@ -5,6 +5,8 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { MemberStatusBadge } from "@/components/coach/MemberStatusBadge";
 import { ProgressView, type ExerciseProgress } from "@/components/shared/ProgressView";
+import { BodyMetricForm } from "@/components/shared/BodyMetricForm";
+import { BodyMetricsView } from "@/components/shared/BodyMetricsView";
 import { CoachSetLogger } from "@/components/coach/CoachSetLogger";
 import { Role } from "@/generated/prisma/client";
 
@@ -21,7 +23,7 @@ export default async function CoachMemberDetailPage({
     notFound();
   }
 
-  const [setEntries, records, loggedToday, exercises] = await Promise.all([
+  const [setEntries, records, loggedToday, exercises, bodyMetrics] = await Promise.all([
     prisma.setEntry.findMany({
       where: { memberId },
       include: { exercise: true },
@@ -34,7 +36,17 @@ export default async function CoachMemberDetailPage({
     }),
     hasLoggedToday(memberId),
     prisma.exercise.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.bodyMetric.findMany({ where: { memberId }, orderBy: { recordedDate: "asc" } }),
   ]);
+
+  const mappedBodyMetrics = bodyMetrics.map((e) => ({
+    id: e.id,
+    recordedDate: e.recordedDate.toISOString(),
+    weight: e.weight,
+    bodyFatPercent: e.bodyFatPercent,
+    skeletalMuscleMass: e.skeletalMuscleMass,
+    note: e.note,
+  }));
 
   const byExercise = new Map<string, typeof records>();
   for (const record of records) {
@@ -106,6 +118,20 @@ export default async function CoachMemberDetailPage({
         canDelete
         basePath={`/api/coach/members/${memberId}/sets`}
       />
+
+      <div>
+        <h2 className="mb-3 font-display text-lg font-semibold">Body Metrics</h2>
+        <div className="flex flex-col gap-4">
+          <BodyMetricForm basePath={`/api/coach/members/${memberId}/body-metrics`} />
+          <BodyMetricsView
+            key={bodyMetrics.length}
+            entries={mappedBodyMetrics}
+            canEdit
+            canDelete
+            basePath={`/api/coach/members/${memberId}/body-metrics`}
+          />
+        </div>
+      </div>
     </div>
   );
 }
