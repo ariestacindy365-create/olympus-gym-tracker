@@ -73,12 +73,12 @@ export function EstimasiBebanTable({ maxWeight, maxEstimated1RM }: EstimasiBeban
             {repWeightTable(anchor1RM).map((row) => (
               <div
                 key={row.reps}
-                className="flex items-center justify-between rounded-md border border-border bg-surface-2 px-3 py-2"
+                className="grid grid-cols-3 items-center rounded-md border border-border bg-surface-2 px-3 py-2"
               >
                 <span className="text-sm text-muted">{row.reps} reps</span>
-                <span className="flex items-baseline gap-2">
-                  <span className="text-xs text-muted">{Math.round(row.percent)}%</span>
-                  <span className="font-display text-base font-bold text-accent">{roundToHalf(row.weight)}kg</span>
+                <span className="text-center text-xs text-muted">{Math.round(row.percent)}%</span>
+                <span className="text-right font-display text-base font-bold text-accent">
+                  {roundToHalf(row.weight)}kg
                 </span>
               </div>
             ))}
