@@ -135,10 +135,9 @@ export function BodyMetricCelebrationModal({ data, onClose }: BodyMetricCelebrat
 
             <div className="my-5 h-px w-full bg-slate-200" />
 
-            <div className="flex items-center justify-center gap-2">
+            <div className="flex items-center justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element -- rendered off-DOM into a shareable PNG, next/image isn't applicable here */}
               <img src="/olympus-logo.png" alt="OLYMPUS" className="h-6 w-auto" />
-              <span className="text-sm font-bold uppercase tracking-wide text-slate-900">Lifting Club</span>
             </div>
           </div>
         </div>
