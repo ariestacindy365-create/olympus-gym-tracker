@@ -20,7 +20,8 @@ interface PRCelebrationModalProps {
   onClose: () => void;
 }
 
-const POP = "#60a5fa";
+const ACCENT = "#2563eb";
+const ACCENT_MUTED = "#64748b";
 
 export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -45,7 +46,7 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
   }, []);
 
   useEffect(() => {
-    const colors = [POP, "#2563eb", "#ffffff", "#facc15"];
+    const colors = [ACCENT, "#60a5fa", "#ffffff", "#facc15"];
 
     confetti({ particleCount: 90, spread: 80, startVelocity: 45, origin: { y: 0.55 }, colors, zIndex: 60 });
 
@@ -133,7 +134,7 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
 
     const duration = 8000;
 
-    const colors = [POP, "#2563eb", "#ffffff", "#facc15"];
+    const colors = [ACCENT, "#60a5fa", "#ffffff", "#facc15"];
     confettiInCanvas({ particleCount: 90, spread: 80, startVelocity: 45, origin: { y: 0.5 }, colors });
     // Keep confetti falling for most of the clip so a longer video doesn't
     // go static for its back half — one more pop near the end for a finish.
@@ -258,48 +259,56 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-md">
       <div className="absolute inset-0" onClick={onClose} />
       <div className="relative flex w-full max-w-sm flex-col items-center gap-4">
-        <div ref={cardRef} className="w-full rounded-[32px] p-5" style={{ background: "#080d18" }}>
+        <div ref={cardRef} className="w-full rounded-[32px] p-5" style={{ background: "#dbeafe" }}>
           <div
             className="relative rounded-3xl px-6 py-8 text-center"
-            style={{ background: "#0f172a", border: `2px solid ${POP}` }}
+            style={{ background: "#ffffff", border: `2px solid ${ACCENT}` }}
           >
             <button
               onClick={onClose}
               aria-label="Tutup"
-              className="absolute right-4 top-4 text-lg leading-none text-nav-muted hover:text-nav-foreground"
+              className="absolute right-4 top-4 text-lg leading-none text-slate-400 hover:text-slate-600"
             >
               ✕
             </button>
 
-            <p className="font-display text-2xl font-bold uppercase tracking-wide text-white">{data.memberName}</p>
+            <p className="font-display text-2xl font-bold uppercase tracking-wide text-slate-900">
+              {data.memberName}
+            </p>
 
-            <p className="mt-2 text-sm font-bold uppercase tracking-widest" style={{ color: POP }}>
+            <p className="mt-2 text-sm font-bold uppercase tracking-widest" style={{ color: ACCENT }}>
               {data.isDebut ? "✨ Debut Pertama" : "🔥 PR Baru!"}
             </p>
 
-            <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-nav-muted">{data.exerciseName}</p>
+            <p className="mt-4 text-xs font-semibold uppercase tracking-wide" style={{ color: ACCENT_MUTED }}>
+              {data.exerciseName}
+            </p>
 
-            <p className="mt-1 font-display text-6xl font-black" style={{ color: POP }}>
+            <p className="mt-1 font-display text-6xl font-black" style={{ color: ACCENT }}>
               {data.weight}
               <span className="text-2xl font-bold">kg</span>
             </p>
-            <p className="mt-1 text-base text-nav-muted">&times; {data.reps} reps</p>
+            <p className="mt-1 text-base" style={{ color: ACCENT_MUTED }}>
+              &times; {data.reps} reps
+            </p>
 
             <div
               className="mx-auto mt-5 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold"
-              style={{ background: POP, color: "#0f172a" }}
+              style={{ background: ACCENT, color: "#ffffff" }}
             >
               {data.isDebut ? "✨ Angkatan Pertama Dicatat" : "🏆 Rekor Baru!"}
             </div>
 
-            <p className="mt-3 text-xs text-nav-muted">{dateLabel}</p>
+            <p className="mt-3 text-xs" style={{ color: ACCENT_MUTED }}>
+              {dateLabel}
+            </p>
 
-            <div className="my-5 h-px w-full bg-white/10" />
+            <div className="my-5 h-px w-full bg-slate-200" />
 
             <div className="flex items-center justify-center gap-2">
               {/* eslint-disable-next-line @next/next/no-img-element -- rendered off-DOM into a shareable PNG, next/image isn't applicable here */}
-              <img src="/olympus-logo-light.png" alt="OLYMPUS" className="h-6 w-auto" />
-              <span className="text-sm font-bold uppercase tracking-wide text-white">Lifting Club</span>
+              <img src="/olympus-logo.png" alt="OLYMPUS" className="h-6 w-auto" />
+              <span className="text-sm font-bold uppercase tracking-wide text-slate-900">Lifting Club</span>
             </div>
           </div>
         </div>

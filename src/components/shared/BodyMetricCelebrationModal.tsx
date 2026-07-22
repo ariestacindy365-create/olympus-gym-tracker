@@ -21,7 +21,10 @@ interface BodyMetricCelebrationModalProps {
   onClose: () => void;
 }
 
-const POP = "#60a5fa";
+const ACCENT = "#2563eb";
+const ACCENT_MUTED = "#64748b";
+const ACCENT_SOFT = "rgba(37, 99, 235, 0.08)";
+const ACCENT_SOFT_BORDER = "rgba(37, 99, 235, 0.25)";
 
 export function BodyMetricCelebrationModal({ data, onClose }: BodyMetricCelebrationModalProps) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -31,7 +34,7 @@ export function BodyMetricCelebrationModal({ data, onClose }: BodyMetricCelebrat
   const dateLabel = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 
   useEffect(() => {
-    const colors = [POP, "#2563eb", "#ffffff", "#34d399"];
+    const colors = [ACCENT, "#60a5fa", "#ffffff", "#34d399"];
 
     confetti({ particleCount: 90, spread: 80, startVelocity: 45, origin: { y: 0.55 }, colors, zIndex: 60 });
 
@@ -88,22 +91,24 @@ export function BodyMetricCelebrationModal({ data, onClose }: BodyMetricCelebrat
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-md">
       <div className="absolute inset-0" onClick={onClose} />
       <div className="relative flex w-full max-w-sm flex-col items-center gap-4">
-        <div ref={cardRef} className="w-full rounded-[32px] p-5" style={{ background: "#080d18" }}>
+        <div ref={cardRef} className="w-full rounded-[32px] p-5" style={{ background: "#dbeafe" }}>
           <div
             className="relative rounded-3xl px-6 py-8 text-center"
-            style={{ background: "#0f172a", border: `2px solid ${POP}` }}
+            style={{ background: "#ffffff", border: `2px solid ${ACCENT}` }}
           >
             <button
               onClick={onClose}
               aria-label="Tutup"
-              className="absolute right-4 top-4 text-lg leading-none text-nav-muted hover:text-nav-foreground"
+              className="absolute right-4 top-4 text-lg leading-none text-slate-400 hover:text-slate-600"
             >
               ✕
             </button>
 
-            <p className="font-display text-2xl font-bold uppercase tracking-wide text-white">{data.memberName}</p>
+            <p className="font-display text-2xl font-bold uppercase tracking-wide text-slate-900">
+              {data.memberName}
+            </p>
 
-            <p className="mt-2 text-sm font-bold uppercase tracking-widest" style={{ color: POP }}>
+            <p className="mt-2 text-sm font-bold uppercase tracking-widest" style={{ color: ACCENT }}>
               🎉 Progress Baru!
             </p>
 
@@ -112,26 +117,28 @@ export function BodyMetricCelebrationModal({ data, onClose }: BodyMetricCelebrat
                 <div
                   key={win.label}
                   className="rounded-xl px-4 py-3 text-left"
-                  style={{ background: "rgba(96, 165, 250, 0.08)", border: "1px solid rgba(96, 165, 250, 0.25)" }}
+                  style={{ background: ACCENT_SOFT, border: `1px solid ${ACCENT_SOFT_BORDER}` }}
                 >
-                  <p className="text-xs font-semibold uppercase tracking-wide text-nav-muted">
+                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: ACCENT_MUTED }}>
                     {win.icon} {win.label}
                   </p>
-                  <p className="mt-0.5 font-display text-xl font-bold" style={{ color: POP }}>
+                  <p className="mt-0.5 font-display text-xl font-bold" style={{ color: ACCENT }}>
                     {win.detail}
                   </p>
                 </div>
               ))}
             </div>
 
-            <p className="mt-4 text-xs text-nav-muted">{dateLabel}</p>
+            <p className="mt-4 text-xs" style={{ color: ACCENT_MUTED }}>
+              {dateLabel}
+            </p>
 
-            <div className="my-5 h-px w-full bg-white/10" />
+            <div className="my-5 h-px w-full bg-slate-200" />
 
             <div className="flex items-center justify-center gap-2">
               {/* eslint-disable-next-line @next/next/no-img-element -- rendered off-DOM into a shareable PNG, next/image isn't applicable here */}
-              <img src="/olympus-logo-light.png" alt="OLYMPUS" className="h-6 w-auto" />
-              <span className="text-sm font-bold uppercase tracking-wide text-white">Lifting Club</span>
+              <img src="/olympus-logo.png" alt="OLYMPUS" className="h-6 w-auto" />
+              <span className="text-sm font-bold uppercase tracking-wide text-slate-900">Lifting Club</span>
             </div>
           </div>
         </div>
