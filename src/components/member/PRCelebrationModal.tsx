@@ -296,8 +296,11 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
 
             <div className="my-5 h-px w-full bg-white/10" />
 
-            {/* eslint-disable-next-line @next/next/no-img-element -- rendered off-DOM into a shareable PNG, next/image isn't applicable here */}
-            <img src="/olympus-logo-light.png" alt="OLYMPUS" className="mx-auto h-6 w-auto" />
+            <div className="flex items-center justify-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element -- rendered off-DOM into a shareable PNG, next/image isn't applicable here */}
+              <img src="/olympus-logo-light.png" alt="OLYMPUS" className="h-6 w-auto" />
+              <span className="text-sm font-bold uppercase tracking-wide text-white">Lifting Club</span>
+            </div>
           </div>
         </div>
 
