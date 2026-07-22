@@ -97,7 +97,8 @@ export function LiveBoard({ exercises, defaultExerciseId }: LiveBoardProps) {
 
   const isTodaysMovement = exerciseFilter.length > 0 && exerciseFilter === defaultExerciseId;
 
-  // No leaderboard ranking — only members currently online, alphabetical by name.
+  // No leaderboard ranking — only members present today (checked in during a
+  // class session), alphabetical by name.
   const rowByMemberId = new Map(filteredRows.map((r) => [r.memberId, r]));
   const allMembers = members.filter((m) => m.online).sort((a, b) => a.name.localeCompare(b.name, "id"));
 
@@ -140,7 +141,7 @@ export function LiveBoard({ exercises, defaultExerciseId }: LiveBoardProps) {
         {!loaded ? (
           <p className="text-sm text-muted">Memuat live board...</p>
         ) : allMembers.length === 0 ? (
-          <p className="text-sm text-muted">Belum ada member yang online.</p>
+          <p className="text-sm text-muted">Belum ada member yang hadir hari ini.</p>
         ) : (
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {allMembers.map((m) => (

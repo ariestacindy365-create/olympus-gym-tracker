@@ -6,6 +6,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { type Role, type User } from "@/generated/prisma/client";
+import { getCurrentClassSession } from "@/lib/classSessions";
+import { todayDateKey } from "@/lib/workout";
 
 const SESSION_COOKIE = "olympus_session";
 const SESSION_DURATION_DAYS = 30;
@@ -83,10 +85,16 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
   const session = await getSession();
   if (!session) return null;
 
+  const now = new Date();
+  // A request made while a class session is running "checks the member in"
+  // for the rest of the calendar day, so the Live Board keeps showing them
+  // even after they stop actively using the app mid-session.
+  const presentDate = getCurrentClassSession(now) ? todayDateKey() : undefined;
+
   return prisma.user
     .update({
       where: { id: session.sub },
-      data: { lastActiveAt: new Date() },
+      data: { lastActiveAt: now, ...(presentDate ? { presentDate } : {}) },
     })
     .catch(() => null);
 });

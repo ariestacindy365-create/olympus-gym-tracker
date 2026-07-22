@@ -26,8 +26,9 @@ model User {
   email        String   @unique
   pinHash      String
   role         Role
-  lastActiveAt DateTime @default(now())
-  createdAt    DateTime @default(now())
+  lastActiveAt DateTime  @default(now())
+  presentDate  DateTime?
+  createdAt    DateTime  @default(now())
   updatedAt    DateTime @updatedAt
 
   setEntries           SetEntry[]

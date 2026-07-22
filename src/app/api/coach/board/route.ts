@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isOnline } from "@/lib/status";
+import { isPresentToday } from "@/lib/status";
 import { todayDateKey } from "@/lib/workout";
 import { Role } from "@/generated/prisma/client";
 
@@ -58,7 +58,7 @@ export async function GET() {
       id: setEntry.id,
       memberId: setEntry.memberId,
       memberName: setEntry.member.name,
-      online: isOnline(setEntry.member.lastActiveAt),
+      online: isPresentToday(setEntry.member.presentDate),
       exerciseId: setEntry.exerciseId,
       exerciseName: setEntry.exercise.name,
       weight: setEntry.weight,
@@ -75,7 +75,7 @@ export async function GET() {
   const members = allMembers.map((m) => ({
     id: m.id,
     name: m.name,
-    online: isOnline(m.lastActiveAt),
+    online: isPresentToday(m.presentDate),
   }));
 
   const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
