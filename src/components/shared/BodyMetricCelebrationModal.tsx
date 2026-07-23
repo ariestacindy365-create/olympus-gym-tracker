@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import confetti from "canvas-confetti";
 import { Button } from "@/components/ui/Button";
+import { fetchAsDataUrl } from "@/lib/imageDataUrl";
 
 export interface BodyMetricWin {
   label: string;
@@ -30,8 +31,15 @@ export function BodyMetricCelebrationModal({ data, onClose }: BodyMetricCelebrat
   const cardRef = useRef<HTMLDivElement>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [logoSrc, setLogoSrc] = useState<string | null>(null);
 
   const dateLabel = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+
+  useEffect(() => {
+    fetchAsDataUrl("/olympus-logo.png")
+      .then(setLogoSrc)
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const colors = [ACCENT, "#60a5fa", "#ffffff", "#34d399"];
@@ -136,15 +144,17 @@ export function BodyMetricCelebrationModal({ data, onClose }: BodyMetricCelebrat
             <div className="my-6 h-px w-full bg-slate-200" />
 
             <div className="flex items-center justify-center">
-              {/* eslint-disable-next-line @next/next/no-img-element -- rendered off-DOM into a shareable PNG, next/image isn't applicable here */}
-              <img src="/olympus-logo.png" alt="OLYMPUS" className="h-6 w-auto" />
+              {logoSrc && (
+                // eslint-disable-next-line @next/next/no-img-element -- rendered off-DOM into a shareable PNG, next/image isn't applicable here
+                <img src={logoSrc} alt="OLYMPUS" className="h-6 w-auto" />
+              )}
             </div>
           </div>
         </div>
 
         {error && <p className="text-sm text-danger">{error}</p>}
 
-        <Button onClick={handleShareImage} disabled={pending} className="w-full">
+        <Button onClick={handleShareImage} disabled={pending || !logoSrc} className="w-full">
           {pending ? "Menyiapkan..." : "📤 Bagikan Gambar"}
         </Button>
         <button onClick={onClose} className="text-sm text-nav-muted hover:text-nav-foreground">

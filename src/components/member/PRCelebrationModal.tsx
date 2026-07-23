@@ -5,6 +5,7 @@ import { toPng } from "html-to-image";
 import confetti from "canvas-confetti";
 import fixWebmDuration from "fix-webm-duration";
 import { Button } from "@/components/ui/Button";
+import { fetchAsDataUrl } from "@/lib/imageDataUrl";
 
 export interface PRCelebrationData {
   memberName: string;
@@ -34,8 +35,15 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
   // ("Must be handling a user gesture"). So building and sharing become two
   // taps: the first builds the file, the second (a brand new click) shares it.
   const [videoReady, setVideoReady] = useState<File | null>(null);
+  const [logoSrc, setLogoSrc] = useState<string | null>(null);
 
   const dateLabel = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+
+  useEffect(() => {
+    fetchAsDataUrl("/olympus-logo.png")
+      .then(setLogoSrc)
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     setVideoSupported(
@@ -306,8 +314,10 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
             <div className="my-6 h-px w-full bg-slate-200" />
 
             <div className="flex items-center justify-center">
-              {/* eslint-disable-next-line @next/next/no-img-element -- rendered off-DOM into a shareable PNG, next/image isn't applicable here */}
-              <img src="/olympus-logo.png" alt="OLYMPUS" className="h-6 w-auto" />
+              {logoSrc && (
+                // eslint-disable-next-line @next/next/no-img-element -- rendered off-DOM into a shareable PNG, next/image isn't applicable here
+                <img src={logoSrc} alt="OLYMPUS" className="h-6 w-auto" />
+              )}
             </div>
           </div>
         </div>
@@ -315,7 +325,11 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
         {error && <p className="text-sm text-danger">{error}</p>}
 
         {videoSupported && (
-          <Button onClick={handleShareVideo} disabled={videoPending || imagePending} className="w-full">
+          <Button
+            onClick={handleShareVideo}
+            disabled={videoPending || imagePending || !logoSrc}
+            className="w-full"
+          >
             {videoPending
               ? videoReady
                 ? "Membagikan..."
@@ -328,7 +342,7 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
         <Button
           variant={videoSupported ? "secondary" : "primary"}
           onClick={handleShareImage}
-          disabled={videoPending || imagePending}
+          disabled={videoPending || imagePending || !logoSrc}
           className="w-full"
         >
           {imagePending ? "Menyiapkan..." : "📤 Bagikan Gambar"}
