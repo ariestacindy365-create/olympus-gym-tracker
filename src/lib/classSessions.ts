@@ -14,8 +14,24 @@ export const CLASS_SESSIONS: ClassSession[] = [
   { id: "class-6", name: "18:30-19:30", startMinute: 1110, endMinute: 1170 },
 ];
 
+// Class times are wall-clock Jakarta hours. Date.getHours()/getMinutes()
+// return the JS runtime's *local* timezone, which is Jakarta in the
+// browser (coach's phone) but UTC on Vercel's server — so a server-side
+// caller (e.g. stamping presentDate on login) would compare these windows
+// against the wrong clock entirely and never match real class hours.
+// Intl.DateTimeFormat with an explicit timeZone is correct everywhere.
+const jakartaTimeFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Asia/Jakarta",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
 function minuteOfDay(date: Date): number {
-  return date.getHours() * 60 + date.getMinutes();
+  const parts = jakartaTimeFormatter.formatToParts(date);
+  const hour = Number(parts.find((p) => p.type === "hour")?.value ?? "0");
+  const minute = Number(parts.find((p) => p.type === "minute")?.value ?? "0");
+  return hour * 60 + minute;
 }
 
 export function getCurrentClassSession(now: Date = new Date()): ClassSession | null {
