@@ -14,6 +14,7 @@ export interface BodyMetricEntry {
   weight: number;
   bodyFatPercent: number | null;
   skeletalMuscleMass: number | null;
+  visceralFat: number | null;
   note: string | null;
 }
 
@@ -56,6 +57,7 @@ export function BodyMetricsView({ entries, canEdit = false, canDelete = false, b
   const [editWeight, setEditWeight] = useState("");
   const [editBodyFat, setEditBodyFat] = useState("");
   const [editMuscle, setEditMuscle] = useState("");
+  const [editVisceralFat, setEditVisceralFat] = useState("");
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,12 +70,16 @@ export function BodyMetricsView({ entries, canEdit = false, canDelete = false, b
   const muscleChart = sorted
     .filter((e) => e.skeletalMuscleMass != null)
     .map((e) => ({ date: formatDate(e.recordedDate), value: e.skeletalMuscleMass as number }));
+  const visceralFatChart = sorted
+    .filter((e) => e.visceralFat != null)
+    .map((e) => ({ date: formatDate(e.recordedDate), value: e.visceralFat as number }));
 
   function startEdit(entry: BodyMetricEntry) {
     setEditingId(entry.id);
     setEditWeight(String(entry.weight));
     setEditBodyFat(entry.bodyFatPercent != null ? String(entry.bodyFatPercent) : "");
     setEditMuscle(entry.skeletalMuscleMass != null ? String(entry.skeletalMuscleMass) : "");
+    setEditVisceralFat(entry.visceralFat != null ? String(entry.visceralFat) : "");
     setError(null);
   }
 
@@ -89,6 +95,7 @@ export function BodyMetricsView({ entries, canEdit = false, canDelete = false, b
     }
     const bodyFatNum = editBodyFat.trim() ? parseWeightInput(editBodyFat) : null;
     const muscleNum = editMuscle.trim() ? parseWeightInput(editMuscle) : null;
+    const visceralFatNum = editVisceralFat.trim() ? parseWeightInput(editVisceralFat) : null;
 
     setPendingId(id);
     setError(null);
@@ -100,6 +107,7 @@ export function BodyMetricsView({ entries, canEdit = false, canDelete = false, b
           weight: weightNum,
           bodyFatPercent: bodyFatNum ?? undefined,
           skeletalMuscleMass: muscleNum ?? undefined,
+          visceralFat: visceralFatNum ?? undefined,
         }),
       });
       const body = await res.json();
@@ -145,12 +153,16 @@ export function BodyMetricsView({ entries, canEdit = false, canDelete = false, b
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatTile label="Berat Terakhir" value={`${latest?.weight}kg`} accent />
         <StatTile label="Body Fat Terakhir" value={latest?.bodyFatPercent != null ? `${latest.bodyFatPercent}%` : "-"} />
         <StatTile
           label="Skeletal Muscle Terakhir"
           value={latest?.skeletalMuscleMass != null ? `${latest.skeletalMuscleMass}kg` : "-"}
+        />
+        <StatTile
+          label="Visceral Fat Terakhir"
+          value={latest?.visceralFat != null ? `${latest.visceralFat}` : "-"}
         />
       </div>
 
@@ -170,6 +182,11 @@ export function BodyMetricsView({ entries, canEdit = false, canDelete = false, b
       </Card>
 
       <Card>
+        <h3 className="mb-3 font-display text-lg font-semibold">Visceral Fat</h3>
+        <MiniChart data={visceralFatChart} dataKey="Visceral Fat" unit="" color="#f472b6" />
+      </Card>
+
+      <Card>
         <h3 className="mb-3 font-display text-lg font-semibold">Riwayat</h3>
         {error && <p className="mb-2 text-sm text-danger">{error}</p>}
         <div className="overflow-x-auto">
@@ -180,6 +197,7 @@ export function BodyMetricsView({ entries, canEdit = false, canDelete = false, b
                 <th className="pb-2 pr-3">Berat</th>
                 <th className="pb-2 pr-3">Body Fat</th>
                 <th className="pb-2 pr-3">Skeletal Muscle</th>
+                <th className="pb-2 pr-3">Visceral Fat</th>
                 <th className="pb-2 pr-3">Catatan</th>
                 {(canEdit || canDelete) && <th className="pb-2" />}
               </tr>
@@ -218,6 +236,16 @@ export function BodyMetricsView({ entries, canEdit = false, canDelete = false, b
                         placeholder="-"
                       />
                     </td>
+                    <td className="py-2 pr-3">
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        value={editVisceralFat}
+                        onChange={(ev) => setEditVisceralFat(ev.target.value)}
+                        className="!py-1 w-16"
+                        placeholder="-"
+                      />
+                    </td>
                     <td className="py-2 pr-3 text-muted">{e.note ?? "—"}</td>
                     <td className="py-2 text-right">
                       <div className="flex justify-end gap-2">
@@ -241,6 +269,7 @@ export function BodyMetricsView({ entries, canEdit = false, canDelete = false, b
                     <td className="py-2 pr-3">{e.weight}kg</td>
                     <td className="py-2 pr-3">{e.bodyFatPercent != null ? `${e.bodyFatPercent}%` : "—"}</td>
                     <td className="py-2 pr-3">{e.skeletalMuscleMass != null ? `${e.skeletalMuscleMass}kg` : "—"}</td>
+                    <td className="py-2 pr-3">{e.visceralFat != null ? e.visceralFat : "—"}</td>
                     <td className="py-2 pr-3 text-muted">{e.note ?? "—"}</td>
                     {(canEdit || canDelete) && (
                       <td className="py-2 text-right">

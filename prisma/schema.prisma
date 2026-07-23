@@ -94,6 +94,7 @@ model BodyMetric {
   weight             Float
   bodyFatPercent     Float?
   skeletalMuscleMass Float?
+  visceralFat        Float?
   note               String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt

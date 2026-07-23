@@ -103,6 +103,7 @@ export const bodyMetricSchema = z.object({
   weight: flexibleWeight,
   bodyFatPercent: flexibleNumber(100).optional(),
   skeletalMuscleMass: flexibleWeight.optional(),
+  visceralFat: flexibleNumber(60).optional(),
   note: z.string().trim().max(280).optional(),
   // Coach backfilling a weigh-in from a day the member didn't have their
   // phone — defaults to today when omitted (the member's own form never

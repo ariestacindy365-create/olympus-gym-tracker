@@ -23,7 +23,7 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/coach/m
   if (!parsed.success) {
     return NextResponse.json({ error: "Isi berat badan yang valid." }, { status: 400 });
   }
-  const { weight, bodyFatPercent, skeletalMuscleMass, note } = parsed.data;
+  const { weight, bodyFatPercent, skeletalMuscleMass, visceralFat, note } = parsed.data;
   // Must use the exact same local-midnight convention as todayDateKey(), or
   // a coach picking "today" from the date picker keys to a different
   // timestamp than the member's own same-day entry and creates a duplicate
@@ -32,11 +32,12 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/coach/m
 
   const entry = await prisma.bodyMetric.upsert({
     where: { memberId_recordedDate: { memberId, recordedDate } },
-    create: { memberId, recordedDate, weight, bodyFatPercent, skeletalMuscleMass, note },
+    create: { memberId, recordedDate, weight, bodyFatPercent, skeletalMuscleMass, visceralFat, note },
     update: {
       weight,
       bodyFatPercent: bodyFatPercent ?? null,
       skeletalMuscleMass: skeletalMuscleMass ?? null,
+      visceralFat: visceralFat ?? null,
       note: note ?? null,
     },
   });

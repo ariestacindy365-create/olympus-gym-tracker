@@ -17,16 +17,17 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Isi berat badan yang valid." }, { status: 400 });
   }
-  const { weight, bodyFatPercent, skeletalMuscleMass, note } = parsed.data;
+  const { weight, bodyFatPercent, skeletalMuscleMass, visceralFat, note } = parsed.data;
   const recordedDate = todayDateKey();
 
   const entry = await prisma.bodyMetric.upsert({
     where: { memberId_recordedDate: { memberId: user.id, recordedDate } },
-    create: { memberId: user.id, recordedDate, weight, bodyFatPercent, skeletalMuscleMass, note },
+    create: { memberId: user.id, recordedDate, weight, bodyFatPercent, skeletalMuscleMass, visceralFat, note },
     update: {
       weight,
       bodyFatPercent: bodyFatPercent ?? null,
       skeletalMuscleMass: skeletalMuscleMass ?? null,
+      visceralFat: visceralFat ?? null,
       note: note ?? null,
     },
   });

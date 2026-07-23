@@ -45,6 +45,7 @@ export default async function CoachMemberDetailPage({
     weight: e.weight,
     bodyFatPercent: e.bodyFatPercent,
     skeletalMuscleMass: e.skeletalMuscleMass,
+    visceralFat: e.visceralFat,
     note: e.note,
   }));
 

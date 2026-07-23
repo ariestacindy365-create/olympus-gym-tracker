@@ -18,6 +18,7 @@ interface BodyMetricEntryLite {
   weight: number;
   bodyFatPercent: number | null;
   skeletalMuscleMass: number | null;
+  visceralFat: number | null;
 }
 
 function findWins(entries: BodyMetricEntryLite[], savedEntryId: string): BodyMetricWin[] {
@@ -53,6 +54,13 @@ function findWins(entries: BodyMetricEntryLite[], savedEntryId: string): BodyMet
       detail: `+${(current.skeletalMuscleMass - previous.skeletalMuscleMass).toFixed(1)}kg → ${current.skeletalMuscleMass}kg`,
     });
   }
+  if (current.visceralFat != null && previous.visceralFat != null && current.visceralFat < previous.visceralFat) {
+    wins.push({
+      icon: "⬇️",
+      label: "Visceral Fat Turun",
+      detail: `-${(previous.visceralFat - current.visceralFat).toFixed(1)} → ${current.visceralFat}`,
+    });
+  }
   return wins;
 }
 
@@ -77,7 +85,7 @@ export function BodyMetricForm({
   basePath,
   memberName,
   title = "Catat Berat Badan",
-  description = "Berat badan, body fat, dan skeletal muscle mass hari ini.",
+  description = "Berat badan, body fat, skeletal muscle mass, dan visceral fat hari ini.",
   showDatePicker = false,
 }: BodyMetricFormProps) {
   const router = useRouter();
@@ -85,6 +93,7 @@ export function BodyMetricForm({
   const [weight, setWeight] = useState("");
   const [bodyFatPercent, setBodyFatPercent] = useState("");
   const [skeletalMuscleMass, setSkeletalMuscleMass] = useState("");
+  const [visceralFat, setVisceralFat] = useState("");
   const [note, setNote] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,6 +124,11 @@ export function BodyMetricForm({
       setError("Isi skeletal muscle mass yang valid.");
       return;
     }
+    const visceralFatNum = visceralFat.trim() ? parseWeightInput(visceralFat) : null;
+    if (visceralFat.trim() && !visceralFatNum) {
+      setError("Isi visceral fat yang valid.");
+      return;
+    }
 
     setPending(true);
     try {
@@ -125,6 +139,7 @@ export function BodyMetricForm({
           weight: weightNum,
           bodyFatPercent: bodyFatNum ?? undefined,
           skeletalMuscleMass: muscleNum ?? undefined,
+          visceralFat: visceralFatNum ?? undefined,
           note: note || undefined,
           recordedDate: showDatePicker ? date : undefined,
         }),
@@ -141,6 +156,7 @@ export function BodyMetricForm({
       setWeight("");
       setBodyFatPercent("");
       setSkeletalMuscleMass("");
+      setVisceralFat("");
       setNote("");
       setDate(todayInputValue());
       setSaved(true);
@@ -172,7 +188,7 @@ export function BodyMetricForm({
             />
           </div>
         )}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div>
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
               Berat Badan (kg)
@@ -201,6 +217,18 @@ export function BodyMetricForm({
               placeholder="opsional"
               value={skeletalMuscleMass}
               onChange={(e) => setSkeletalMuscleMass(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
+              Visceral Fat
+            </label>
+            <Input
+              type="text"
+              inputMode="decimal"
+              placeholder="opsional"
+              value={visceralFat}
+              onChange={(e) => setVisceralFat(e.target.value)}
             />
           </div>
         </div>

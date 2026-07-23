@@ -22,7 +22,7 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/member
   if (!parsed.success) {
     return NextResponse.json({ error: "Isi berat badan yang valid." }, { status: 400 });
   }
-  const { weight, bodyFatPercent, skeletalMuscleMass, note } = parsed.data;
+  const { weight, bodyFatPercent, skeletalMuscleMass, visceralFat, note } = parsed.data;
 
   await prisma.bodyMetric.update({
     where: { id },
@@ -30,6 +30,7 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/member
       weight,
       bodyFatPercent: bodyFatPercent ?? null,
       skeletalMuscleMass: skeletalMuscleMass ?? null,
+      visceralFat: visceralFat ?? null,
       note: note ?? null,
     },
   });

@@ -18,6 +18,7 @@ export default async function MemberBodyPage() {
     weight: e.weight,
     bodyFatPercent: e.bodyFatPercent,
     skeletalMuscleMass: e.skeletalMuscleMass,
+    visceralFat: e.visceralFat,
     note: e.note,
   }));
 
@@ -25,7 +26,9 @@ export default async function MemberBodyPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="font-display text-2xl font-bold">Body Metrics</h1>
-        <p className="text-sm text-muted">Pantau berat badan, body fat, dan skeletal muscle mass kamu.</p>
+        <p className="text-sm text-muted">
+          Pantau berat badan, body fat, skeletal muscle mass, dan visceral fat kamu.
+        </p>
       </div>
 
       <BodyMetricForm basePath="/api/member/body-metrics" memberName={user.name} />
