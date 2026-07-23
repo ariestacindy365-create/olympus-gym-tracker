@@ -88,12 +88,12 @@ export function BodyMetricCelebrationModal({ data, onClose }: BodyMetricCelebrat
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 px-4 py-6 backdrop-blur-md">
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative flex w-full max-w-sm flex-col items-center gap-4">
-        <div ref={cardRef} className="w-full rounded-[32px] p-5" style={{ background: "#dbeafe" }}>
+      <div className="relative flex w-full max-w-xs flex-col items-center gap-4">
+        <div ref={cardRef} className="flex aspect-[9/16] w-full flex-col rounded-[32px] p-4" style={{ background: "#dbeafe" }}>
           <div
-            className="relative rounded-3xl px-6 py-8 text-center"
+            className="relative flex flex-1 flex-col items-center justify-center rounded-3xl px-6 py-8 text-center"
             style={{ background: "#ffffff", border: `2px solid ${ACCENT}` }}
           >
             <button
@@ -112,7 +112,7 @@ export function BodyMetricCelebrationModal({ data, onClose }: BodyMetricCelebrat
               🎉 Progress Baru!
             </p>
 
-            <div className="mt-5 flex flex-col gap-3">
+            <div className="mt-6 flex w-full flex-col gap-3">
               {data.wins.map((win) => (
                 <div
                   key={win.label}
@@ -129,11 +129,11 @@ export function BodyMetricCelebrationModal({ data, onClose }: BodyMetricCelebrat
               ))}
             </div>
 
-            <p className="mt-4 text-xs" style={{ color: ACCENT_MUTED }}>
+            <p className="mt-6 text-xs" style={{ color: ACCENT_MUTED }}>
               {dateLabel}
             </p>
 
-            <div className="my-5 h-px w-full bg-slate-200" />
+            <div className="my-6 h-px w-full bg-slate-200" />
 
             <div className="flex items-center justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element -- rendered off-DOM into a shareable PNG, next/image isn't applicable here */}

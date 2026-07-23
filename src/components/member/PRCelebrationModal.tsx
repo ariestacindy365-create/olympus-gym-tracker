@@ -256,12 +256,12 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 px-4 py-6 backdrop-blur-md">
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative flex w-full max-w-sm flex-col items-center gap-4">
-        <div ref={cardRef} className="w-full rounded-[32px] p-5" style={{ background: "#dbeafe" }}>
+      <div className="relative flex w-full max-w-xs flex-col items-center gap-4">
+        <div ref={cardRef} className="flex aspect-[9/16] w-full flex-col rounded-[32px] p-4" style={{ background: "#dbeafe" }}>
           <div
-            className="relative rounded-3xl px-6 py-8 text-center"
+            className="relative flex flex-1 flex-col items-center justify-center rounded-3xl px-6 py-8 text-center"
             style={{ background: "#ffffff", border: `2px solid ${ACCENT}` }}
           >
             <button
@@ -280,7 +280,7 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
               {data.isDebut ? "✨ Debut Pertama" : "🔥 PR Baru!"}
             </p>
 
-            <p className="mt-4 text-xs font-semibold uppercase tracking-wide" style={{ color: ACCENT_MUTED }}>
+            <p className="mt-6 text-xs font-semibold uppercase tracking-wide" style={{ color: ACCENT_MUTED }}>
               {data.exerciseName}
             </p>
 
@@ -293,7 +293,7 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
             </p>
 
             <div
-              className="mx-auto mt-5 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold"
+              className="mx-auto mt-6 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold"
               style={{ background: ACCENT, color: "#ffffff" }}
             >
               {data.isDebut ? "✨ Angkatan Pertama Dicatat" : "🏆 Rekor Baru!"}
@@ -303,7 +303,7 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
               {dateLabel}
             </p>
 
-            <div className="my-5 h-px w-full bg-slate-200" />
+            <div className="my-6 h-px w-full bg-slate-200" />
 
             <div className="flex items-center justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element -- rendered off-DOM into a shareable PNG, next/image isn't applicable here */}
