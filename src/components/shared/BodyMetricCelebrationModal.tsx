@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import confetti from "canvas-confetti";
 import { Button } from "@/components/ui/Button";
-import { fetchAsDataUrl } from "@/lib/imageDataUrl";
+import { fetchAsDataUrl, compositeLogoOntoDataUrl } from "@/lib/imageDataUrl";
 
 export interface BodyMetricWin {
   label: string;
@@ -29,6 +29,7 @@ const ACCENT_SOFT_BORDER = "rgba(37, 99, 235, 0.25)";
 
 export function BodyMetricCelebrationModal({ data, onClose }: BodyMetricCelebrationModalProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const logoRef = useRef<HTMLImageElement>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [logoSrc, setLogoSrc] = useState<string | null>(null);
@@ -81,7 +82,10 @@ export function BodyMetricCelebrationModal({ data, onClose }: BodyMetricCelebrat
     setPending(true);
     try {
       if (!cardRef.current) throw new Error("card not ready");
-      const dataUrl = await toPng(cardRef.current, { pixelRatio: 3 });
+      let dataUrl = await toPng(cardRef.current, { pixelRatio: 3 });
+      if (logoRef.current) {
+        dataUrl = await compositeLogoOntoDataUrl(dataUrl, cardRef.current, logoRef.current);
+      }
       const blob = await (await fetch(dataUrl)).blob();
       const file = new File([blob], `olympus-progress-${Date.now()}.png`, { type: "image/png" });
       await shareOrDownload(file);
@@ -146,7 +150,7 @@ export function BodyMetricCelebrationModal({ data, onClose }: BodyMetricCelebrat
             <div className="flex items-center justify-center">
               {logoSrc && (
                 // eslint-disable-next-line @next/next/no-img-element -- rendered off-DOM into a shareable PNG, next/image isn't applicable here
-                <img src={logoSrc} alt="OLYMPUS" className="h-6 w-auto" />
+                <img ref={logoRef} src={logoSrc} alt="OLYMPUS" className="h-6 w-auto" />
               )}
             </div>
           </div>

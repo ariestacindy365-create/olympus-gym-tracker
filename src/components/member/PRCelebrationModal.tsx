@@ -5,7 +5,7 @@ import { toPng } from "html-to-image";
 import confetti from "canvas-confetti";
 import fixWebmDuration from "fix-webm-duration";
 import { Button } from "@/components/ui/Button";
-import { fetchAsDataUrl } from "@/lib/imageDataUrl";
+import { fetchAsDataUrl, compositeLogoOntoDataUrl } from "@/lib/imageDataUrl";
 
 export interface PRCelebrationData {
   memberName: string;
@@ -26,6 +26,7 @@ const ACCENT_MUTED = "#64748b";
 
 export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const logoRef = useRef<HTMLImageElement>(null);
   const [imagePending, setImagePending] = useState(false);
   const [videoPending, setVideoPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -98,7 +99,10 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
 
   async function buildImageFile(): Promise<File> {
     if (!cardRef.current) throw new Error("card not ready");
-    const dataUrl = await toPng(cardRef.current, { pixelRatio: 3 });
+    let dataUrl = await toPng(cardRef.current, { pixelRatio: 3 });
+    if (logoRef.current) {
+      dataUrl = await compositeLogoOntoDataUrl(dataUrl, cardRef.current, logoRef.current);
+    }
     const blob = await (await fetch(dataUrl)).blob();
     return new File([blob], `olympus-pr-${Date.now()}.png`, { type: "image/png" });
   }
@@ -127,7 +131,10 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
     const width = Math.round(node.offsetWidth * scale);
     const height = Math.round(node.offsetHeight * scale);
 
-    const dataUrl = await toPng(node, { pixelRatio: scale });
+    let dataUrl = await toPng(node, { pixelRatio: scale });
+    if (logoRef.current) {
+      dataUrl = await compositeLogoOntoDataUrl(dataUrl, node, logoRef.current);
+    }
     const cardImg = new Image();
     cardImg.src = dataUrl;
     await new Promise<void>((resolve, reject) => {
@@ -316,7 +323,7 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
             <div className="flex items-center justify-center">
               {logoSrc && (
                 // eslint-disable-next-line @next/next/no-img-element -- rendered off-DOM into a shareable PNG, next/image isn't applicable here
-                <img src={logoSrc} alt="OLYMPUS" className="h-6 w-auto" />
+                <img ref={logoRef} src={logoSrc} alt="OLYMPUS" className="h-6 w-auto" />
               )}
             </div>
           </div>
