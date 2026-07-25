@@ -20,6 +20,13 @@ function formatStatValue(value: number) {
   return Number.isInteger(value) ? value.toLocaleString("id-ID") : value.toFixed(1);
 }
 
+function formatProgress(achievement: Achievement, currentValue: number): string {
+  if (achievement.statKey === "bodyweightMultiple") {
+    return `${Math.round(currentValue * 100)}% dari berat badan`;
+  }
+  return `${formatStatValue(currentValue)}/${formatStatValue(achievement.threshold)}`;
+}
+
 export default async function MemberAchievementsPage() {
   const user = await getCurrentUser();
   if (!user) return null;
@@ -84,9 +91,7 @@ export default async function MemberAchievementsPage() {
                               style={{ width: `${progress * 100}%` }}
                             />
                           </div>
-                          <p className="mt-1 text-xs text-muted">
-                            {formatStatValue(currentValue)}/{formatStatValue(achievement.threshold)}
-                          </p>
+                          <p className="mt-1 text-xs text-muted">{formatProgress(achievement, currentValue)}</p>
                         </div>
                       )}
                     </div>

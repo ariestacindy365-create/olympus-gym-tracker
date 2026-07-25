@@ -20,6 +20,8 @@ export interface MemberStats {
   distinctExercises: number;
   bodyMetricEntries: number;
   weightLostKg: number;
+  /** Heaviest single-set weight ever lifted, divided by the latest logged body weight. */
+  bodyweightMultiple: number;
 }
 
 export const ACHIEVEMENTS: Achievement[] = [
@@ -135,6 +137,15 @@ export const ACHIEVEMENTS: Achievement[] = [
     threshold: 5,
     statKey: "distinctExercises",
   },
+  {
+    code: "BODYWEIGHT_1X",
+    name: "Angkat Berat Badan Sendiri",
+    description: "Angkat beban setara atau lebih dari berat badanmu sendiri dalam 1 set",
+    icon: "🏋️",
+    category: "KEKUATAN",
+    threshold: 1,
+    statKey: "bodyweightMultiple",
+  },
   // Body metrics
   {
     code: "BODY_FIRST_LOG",
@@ -187,7 +198,19 @@ export async function computeMemberStats(memberId: string): Promise<MemberStats>
   const weightLostKg =
     bodyMetricEntries >= 2 ? Math.max(0, bodyMetrics[0].weight - bodyMetrics[bodyMetricEntries - 1].weight) : 0;
 
-  return { distinctTrainingDays, totalPRs, totalVolumeKg, distinctExercises, bodyMetricEntries, weightLostKg };
+  const maxWeightLifted = sets.reduce((max, s) => Math.max(max, s.weight), 0);
+  const latestBodyWeight = bodyMetricEntries >= 1 ? bodyMetrics[bodyMetricEntries - 1].weight : 0;
+  const bodyweightMultiple = latestBodyWeight > 0 ? maxWeightLifted / latestBodyWeight : 0;
+
+  return {
+    distinctTrainingDays,
+    totalPRs,
+    totalVolumeKg,
+    distinctExercises,
+    bodyMetricEntries,
+    weightLostKg,
+    bodyweightMultiple,
+  };
 }
 
 export interface UnlockedAchievement extends Achievement {
