@@ -4,12 +4,16 @@ import { prisma } from "@/lib/prisma";
 import { DashboardClient } from "@/components/member/DashboardClient";
 import { ProgressView, type ExerciseProgress } from "@/components/shared/ProgressView";
 import { UnseenAchievementNotifier } from "@/components/member/UnseenAchievementNotifier";
-import { getUnseenAchievements } from "@/lib/achievements";
+import { syncMemberAchievements, getUnseenAchievements } from "@/lib/achievements";
 
 export default async function MemberDashboardPage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
+  // Membership-duration achievements unlock purely by time passing, not by
+  // any set/body-metric action — sync here (unseen, so the celebration
+  // still shows) so they're picked up on the page members open most often.
+  await syncMemberAchievements(user.id, { markSeen: false });
   const unseenAchievements = await getUnseenAchievements(user.id);
 
   const [dailyWorkout, exercises, todaysSets, pastSets, personalRecords, allSets] = await Promise.all([

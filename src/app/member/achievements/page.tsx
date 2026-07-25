@@ -8,9 +8,10 @@ const CATEGORY_LABELS: Record<Achievement["category"], string> = {
   KEKUATAN: "Kekuatan",
   VOLUME: "Volume",
   BODY: "Body Metrics",
+  LOYALITAS: "Loyalitas",
 };
 
-const CATEGORY_ORDER: Achievement["category"][] = ["KONSISTENSI", "KEKUATAN", "VOLUME", "BODY"];
+const CATEGORY_ORDER: Achievement["category"][] = ["KONSISTENSI", "KEKUATAN", "VOLUME", "BODY", "LOYALITAS"];
 
 function formatDate(date: Date) {
   return date.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });

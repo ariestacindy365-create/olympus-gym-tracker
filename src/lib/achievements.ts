@@ -6,7 +6,7 @@ export interface Achievement {
   name: string;
   description: string;
   icon: string;
-  category: "KONSISTENSI" | "KEKUATAN" | "VOLUME" | "BODY";
+  category: "KONSISTENSI" | "KEKUATAN" | "VOLUME" | "BODY" | "LOYALITAS";
   /** Value the matching MemberStats field must reach to unlock. */
   threshold: number;
   /** Key into MemberStats this achievement tracks, for progress display. */
@@ -22,6 +22,10 @@ export interface MemberStats {
   weightLostKg: number;
   /** Heaviest single-set weight ever lifted, divided by the latest logged body weight. */
   bodyweightMultiple: number;
+  /** Days since the member's account was created. */
+  membershipDays: number;
+  /** Most distinct training days ever logged within a single ISO week. */
+  maxWeeklyTrainingDays: number;
 }
 
 export const ACHIEVEMENTS: Achievement[] = [
@@ -70,6 +74,80 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: "KONSISTENSI",
     threshold: 100,
     statKey: "distinctTrainingDays",
+  },
+  // Konsistensi — jumlah hari latihan berbeda dalam 1 minggu yang sama
+  {
+    code: "WEEKLY_3",
+    name: "Rutin Mingguan",
+    description: "Latihan 3 hari dalam 1 minggu",
+    icon: "🗓️",
+    category: "KONSISTENSI",
+    threshold: 3,
+    statKey: "maxWeeklyTrainingDays",
+  },
+  {
+    code: "WEEKLY_4",
+    name: "Semangat Mingguan",
+    description: "Latihan 4 hari dalam 1 minggu",
+    icon: "📅",
+    category: "KONSISTENSI",
+    threshold: 4,
+    statKey: "maxWeeklyTrainingDays",
+  },
+  {
+    code: "WEEKLY_5",
+    name: "Gila Latihan",
+    description: "Latihan 5 hari dalam 1 minggu",
+    icon: "🌟",
+    category: "KONSISTENSI",
+    threshold: 5,
+    statKey: "maxWeeklyTrainingDays",
+  },
+  {
+    code: "WEEKLY_6",
+    name: "Tanpa Ampun",
+    description: "Latihan 6 hari dalam 1 minggu",
+    icon: "💥",
+    category: "KONSISTENSI",
+    threshold: 6,
+    statKey: "maxWeeklyTrainingDays",
+  },
+  // Loyalitas — lama bergabung jadi member
+  {
+    code: "MEMBER_1_MONTH",
+    name: "1 Bulan Bergabung",
+    description: "Sudah jadi member OLYMPUS selama 1 bulan",
+    icon: "🌱",
+    category: "LOYALITAS",
+    threshold: 30,
+    statKey: "membershipDays",
+  },
+  {
+    code: "MEMBER_3_MONTHS",
+    name: "3 Bulan Bergabung",
+    description: "Sudah jadi member OLYMPUS selama 3 bulan",
+    icon: "🌿",
+    category: "LOYALITAS",
+    threshold: 90,
+    statKey: "membershipDays",
+  },
+  {
+    code: "MEMBER_6_MONTHS",
+    name: "6 Bulan Bergabung",
+    description: "Sudah jadi member OLYMPUS selama 6 bulan",
+    icon: "🌳",
+    category: "LOYALITAS",
+    threshold: 180,
+    statKey: "membershipDays",
+  },
+  {
+    code: "MEMBER_1_YEAR",
+    name: "1 Tahun Bergabung",
+    description: "Sudah jadi member OLYMPUS selama 1 tahun",
+    icon: "🎂",
+    category: "LOYALITAS",
+    threshold: 365,
+    statKey: "membershipDays",
   },
   // Kekuatan — jumlah PR
   {
@@ -176,8 +254,19 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
 ];
 
+// ISO 8601 week key ("2026-W04") so a Mon-Sun training week is grouped
+// correctly regardless of which day of the week it starts landing on.
+function isoWeekKey(date: Date): string {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  return `${d.getUTCFullYear()}-W${weekNo}`;
+}
+
 export async function computeMemberStats(memberId: string): Promise<MemberStats> {
-  const [sets, bodyMetrics] = await Promise.all([
+  const [sets, bodyMetrics, member] = await Promise.all([
     prisma.setEntry.findMany({
       where: { memberId },
       select: { workoutDate: true, exerciseId: true, weight: true, reps: true, isPR: true },
@@ -187,6 +276,7 @@ export async function computeMemberStats(memberId: string): Promise<MemberStats>
       orderBy: { recordedDate: "asc" },
       select: { weight: true },
     }),
+    prisma.user.findUnique({ where: { id: memberId }, select: { createdAt: true } }),
   ]);
 
   const distinctTrainingDays = new Set(sets.map((s) => s.workoutDate.getTime())).size;
@@ -202,6 +292,16 @@ export async function computeMemberStats(memberId: string): Promise<MemberStats>
   const latestBodyWeight = bodyMetricEntries >= 1 ? bodyMetrics[bodyMetricEntries - 1].weight : 0;
   const bodyweightMultiple = latestBodyWeight > 0 ? maxWeightLifted / latestBodyWeight : 0;
 
+  const membershipDays = member ? Math.floor((Date.now() - member.createdAt.getTime()) / 86400000) : 0;
+
+  const distinctDates = Array.from(new Set(sets.map((s) => s.workoutDate.getTime())));
+  const weekCounts = new Map<string, number>();
+  for (const ts of distinctDates) {
+    const key = isoWeekKey(new Date(ts));
+    weekCounts.set(key, (weekCounts.get(key) ?? 0) + 1);
+  }
+  const maxWeeklyTrainingDays = weekCounts.size > 0 ? Math.max(...weekCounts.values()) : 0;
+
   return {
     distinctTrainingDays,
     totalPRs,
@@ -210,6 +310,8 @@ export async function computeMemberStats(memberId: string): Promise<MemberStats>
     bodyMetricEntries,
     weightLostKg,
     bodyweightMultiple,
+    membershipDays,
+    maxWeeklyTrainingDays,
   };
 }
 
