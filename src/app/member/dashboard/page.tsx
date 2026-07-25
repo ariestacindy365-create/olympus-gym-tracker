@@ -3,10 +3,14 @@ import { getTodayDailyWorkout, todayDateKey } from "@/lib/workout";
 import { prisma } from "@/lib/prisma";
 import { DashboardClient } from "@/components/member/DashboardClient";
 import { ProgressView, type ExerciseProgress } from "@/components/shared/ProgressView";
+import { UnseenAchievementNotifier } from "@/components/member/UnseenAchievementNotifier";
+import { getUnseenAchievements } from "@/lib/achievements";
 
 export default async function MemberDashboardPage() {
   const user = await getCurrentUser();
   if (!user) return null;
+
+  const unseenAchievements = await getUnseenAchievements(user.id);
 
   const [dailyWorkout, exercises, todaysSets, pastSets, personalRecords, allSets] = await Promise.all([
     getTodayDailyWorkout(),
@@ -133,6 +137,8 @@ export default async function MemberDashboardPage() {
       )}
 
       <ProgressView exercises={progressExercises} referenceDate={new Date().toISOString()} canDelete />
+
+      <UnseenAchievementNotifier memberName={user.name} badges={unseenAchievements} />
     </div>
   );
 }

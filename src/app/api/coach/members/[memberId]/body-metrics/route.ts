@@ -48,7 +48,9 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/coach/m
     orderBy: { recordedDate: "asc" },
   });
 
-  const newAchievements = await syncMemberAchievements(memberId);
+  // Coach-initiated: leave unseen so the member gets notified next time
+  // they open the app, instead of a celebration the coach would see instead.
+  const newAchievements = await syncMemberAchievements(memberId, { markSeen: false });
 
   return NextResponse.json({ entry, entries, newAchievements });
 }

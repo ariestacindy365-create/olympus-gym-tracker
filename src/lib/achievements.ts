@@ -223,7 +223,17 @@ export interface UnlockedAchievement extends Achievement {
 // and also doubles as a backfill pass for members with pre-existing history
 // (e.g. the imported real progress data) whenever their achievements page
 // is opened.
-export async function syncMemberAchievements(memberId: string): Promise<Achievement[]> {
+//
+// markSeen controls whether the new unlocks are stamped as already-seen:
+// true (default) for anywhere the member is directly looking at the result
+// (their own set/body-metric save, or the achievements page itself) — no
+// further notification needed. Pass false when a coach logs on the
+// member's behalf, so it surfaces as an unseen notification next time the
+// member opens the app instead of unlocking silently.
+export async function syncMemberAchievements(
+  memberId: string,
+  { markSeen = true }: { markSeen?: boolean } = {}
+): Promise<Achievement[]> {
   const [stats, existing] = await Promise.all([
     computeMemberStats(memberId),
     prisma.achievementUnlock.findMany({ where: { memberId }, select: { achievementCode: true } }),
@@ -236,11 +246,30 @@ export async function syncMemberAchievements(memberId: string): Promise<Achievem
   if (newlyEarned.length === 0) return [];
 
   await prisma.achievementUnlock.createMany({
-    data: newlyEarned.map((a) => ({ memberId, achievementCode: a.code })),
+    data: newlyEarned.map((a) => ({ memberId, achievementCode: a.code, seenAt: markSeen ? new Date() : null })),
     skipDuplicates: true,
   });
 
   return newlyEarned;
+}
+
+// Achievements unlocked (e.g. by a coach logging on the member's behalf)
+// that the member hasn't been shown a celebration for yet.
+export async function getUnseenAchievements(memberId: string): Promise<Achievement[]> {
+  const unseen = await prisma.achievementUnlock.findMany({
+    where: { memberId, seenAt: null },
+    select: { achievementCode: true },
+  });
+  if (unseen.length === 0) return [];
+  const codes = new Set(unseen.map((u) => u.achievementCode));
+  return ACHIEVEMENTS.filter((a) => codes.has(a.code));
+}
+
+export async function markAchievementsSeen(memberId: string): Promise<void> {
+  await prisma.achievementUnlock.updateMany({
+    where: { memberId, seenAt: null },
+    data: { seenAt: new Date() },
+  });
 }
 
 export async function getMemberAchievements(memberId: string): Promise<{

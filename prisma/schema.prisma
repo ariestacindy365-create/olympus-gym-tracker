@@ -43,11 +43,16 @@ model User {
 // DB — this table only records which member unlocked which achievement
 // code and when, so the catalog can grow without a migration each time.
 model AchievementUnlock {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   memberId        String
-  member          User     @relation(fields: [memberId], references: [id])
+  member          User      @relation(fields: [memberId], references: [id])
   achievementCode String
-  unlockedAt      DateTime @default(now())
+  unlockedAt      DateTime  @default(now())
+  // Null until the member has been shown the celebration for it. Set
+  // immediately for member-initiated unlocks (they see the modal right
+  // away); left null for coach-initiated ones so the member gets notified
+  // next time they open the app instead of never finding out.
+  seenAt          DateTime?
 
   @@unique([memberId, achievementCode])
   @@index([memberId])
