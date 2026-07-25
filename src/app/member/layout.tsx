@@ -4,6 +4,7 @@ import { NavBar } from "@/components/ui/NavBar";
 const LINKS = [
   { href: "/member/dashboard", label: "Dashboard" },
   { href: "/member/body", label: "Body Metrics" },
+  { href: "/member/achievements", label: "Achievement" },
   { href: "/member/account", label: "Akun" },
 ];
 

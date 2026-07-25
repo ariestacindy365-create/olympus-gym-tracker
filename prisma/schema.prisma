@@ -34,8 +34,23 @@ model User {
   setEntries           SetEntry[]
   personalRecords      PersonalRecord[]
   bodyMetrics          BodyMetric[]
-  dailyWorkoutsCreated DailyWorkout[]    @relation("CoachDailyWorkouts")
-  programsAsCoach      TrainingProgram[] @relation("CoachPrograms")
+  dailyWorkoutsCreated DailyWorkout[]      @relation("CoachDailyWorkouts")
+  programsAsCoach      TrainingProgram[]   @relation("CoachPrograms")
+  achievementUnlocks   AchievementUnlock[]
+}
+
+// Achievement definitions live in code (src/lib/achievements.ts), not the
+// DB — this table only records which member unlocked which achievement
+// code and when, so the catalog can grow without a migration each time.
+model AchievementUnlock {
+  id              String   @id @default(cuid())
+  memberId        String
+  member          User     @relation(fields: [memberId], references: [id])
+  achievementCode String
+  unlockedAt      DateTime @default(now())
+
+  @@unique([memberId, achievementCode])
+  @@index([memberId])
 }
 
 model Exercise {

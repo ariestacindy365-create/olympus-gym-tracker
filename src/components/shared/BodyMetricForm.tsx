@@ -11,6 +11,11 @@ import {
   type BodyMetricCelebrationData,
   type BodyMetricWin,
 } from "@/components/shared/BodyMetricCelebrationModal";
+import {
+  AchievementCelebrationModal,
+  type AchievementCelebrationData,
+  type UnlockedBadge,
+} from "@/components/shared/AchievementCelebrationModal";
 
 interface BodyMetricEntryLite {
   id: string;
@@ -99,6 +104,8 @@ export function BodyMetricForm({
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [celebration, setCelebration] = useState<BodyMetricCelebrationData | null>(null);
+  const [achievementCelebration, setAchievementCelebration] = useState<AchievementCelebrationData | null>(null);
+  const [queuedAchievements, setQueuedAchievements] = useState<UnlockedBadge[] | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -150,8 +157,14 @@ export function BodyMetricForm({
         return;
       }
       const wins = findWins(data.entries, data.entry.id);
+      // Coach backfilling a member's weigh-in shouldn't pop a "you unlocked
+      // an emblem" celebration meant for the member themselves.
+      const newAchievements: UnlockedBadge[] = showDatePicker ? [] : (data.newAchievements ?? []);
       if (wins.length > 0) {
         setCelebration({ memberName, wins });
+        if (newAchievements.length > 0) setQueuedAchievements(newAchievements);
+      } else if (newAchievements.length > 0) {
+        setAchievementCelebration({ memberName, badges: newAchievements });
       }
       setWeight("");
       setBodyFatPercent("");
@@ -248,7 +261,24 @@ export function BodyMetricForm({
         </Button>
       </form>
 
-      {celebration && <BodyMetricCelebrationModal data={celebration} onClose={() => setCelebration(null)} />}
+      {celebration && (
+        <BodyMetricCelebrationModal
+          data={celebration}
+          onClose={() => {
+            setCelebration(null);
+            if (queuedAchievements) {
+              setAchievementCelebration({ memberName, badges: queuedAchievements });
+              setQueuedAchievements(null);
+            }
+          }}
+        />
+      )}
+      {achievementCelebration && (
+        <AchievementCelebrationModal
+          data={achievementCelebration}
+          onClose={() => setAchievementCelebration(null)}
+        />
+      )}
     </Card>
   );
 }

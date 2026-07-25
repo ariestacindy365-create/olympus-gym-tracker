@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { todayDateKey } from "@/lib/workout";
 import { bodyMetricSchema } from "@/lib/validation";
+import { syncMemberAchievements } from "@/lib/achievements";
 import { Role } from "@/generated/prisma/client";
 
 export async function POST(request: NextRequest) {
@@ -37,5 +38,7 @@ export async function POST(request: NextRequest) {
     orderBy: { recordedDate: "asc" },
   });
 
-  return NextResponse.json({ entry, entries });
+  const newAchievements = await syncMemberAchievements(user.id);
+
+  return NextResponse.json({ entry, entries, newAchievements });
 }

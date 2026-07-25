@@ -6,6 +6,7 @@ import { epley1RM } from "@/lib/oneRepMax";
 import { checkAndRecordPR } from "@/lib/pr";
 import { todayDateKey } from "@/lib/workout";
 import { setEntrySchema } from "@/lib/validation";
+import { syncMemberAchievements } from "@/lib/achievements";
 import { Role } from "@/generated/prisma/client";
 
 export async function POST(request: NextRequest, ctx: RouteContext<"/api/coach/members/[memberId]/sets">) {
@@ -68,5 +69,7 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/coach/m
     return saved;
   });
 
-  return NextResponse.json({ setEntry, exercise });
+  const newAchievements = await syncMemberAchievements(memberId);
+
+  return NextResponse.json({ setEntry, exercise, newAchievements });
 }

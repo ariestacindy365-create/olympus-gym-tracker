@@ -8,6 +8,11 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { LastPerformancePanel } from "@/components/member/LastPerformancePanel";
 import { PRCelebrationModal, type PRCelebrationData } from "@/components/member/PRCelebrationModal";
+import {
+  AchievementCelebrationModal,
+  type AchievementCelebrationData,
+  type UnlockedBadge,
+} from "@/components/shared/AchievementCelebrationModal";
 import { parseWeightInput } from "@/lib/parseWeight";
 
 interface ExerciseOption {
@@ -58,6 +63,8 @@ export function TopSetForm({
   const [error, setError] = useState<string | null>(null);
   const [justSavedPR, setJustSavedPR] = useState(false);
   const [celebration, setCelebration] = useState<PRCelebrationData | null>(null);
+  const [achievementCelebration, setAchievementCelebration] = useState<AchievementCelebrationData | null>(null);
+  const [queuedAchievements, setQueuedAchievements] = useState<UnlockedBadge[] | null>(null);
 
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
   const [editWeight, setEditWeight] = useState("");
@@ -113,6 +120,7 @@ export function TopSetForm({
         [exerciseId]: [...(prev[exerciseId] ?? []), newSet],
       }));
       setJustSavedPR(newSet.isPR);
+      const newAchievements: UnlockedBadge[] = data.newAchievements ?? [];
       if (newSet.isPR) {
         const exerciseName = exercises.find((ex) => ex.id === exerciseId)?.name ?? "";
         const isDebut = lastExerciseSets.length === 0 && currentSets.length === 0;
@@ -124,6 +132,10 @@ export function TopSetForm({
           estimated1RM: data.setEntry.estimated1RM,
           isDebut,
         });
+        // PR celebration shows first; the achievement one follows once that's dismissed.
+        if (newAchievements.length > 0) setQueuedAchievements(newAchievements);
+      } else if (newAchievements.length > 0) {
+        setAchievementCelebration({ memberName, badges: newAchievements });
       }
       setWeight("");
       setReps("");
@@ -359,7 +371,24 @@ export function TopSetForm({
         </Button>
       </form>
 
-      {celebration && <PRCelebrationModal data={celebration} onClose={() => setCelebration(null)} />}
+      {celebration && (
+        <PRCelebrationModal
+          data={celebration}
+          onClose={() => {
+            setCelebration(null);
+            if (queuedAchievements) {
+              setAchievementCelebration({ memberName, badges: queuedAchievements });
+              setQueuedAchievements(null);
+            }
+          }}
+        />
+      )}
+      {achievementCelebration && (
+        <AchievementCelebrationModal
+          data={achievementCelebration}
+          onClose={() => setAchievementCelebration(null)}
+        />
+      )}
     </Card>
   );
 }

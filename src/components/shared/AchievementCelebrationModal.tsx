@@ -1,0 +1,179 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { toPng } from "html-to-image";
+import confetti from "canvas-confetti";
+import { Button } from "@/components/ui/Button";
+import { fetchAsDataUrl, compositeLogoOntoDataUrl } from "@/lib/imageDataUrl";
+
+export interface UnlockedBadge {
+  code: string;
+  name: string;
+  description: string;
+  icon: string;
+}
+
+export interface AchievementCelebrationData {
+  memberName: string;
+  badges: UnlockedBadge[];
+}
+
+interface AchievementCelebrationModalProps {
+  data: AchievementCelebrationData;
+  onClose: () => void;
+}
+
+const ACCENT = "#2563eb";
+const ACCENT_MUTED = "#64748b";
+const ACCENT_SOFT = "rgba(37, 99, 235, 0.08)";
+const ACCENT_SOFT_BORDER = "rgba(37, 99, 235, 0.25)";
+
+export function AchievementCelebrationModal({ data, onClose }: AchievementCelebrationModalProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const logoRef = useRef<HTMLImageElement>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [logoSrc, setLogoSrc] = useState<string | null>(null);
+
+  const dateLabel = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+  const multiple = data.badges.length > 1;
+
+  useEffect(() => {
+    fetchAsDataUrl("/olympus-logo.png")
+      .then(setLogoSrc)
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const colors = [ACCENT, "#60a5fa", "#ffffff", "#facc15"];
+
+    confetti({ particleCount: 90, spread: 80, startVelocity: 45, origin: { y: 0.55 }, colors, zIndex: 60 });
+
+    const end = Date.now() + 2000;
+    (function frame() {
+      confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0, y: 0.7 }, colors, zIndex: 60 });
+      confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1, y: 0.7 }, colors, zIndex: 60 });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    })();
+  }, []);
+
+  function shareText() {
+    return `${data.memberName} baru dapat emblem ${data.badges.map((b) => b.name).join(", ")} di OLYMPUS Lifting Club! 💪`;
+  }
+
+  async function shareOrDownload(file: File) {
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: "OLYMPUS Lifting Club", text: shareText() });
+        return;
+      } catch (e) {
+        if ((e as { name?: string }).name === "AbortError") throw e;
+        console.error("navigator.share failed, falling back to download:", e);
+      }
+    }
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleShareImage() {
+    setError(null);
+    setPending(true);
+    try {
+      if (!cardRef.current) throw new Error("card not ready");
+      let dataUrl = await toPng(cardRef.current, { pixelRatio: 3 });
+      if (logoRef.current) {
+        dataUrl = await compositeLogoOntoDataUrl(dataUrl, cardRef.current, logoRef.current);
+      }
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], `olympus-achievement-${Date.now()}.png`, { type: "image/png" });
+      await shareOrDownload(file);
+    } catch (e) {
+      if ((e as { name?: string }).name !== "AbortError") {
+        console.error("Achievement image share failed:", e);
+        setError("Gagal menyiapkan gambar. Coba lagi.");
+      }
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 px-4 py-6 backdrop-blur-md">
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className="relative flex w-full max-w-xs flex-col items-center gap-4">
+        <div
+          ref={cardRef}
+          className="flex aspect-[9/16] w-full flex-col rounded-[32px] p-4"
+          style={{ background: "#dbeafe" }}
+        >
+          <div
+            className="relative flex flex-1 flex-col items-center justify-center rounded-3xl px-6 py-8 text-center"
+            style={{ background: "#ffffff", border: `2px solid ${ACCENT}` }}
+          >
+            <button
+              onClick={onClose}
+              aria-label="Tutup"
+              className="absolute right-4 top-4 text-lg leading-none text-slate-400 hover:text-slate-600"
+            >
+              ✕
+            </button>
+
+            <p className="font-display text-2xl font-bold uppercase tracking-wide text-slate-900">
+              {data.memberName}
+            </p>
+
+            <p className="mt-2 text-sm font-bold uppercase tracking-widest" style={{ color: ACCENT }}>
+              🎖️ {multiple ? "Emblem-Emblem Baru!" : "Emblem Baru!"}
+            </p>
+
+            <div className="mt-6 flex w-full flex-col gap-3">
+              {data.badges.map((badge) => (
+                <div
+                  key={badge.code}
+                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-left"
+                  style={{ background: ACCENT_SOFT, border: `1px solid ${ACCENT_SOFT_BORDER}` }}
+                >
+                  <span className="text-3xl leading-none">{badge.icon}</span>
+                  <div>
+                    <p className="font-display text-base font-bold" style={{ color: ACCENT }}>
+                      {badge.name}
+                    </p>
+                    <p className="text-xs" style={{ color: ACCENT_MUTED }}>
+                      {badge.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-6 text-xs" style={{ color: ACCENT_MUTED }}>
+              {dateLabel}
+            </p>
+
+            <div className="my-6 h-px w-full bg-slate-200" />
+
+            <div className="flex items-center justify-center">
+              {logoSrc && (
+                // eslint-disable-next-line @next/next/no-img-element -- rendered off-DOM into a shareable PNG, next/image isn't applicable here
+                <img ref={logoRef} src={logoSrc} alt="OLYMPUS" className="h-6 w-auto" />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {error && <p className="text-sm text-danger">{error}</p>}
+
+        <Button onClick={handleShareImage} disabled={pending || !logoSrc} className="w-full">
+          {pending ? "Menyiapkan..." : "📤 Bagikan Gambar"}
+        </Button>
+        <button onClick={onClose} className="text-sm text-nav-muted hover:text-nav-foreground">
+          Nanti saja
+        </button>
+      </div>
+    </div>
+  );
+}
