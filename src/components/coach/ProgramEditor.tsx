@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { type MovementOption } from "@/components/coach/MovementCombobox";
 import { SortableSlotRow, type SlotState } from "@/components/coach/SortableSlotRow";
+import { ProgramWeekPreview } from "@/components/coach/ProgramWeekPreview";
 
 interface DayState {
   dayLabel: string;
@@ -81,6 +82,7 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   function handleMovementCreated(movement: MovementOption) {
@@ -240,6 +242,7 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
       }));
       setWeeks((prev) => ({ ...prev, [activeWeek]: mapped }));
       setSaved(true);
+      setShowPreview(true);
     } catch {
       setError("Terjadi kesalahan. Coba lagi.");
     } finally {
@@ -254,7 +257,10 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
           <button
             key={w}
             type="button"
-            onClick={() => setActiveWeek(w)}
+            onClick={() => {
+              setActiveWeek(w);
+              setShowPreview(false);
+            }}
             className={`rounded-md px-4 py-2 text-sm font-semibold transition ${
               activeWeek === w ? "bg-accent text-background" : "bg-surface-2 text-muted hover:text-foreground"
             }`}
@@ -264,6 +270,15 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
         ))}
       </div>
 
+      {showPreview ? (
+        <ProgramWeekPreview
+          weekNumber={activeWeek}
+          days={days}
+          movements={movements}
+          onEdit={() => setShowPreview(false)}
+        />
+      ) : (
+        <>
       <Card className="p-0">
         <div className="rounded-t-lg bg-[#0f172a] px-4 py-3 text-center font-display text-lg font-bold uppercase tracking-wide text-white">
           Jadwal Latihan &mdash; Minggu {activeWeek}
@@ -398,9 +413,16 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
       {error && <p className="text-sm text-danger">{error}</p>}
       {saved && <p className="text-sm text-accent">Program Minggu {activeWeek} tersimpan.</p>}
 
-      <Button onClick={handleSave} disabled={pending} className="self-start px-6">
-        {pending ? "Menyimpan..." : `Simpan Minggu ${activeWeek}`}
-      </Button>
+      <div className="flex gap-2">
+        <Button onClick={handleSave} disabled={pending} className="px-6">
+          {pending ? "Menyimpan..." : `Simpan Minggu ${activeWeek}`}
+        </Button>
+        <Button variant="secondary" onClick={() => setShowPreview(true)} className="px-4">
+          📋 Lihat & Salin 1 Halaman
+        </Button>
+      </div>
+        </>
+      )}
     </div>
   );
 }
