@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { PinInput } from "@/components/ui/PinInput";
 import { OlympusLogo } from "@/components/ui/OlympusLogo";
+import { roleHomePath } from "@/lib/roles";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -39,7 +40,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push(data.role === "COACH" ? "/coach/dashboard" : "/member/dashboard");
+      router.push(roleHomePath(data.role));
       router.refresh();
     } catch {
       setError("Something went wrong. Try again.");

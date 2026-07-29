@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { type Role, type User } from "@/generated/prisma/client";
 import { getCurrentClassSession } from "@/lib/classSessions";
 import { todayDateKey } from "@/lib/workout";
+import { roleHomePath } from "@/lib/roles";
 
 const SESSION_COOKIE = "olympus_session";
 const SESSION_DURATION_DAYS = 30;
@@ -105,7 +106,18 @@ export async function requireRole(role: Role): Promise<User> {
     redirect("/login");
   }
   if (user.role !== role) {
-    redirect(user.role === "COACH" ? "/coach/dashboard" : "/member/dashboard");
+    redirect(roleHomePath(user.role));
+  }
+  return user;
+}
+
+export async function requireAnyRole(roles: Role[]): Promise<User> {
+  const user = await getCurrentUser();
+  if (!user) {
+    redirect("/login");
+  }
+  if (!roles.includes(user.role)) {
+    redirect(roleHomePath(user.role));
   }
   return user;
 }

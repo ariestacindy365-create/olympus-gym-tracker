@@ -111,6 +111,41 @@ export const bodyMetricSchema = z.object({
   recordedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Tanggal tidak valid." }).optional(),
 });
 
+export const createLeadSchema = z.object({
+  waNumber: z
+    .string()
+    .trim()
+    .min(8, { error: "Nomor WA minimal 8 digit." })
+    .max(20)
+    .regex(/^[\d+\s-]+$/, { error: "Nomor WA hanya boleh angka." }),
+  name: z.string().trim().min(1, { error: "Isi nama calon klien." }).max(80),
+});
+
+export const addReplySchema = z.object({
+  count: z.number().int().min(1).max(20).optional().default(1),
+});
+
+export const createTrialSchema = z.object({
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Tanggal mulai tidak valid." }),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Tanggal selesai tidak valid." }),
+  note: z.string().trim().max(280).optional(),
+});
+
+export const completeTrialSchema = z.object({
+  converted: z.boolean(),
+  note: z.string().trim().max(280).optional(),
+});
+
+export const completeFollowUpSchema = z.object({
+  outcome: z.enum(["CONVERTED", "STILL_FOLLOWING", "LOST"]),
+  note: z.string().trim().max(280).optional(),
+});
+
+export const updateTargetSchema = z.object({
+  targetCapture: z.number().int().min(0).max(200),
+  targetFollowup: z.number().int().min(0).max(200),
+});
+
 export const createMovementSchema = z.object({
   name: z.string().trim().min(2, { error: "Nama gerakan minimal 2 karakter." }).max(120),
   primaryMuscle: z.string().trim().min(1, { error: "Isi otot primer." }).max(60),

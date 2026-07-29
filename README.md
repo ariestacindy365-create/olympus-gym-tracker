@@ -1,5 +1,29 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Lead CRM module (`/leads`)
+
+Separate from the coach/member gym tracker: lets ADMIN accounts (Sekar, Esti)
+capture WhatsApp leads from ads, track DM replies (2+ = qualified), run the
+trial → conversion flow, and follow up at H+1/H+3. OWNER accounts see both
+admins' daily progress and set their capture/follow-up targets.
+
+- Schema: `Lead`, `Trial`, `FollowUp`, `Target` in `prisma/schema.prisma`.
+- Business logic: `src/lib/leads.ts` (qualification threshold, H+1/H+3 date
+  math, auto follow-up scheduling).
+- Seeded accounts (`prisma/seed-crm.ts` — safe to re-run, only upserts these
+  three, never touches COACH/MEMBER data):
+  - Admin: `sekar@olympus.gym` / PIN `1010`
+  - Admin: `esti@olympus.gym` / PIN `2020`
+  - Owner: `owner@olympus.gym` / PIN `9999`
+
+  **Change these PINs before real use** — either log in and use a future
+  "change PIN" flow, or re-run with different values and upsert by hand.
+
+Schema changes were applied with `npx prisma db push` (this project doesn't
+use `prisma migrate`, see `prisma.config.ts`). Do **not** run `prisma/seed.ts`
+against the real database — it wipes and reseeds all users, including real
+gym members; it's for local demo data only.
+
 ## Getting Started
 
 First, run the development server:

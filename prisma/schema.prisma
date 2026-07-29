@@ -13,6 +13,8 @@ datasource db {
 enum Role {
   COACH
   MEMBER
+  ADMIN
+  OWNER
 }
 
 enum PRType {
@@ -37,6 +39,11 @@ model User {
   dailyWorkoutsCreated DailyWorkout[]      @relation("CoachDailyWorkouts")
   programsAsCoach      TrainingProgram[]   @relation("CoachPrograms")
   achievementUnlocks   AchievementUnlock[]
+
+  // CRM (lead capture / follow-up) — used by ADMIN and OWNER roles only.
+  capturedLeads       Lead[]     @relation("CapturedLeads")
+  completedFollowUps  FollowUp[] @relation("CompletedFollowUps")
+  target              Target?    @relation("AdminTarget")
 }
 
 // Achievement definitions live in code (src/lib/achievements.ts), not the
@@ -197,4 +204,105 @@ model ProgramSlot {
   order        Int
 
   @@index([dayId])
+}
+
+// --- CRM: WA lead capture & follow-up (ADMIN/OWNER only) -------------------
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  TRIAL
+  CONVERTED
+  LOST
+}
+
+// A prospective client who DM'd after seeing an ad. replyCount tracks how
+// many times they've replied to the admin's DM; 2+ replies = "qualified"
+// (lib/leads.ts owns that threshold so it isn't duplicated across routes).
+model Lead {
+  id           String     @id @default(cuid())
+  waNumber     String
+  name         String
+  status       LeadStatus @default(NEW)
+  replyCount   Int        @default(0)
+  capturedById String
+  capturedBy   User       @relation("CapturedLeads", fields: [capturedById], references: [id])
+  capturedAt   DateTime   @default(now())
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  trials    Trial[]
+  followUps FollowUp[]
+
+  @@index([capturedAt])
+  @@index([status])
+  @@index([capturedById])
+}
+
+// A trial offered to a lead. converted stays null until the admin records an
+// outcome; discountGiven is set automatically when convertedAt falls on the
+// same calendar day as endDate (same-day conversion incentive).
+model Trial {
+  id            String    @id @default(cuid())
+  leadId        String
+  lead          Lead      @relation(fields: [leadId], references: [id])
+  offeredAt     DateTime  @default(now())
+  startDate     DateTime
+  endDate       DateTime
+  converted     Boolean?
+  convertedAt   DateTime?
+  discountGiven Boolean   @default(false)
+  note          String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  followUps FollowUp[]
+
+  @@index([leadId])
+}
+
+enum FollowUpType {
+  H1
+  H3
+}
+
+enum FollowUpStatus {
+  PENDING
+  DONE
+  MISSED
+}
+
+// Auto-generated (H1 = endDate+1, H3 = endDate+3) when a trial ends without
+// same-day conversion. dueDate uses the same local-midnight convention as
+// DailyWorkout.workoutDate so "due today" is a plain equality check.
+model FollowUp {
+  id            String         @id @default(cuid())
+  leadId        String
+  lead          Lead           @relation(fields: [leadId], references: [id])
+  trialId       String?
+  trial         Trial?         @relation(fields: [trialId], references: [id])
+  type          FollowUpType
+  dueDate       DateTime
+  status        FollowUpStatus @default(PENDING)
+  completedAt   DateTime?
+  completedById String?
+  completedBy   User?          @relation("CompletedFollowUps", fields: [completedById], references: [id])
+  note          String?
+  createdAt     DateTime       @default(now())
+
+  @@index([leadId])
+  @@index([dueDate])
+}
+
+// Daily capture/follow-up milestone the OWNER sets per ADMIN. One row per
+// admin — it's a standing target that applies every day until changed, not
+// a per-date record.
+model Target {
+  id             String   @id @default(cuid())
+  adminId        String   @unique
+  admin          User     @relation("AdminTarget", fields: [adminId], references: [id])
+  targetCapture  Int      @default(5)
+  targetFollowup Int      @default(10)
+  updatedAt      DateTime @updatedAt
 }

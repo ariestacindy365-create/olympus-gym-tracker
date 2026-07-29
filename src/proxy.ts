@@ -6,7 +6,7 @@ const SESSION_COOKIE = "olympus_session";
 const secretKey = process.env.SESSION_SECRET;
 const encodedKey = secretKey ? new TextEncoder().encode(secretKey) : null;
 
-type SessionRole = "COACH" | "MEMBER";
+type SessionRole = "COACH" | "MEMBER" | "ADMIN" | "OWNER";
 
 async function getSessionRole(request: NextRequest): Promise<SessionRole | null> {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
@@ -14,14 +14,23 @@ async function getSessionRole(request: NextRequest): Promise<SessionRole | null>
   try {
     const { payload } = await jwtVerify(token, encodedKey, { algorithms: ["HS256"] });
     const role = payload.role;
-    return role === "COACH" || role === "MEMBER" ? role : null;
+    return role === "COACH" || role === "MEMBER" || role === "ADMIN" || role === "OWNER" ? role : null;
   } catch {
     return null;
   }
 }
 
 function dashboardFor(role: SessionRole) {
-  return role === "COACH" ? "/coach/dashboard" : "/member/dashboard";
+  switch (role) {
+    case "COACH":
+      return "/coach/dashboard";
+    case "ADMIN":
+      return "/leads/dashboard";
+    case "OWNER":
+      return "/leads/owner";
+    default:
+      return "/member/dashboard";
+  }
 }
 
 export async function proxy(request: NextRequest) {
@@ -30,6 +39,7 @@ export async function proxy(request: NextRequest) {
 
   const isMemberRoute = pathname.startsWith("/member");
   const isCoachRoute = pathname.startsWith("/coach");
+  const isLeadsRoute = pathname.startsWith("/leads");
   const isAuthRoute = pathname === "/login" || pathname === "/register";
 
   if (isMemberRoute && role !== "MEMBER") {
@@ -39,6 +49,12 @@ export async function proxy(request: NextRequest) {
   }
 
   if (isCoachRoute && role !== "COACH") {
+    return NextResponse.redirect(
+      new URL(role ? dashboardFor(role) : "/login", request.url)
+    );
+  }
+
+  if (isLeadsRoute && role !== "ADMIN" && role !== "OWNER") {
     return NextResponse.redirect(
       new URL(role ? dashboardFor(role) : "/login", request.url)
     );
