@@ -4,11 +4,13 @@ import { NavBar } from "@/components/ui/NavBar";
 const ADMIN_LINKS = [
   { href: "/leads/dashboard", label: "Dashboard" },
   { href: "/leads", label: "Semua Lead" },
+  { href: "/leads/history", label: "Riwayat" },
 ];
 
 const OWNER_LINKS = [
   { href: "/leads/owner", label: "Overview" },
   { href: "/leads", label: "Semua Lead" },
+  { href: "/leads/history", label: "Riwayat" },
 ];
 
 export default async function LeadsLayout({ children }: { children: React.ReactNode }) {

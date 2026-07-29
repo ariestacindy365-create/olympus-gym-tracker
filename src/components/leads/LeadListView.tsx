@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
+import { STATUS_LABEL, STATUS_TONE } from "@/lib/leadStatusLabels";
 
 export interface LeadRow {
   id: string;
@@ -17,22 +18,6 @@ export interface LeadRow {
   capturedByName: string;
   capturedAt: string;
 }
-
-const STATUS_LABEL: Record<string, string> = {
-  DM: "DM",
-  TRIAL: "Trial",
-  MEMBER: "Member",
-  RETENSI: "Retensi",
-  LOST: "Tidak Lanjut",
-};
-
-const STATUS_TONE: Record<string, "default" | "success" | "accent" | "danger" | "muted"> = {
-  DM: "muted",
-  TRIAL: "accent",
-  MEMBER: "success",
-  RETENSI: "success",
-  LOST: "danger",
-};
 
 export function LeadListView({ leads }: { leads: LeadRow[] }) {
   const [search, setSearch] = useState("");

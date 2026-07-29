@@ -5,30 +5,10 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { ReplyButton } from "@/components/leads/ReplyButton";
 import { LeadStatusActions } from "@/components/leads/LeadStatusActions";
+import { LeadHeader } from "@/components/leads/LeadHeader";
 import { FollowUpActions } from "@/components/leads/FollowUpActions";
 import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
-
-const STATUS_LABEL: Record<string, string> = {
-  DM: "DM",
-  TRIAL: "Trial",
-  MEMBER: "Member",
-  RETENSI: "Retensi",
-  LOST: "Tidak Lanjut",
-};
-
-const STATUS_TONE: Record<string, "default" | "success" | "accent" | "danger" | "muted"> = {
-  DM: "muted",
-  TRIAL: "accent",
-  MEMBER: "success",
-  RETENSI: "success",
-  LOST: "danger",
-};
-
-const FOLLOWUP_STATUS_LABEL: Record<string, string> = {
-  PENDING: "Menunggu",
-  DONE: "Selesai",
-  MISSED: "Terlewat",
-};
+import { STATUS_LABEL, STATUS_TONE, FOLLOWUP_STATUS_LABEL } from "@/lib/leadStatusLabels";
 
 export default async function LeadDetailPage({ params }: { params: Promise<{ leadId: string }> }) {
   const { leadId } = await params;
@@ -50,10 +30,14 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="font-display text-2xl font-bold">{lead.name}</h1>
-        <p className="text-sm text-muted">{lead.waNumber}</p>
-      </div>
+      {isAdmin ? (
+        <LeadHeader leadId={lead.id} name={lead.name} waNumber={lead.waNumber} />
+      ) : (
+        <div>
+          <h1 className="font-display text-2xl font-bold">{lead.name}</h1>
+          <p className="text-sm text-muted">{lead.waNumber}</p>
+        </div>
+      )}
 
       <Card className="flex flex-wrap items-center gap-3">
         <Badge tone={STATUS_TONE[lead.status] ?? "default"}>{STATUS_LABEL[lead.status] ?? lead.status}</Badge>

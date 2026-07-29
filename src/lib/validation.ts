@@ -121,6 +121,8 @@ export const createLeadSchema = z.object({
   name: z.string().trim().min(1, { error: "Isi nama calon klien." }).max(80),
 });
 
+export const editLeadSchema = createLeadSchema;
+
 export const addReplySchema = z.object({
   count: z.number().int().min(1).max(20).optional().default(1),
 });

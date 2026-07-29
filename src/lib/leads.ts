@@ -44,3 +44,31 @@ export async function getTodayDueFollowUps(adminId?: string) {
     orderBy: { dueDate: "asc" },
   });
 }
+
+// Full follow-up history for the "Riwayat" page: what's been done, what's
+// overdue/due now, and what's scheduled for later — scoped to one admin's
+// own captures, or every lead when adminId is omitted (OWNER view).
+export async function getFollowUpHistory(adminId?: string) {
+  const today = todayDateKey();
+  const leadFilter = adminId ? { lead: { capturedById: adminId } } : {};
+
+  const [done, dueNow, upcoming] = await Promise.all([
+    prisma.followUp.findMany({
+      where: { status: "DONE", ...leadFilter },
+      include: { lead: true, completedBy: { select: { name: true } } },
+      orderBy: { completedAt: "desc" },
+    }),
+    prisma.followUp.findMany({
+      where: { status: "PENDING", dueDate: { lte: today }, ...leadFilter },
+      include: { lead: true },
+      orderBy: { dueDate: "asc" },
+    }),
+    prisma.followUp.findMany({
+      where: { status: "PENDING", dueDate: { gt: today }, ...leadFilter },
+      include: { lead: true },
+      orderBy: { dueDate: "asc" },
+    }),
+  ]);
+
+  return { done, dueNow, upcoming };
+}
