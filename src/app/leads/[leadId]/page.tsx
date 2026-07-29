@@ -8,6 +8,7 @@ import { LeadHeader } from "@/components/leads/LeadHeader";
 import { FollowUpActions } from "@/components/leads/FollowUpActions";
 import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
 import { STATUS_LABEL, STATUS_TONE, FOLLOWUP_STATUS_LABEL } from "@/lib/leadStatusLabels";
+import { waOpeningMessage, waFollowUpMessage } from "@/lib/waScripts";
 
 export default async function LeadDetailPage({ params }: { params: Promise<{ leadId: string }> }) {
   const { leadId } = await params;
@@ -28,6 +29,16 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
 
   if (!lead) notFound();
   const isDeleted = lead.deletedAt !== null;
+
+  // Pick the most relevant script for the main WhatsApp button: whichever
+  // follow-up is still pending, otherwise the DM opening line if we haven't
+  // started talking yet.
+  const nextPendingFollowUp = lead.followUps.find((fu) => fu.status === "PENDING");
+  const waMessage = nextPendingFollowUp
+    ? waFollowUpMessage(lead.name, nextPendingFollowUp.type)
+    : lead.status === "DM"
+      ? waOpeningMessage(lead.name)
+      : undefined;
 
   return (
     <div className="flex flex-col gap-6">
@@ -53,7 +64,11 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
         <span className="text-xs text-muted">
           Dicapture oleh {lead.capturedBy.name} · {lead.capturedAt.toLocaleDateString("id-ID")}
         </span>
-        {!isDeleted && <WhatsAppLink waNumber={lead.waNumber}>Follow Up via WhatsApp</WhatsAppLink>}
+        {!isDeleted && (
+          <WhatsAppLink waNumber={lead.waNumber} message={waMessage}>
+            Follow Up via WhatsApp
+          </WhatsAppLink>
+        )}
       </Card>
 
       {isAdmin && !isDeleted && <LeadStatusActions leadId={lead.id} status={lead.status} />}

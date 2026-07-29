@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
 import { STATUS_LABEL, STATUS_TONE } from "@/lib/leadStatusLabels";
+import { waOpeningMessage } from "@/lib/waScripts";
 
 export interface LeadRow {
   id: string;
@@ -61,7 +62,12 @@ export function LeadListView({ leads }: { leads: LeadRow[] }) {
             </Link>
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone={STATUS_TONE[lead.status] ?? "default"}>{STATUS_LABEL[lead.status] ?? lead.status}</Badge>
-              <WhatsAppLink waNumber={lead.waNumber}>WhatsApp</WhatsAppLink>
+              <WhatsAppLink
+                waNumber={lead.waNumber}
+                message={lead.status === "DM" ? waOpeningMessage(lead.name) : undefined}
+              >
+                WhatsApp
+              </WhatsAppLink>
             </div>
           </Card>
         ))}

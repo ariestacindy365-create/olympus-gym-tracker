@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
 import { STATUS_LABEL, STATUS_TONE } from "@/lib/leadStatusLabels";
+import { waFollowUpMessage } from "@/lib/waScripts";
 
 function FollowUpTypeBadge({ type }: { type: string }) {
   return <Badge tone={type === "H1" ? "accent" : "danger"}>{type === "H1" ? "H+1" : "H+3"}</Badge>;
@@ -45,7 +46,9 @@ export default async function LeadsHistoryPage() {
                 <div className="flex items-center gap-2">
                   <FollowUpTypeBadge type={fu.type} />
                   <LeadStatusBadge status={fu.lead.status} />
-                  <WhatsAppLink waNumber={fu.lead.waNumber}>WhatsApp</WhatsAppLink>
+                  <WhatsAppLink waNumber={fu.lead.waNumber} message={waFollowUpMessage(fu.lead.name, fu.type)}>
+                    WhatsApp
+                  </WhatsAppLink>
                 </div>
               </li>
             ))}
