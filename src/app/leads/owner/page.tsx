@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
 import { TargetEditForm } from "@/components/leads/TargetEditForm";
 import { ConversionRateChart } from "@/components/leads/ConversionRateChart";
+import { AdminInviteCodeCard } from "@/components/leads/AdminInviteCodeCard";
 import { Role } from "@/generated/prisma/client";
 
 export default async function LeadsOwnerPage() {
@@ -41,6 +42,8 @@ export default async function LeadsOwnerPage() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="font-display text-2xl font-bold">Overview Admin</h1>
+
+      {process.env.ADMIN_INVITE_CODE && <AdminInviteCodeCard code={process.env.ADMIN_INVITE_CODE} />}
 
       <ConversionRateChart
         events={conversionEvents.map((e) => ({
