@@ -6,7 +6,10 @@ const ADMIN_LINKS = [
   { href: "/leads", label: "Semua Lead" },
 ];
 
-const OWNER_LINKS = [{ href: "/leads/owner", label: "Overview" }];
+const OWNER_LINKS = [
+  { href: "/leads/owner", label: "Overview" },
+  { href: "/leads", label: "Semua Lead" },
+];
 
 export default async function LeadsLayout({ children }: { children: React.ReactNode }) {
   const user = await requireAnyRole(["ADMIN", "OWNER"]);
