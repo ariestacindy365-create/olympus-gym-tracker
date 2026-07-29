@@ -20,6 +20,7 @@ export default async function LeadsOwnerPage() {
   const chartRangeStart = startOfMonth(subMonths(today, 11));
   const conversionEvents = await prisma.lead.findMany({
     where: {
+      deletedAt: null,
       OR: [{ trialMarkedAt: { gte: chartRangeStart } }, { convertedAt: { gte: chartRangeStart } }],
     },
     select: { trialMarkedAt: true, convertedAt: true },
@@ -29,10 +30,14 @@ export default async function LeadsOwnerPage() {
     admins.map(async (admin) => {
       const [target, capturesToday, followUpsDoneToday, totalTrial, totalConversion] = await Promise.all([
         prisma.target.findUnique({ where: { adminId: admin.id } }),
-        prisma.lead.count({ where: { capturedById: admin.id, capturedAt: { gte: today, lt: tomorrow } } }),
+        prisma.lead.count({
+          where: { capturedById: admin.id, capturedAt: { gte: today, lt: tomorrow }, deletedAt: null },
+        }),
         prisma.followUp.count({ where: { completedById: admin.id, completedAt: { gte: today, lt: tomorrow } } }),
-        prisma.lead.count({ where: { capturedById: admin.id, trialMarkedAt: { not: null } } }),
-        prisma.lead.count({ where: { capturedById: admin.id, status: { in: ["MEMBER", "RETENSI"] } } }),
+        prisma.lead.count({ where: { capturedById: admin.id, trialMarkedAt: { not: null }, deletedAt: null } }),
+        prisma.lead.count({
+          where: { capturedById: admin.id, status: { in: ["MEMBER", "RETENSI"] }, deletedAt: null },
+        }),
       ]);
       const conversionRate = totalTrial > 0 ? Math.round((totalConversion / totalTrial) * 100) : null;
       return { admin, target, capturesToday, followUpsDoneToday, totalTrial, totalConversion, conversionRate };

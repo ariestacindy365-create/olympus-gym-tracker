@@ -18,6 +18,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
     where: { id: leadId },
     include: {
       capturedBy: { select: { name: true } },
+      deletedBy: { select: { name: true } },
       followUps: {
         orderBy: { dueDate: "asc" },
         include: { completedBy: { select: { name: true } } },
@@ -26,10 +27,11 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
   });
 
   if (!lead) notFound();
+  const isDeleted = lead.deletedAt !== null;
 
   return (
     <div className="flex flex-col gap-6">
-      {isAdmin ? (
+      {isAdmin && !isDeleted ? (
         <LeadHeader leadId={lead.id} name={lead.name} waNumber={lead.waNumber} />
       ) : (
         <div>
@@ -38,15 +40,23 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
         </div>
       )}
 
+      {isDeleted && (
+        <Card className="border-danger/40 bg-danger/5">
+          <p className="text-sm text-danger">
+            Lead ini sudah dihapus pada {lead.deletedAt?.toLocaleDateString("id-ID")} oleh {lead.deletedBy?.name}.
+          </p>
+        </Card>
+      )}
+
       <Card className="flex flex-wrap items-center gap-3">
         <Badge tone={STATUS_TONE[lead.status] ?? "default"}>{STATUS_LABEL[lead.status] ?? lead.status}</Badge>
         <span className="text-xs text-muted">
           Dicapture oleh {lead.capturedBy.name} · {lead.capturedAt.toLocaleDateString("id-ID")}
         </span>
-        <WhatsAppLink waNumber={lead.waNumber}>Follow Up via WhatsApp</WhatsAppLink>
+        {!isDeleted && <WhatsAppLink waNumber={lead.waNumber}>Follow Up via WhatsApp</WhatsAppLink>}
       </Card>
 
-      {isAdmin && <LeadStatusActions leadId={lead.id} status={lead.status} />}
+      {isAdmin && !isDeleted && <LeadStatusActions leadId={lead.id} status={lead.status} />}
 
       <Card>
         <h2 className="mb-3 font-display text-lg font-semibold">Follow Up</h2>
@@ -65,7 +75,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
                     {FOLLOWUP_STATUS_LABEL[fu.status] ?? fu.status}
                   </Badge>
                 </div>
-                {fu.status === "PENDING" && isAdmin && <FollowUpActions followUpId={fu.id} />}
+                {fu.status === "PENDING" && isAdmin && !isDeleted && <FollowUpActions followUpId={fu.id} />}
                 {fu.status === "DONE" && (
                   <p className="mt-1 text-xs text-muted">
                     Oleh {fu.completedBy?.name} · {fu.note}

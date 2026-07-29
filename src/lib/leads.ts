@@ -30,7 +30,7 @@ export async function getTodayDueFollowUps(adminId?: string) {
     where: {
       status: "PENDING",
       dueDate: { lte: today },
-      ...(adminId ? { lead: { capturedById: adminId } } : {}),
+      lead: { deletedAt: null, ...(adminId ? { capturedById: adminId } : {}) },
     },
     include: { lead: true },
     orderBy: { dueDate: "asc" },
@@ -39,28 +39,39 @@ export async function getTodayDueFollowUps(adminId?: string) {
 
 // Full follow-up history for the "Riwayat" page: what's been done, what's
 // overdue/due now, and what's scheduled for later — scoped to one admin's
-// own captures, or every lead when adminId is omitted (OWNER view).
+// own captures, or every lead when adminId is omitted (OWNER view). Deleted
+// leads are excluded here (they get their own section, see getDeletedLeads).
 export async function getFollowUpHistory(adminId?: string) {
   const today = todayDateKey();
-  const leadFilter = adminId ? { lead: { capturedById: adminId } } : {};
+  const leadFilter = { deletedAt: null, ...(adminId ? { capturedById: adminId } : {}) };
 
   const [done, dueNow, upcoming] = await Promise.all([
     prisma.followUp.findMany({
-      where: { status: "DONE", ...leadFilter },
+      where: { status: "DONE", lead: leadFilter },
       include: { lead: true, completedBy: { select: { name: true } } },
       orderBy: { completedAt: "desc" },
     }),
     prisma.followUp.findMany({
-      where: { status: "PENDING", dueDate: { lte: today }, ...leadFilter },
+      where: { status: "PENDING", dueDate: { lte: today }, lead: leadFilter },
       include: { lead: true },
       orderBy: { dueDate: "asc" },
     }),
     prisma.followUp.findMany({
-      where: { status: "PENDING", dueDate: { gt: today }, ...leadFilter },
+      where: { status: "PENDING", dueDate: { gt: today }, lead: leadFilter },
       include: { lead: true },
       orderBy: { dueDate: "asc" },
     }),
   ]);
 
   return { done, dueNow, upcoming };
+}
+
+// Leads an admin has soft-deleted — surfaced in Riwayat as an audit trail
+// instead of vanishing silently (there's no confirmation prompt on delete).
+export async function getDeletedLeads(adminId?: string) {
+  return prisma.lead.findMany({
+    where: { deletedAt: { not: null }, ...(adminId ? { capturedById: adminId } : {}) },
+    include: { deletedBy: { select: { name: true } }, capturedBy: { select: { name: true } } },
+    orderBy: { deletedAt: "desc" },
+  });
 }

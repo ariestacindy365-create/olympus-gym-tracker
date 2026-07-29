@@ -42,11 +42,16 @@ export async function DELETE(_request: NextRequest, ctx: RouteContext<"/api/lead
   if (!lead) {
     return NextResponse.json({ error: "Lead tidak ditemukan." }, { status: 404 });
   }
+  if (lead.deletedAt) {
+    return NextResponse.json({ error: "Lead sudah dihapus sebelumnya." }, { status: 409 });
+  }
 
-  await prisma.$transaction([
-    prisma.followUp.deleteMany({ where: { leadId } }),
-    prisma.lead.delete({ where: { id: leadId } }),
-  ]);
+  // Soft delete — keeps the row (and its follow-up history) so the deletion
+  // shows up in Riwayat instead of vanishing without a trace.
+  await prisma.lead.update({
+    where: { id: leadId },
+    data: { deletedAt: new Date(), deletedById: admin.id },
+  });
 
   return NextResponse.json({ ok: true });
 }

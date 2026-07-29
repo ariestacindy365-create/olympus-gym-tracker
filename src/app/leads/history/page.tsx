@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
-import { getFollowUpHistory } from "@/lib/leads";
+import { getFollowUpHistory, getDeletedLeads } from "@/lib/leads";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
@@ -18,7 +18,10 @@ export default async function LeadsHistoryPage() {
   const user = await getCurrentUser();
   const adminId = user?.role === "ADMIN" ? user.id : undefined;
 
-  const { done, dueNow, upcoming } = await getFollowUpHistory(adminId);
+  const [{ done, dueNow, upcoming }, deletedLeads] = await Promise.all([
+    getFollowUpHistory(adminId),
+    getDeletedLeads(adminId),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -96,6 +99,30 @@ export default async function LeadsHistoryPage() {
                   <FollowUpTypeBadge type={fu.type} />
                   <LeadStatusBadge status={fu.lead.status} />
                 </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <Card>
+        <h2 className="mb-3 font-display text-lg font-semibold">Lead Dihapus ({deletedLeads.length})</h2>
+        {deletedLeads.length === 0 ? (
+          <p className="text-sm text-muted">Belum ada lead yang dihapus.</p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {deletedLeads.map((lead) => (
+              <li key={lead.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3 last:border-0 last:pb-0">
+                <div>
+                  <Link href={`/leads/${lead.id}`} className="font-medium hover:text-accent">
+                    {lead.name}
+                  </Link>{" "}
+                  <span className="text-xs text-muted">
+                    {lead.waNumber} · dicapture oleh {lead.capturedBy.name} · dihapus{" "}
+                    {lead.deletedAt?.toLocaleDateString("id-ID")} oleh {lead.deletedBy?.name}
+                  </span>
+                </div>
+                <LeadStatusBadge status={lead.status} />
               </li>
             ))}
           </ul>

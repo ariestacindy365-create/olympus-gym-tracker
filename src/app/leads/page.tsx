@@ -3,6 +3,7 @@ import { LeadListView, type LeadRow } from "@/components/leads/LeadListView";
 
 export default async function LeadsListPage() {
   const leads = await prisma.lead.findMany({
+    where: { deletedAt: null },
     include: { capturedBy: { select: { name: true } } },
     orderBy: { capturedAt: "desc" },
   });

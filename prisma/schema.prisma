@@ -43,6 +43,7 @@ model User {
   // CRM (lead capture / follow-up) — used by ADMIN and OWNER roles only.
   capturedLeads       Lead[]     @relation("CapturedLeads")
   completedFollowUps  FollowUp[] @relation("CompletedFollowUps")
+  deletedLeads        Lead[]     @relation("DeletedLeads")
   target              Target?    @relation("AdminTarget")
 }
 
@@ -218,10 +219,7 @@ enum LeadStatus {
   LOST
 }
 
-// A prospective client who DM'd after seeing an ad. replyCount tracks how
-// many times they've replied to the admin's DM; 2+ replies shows a
-// "qualified" badge (lib/leads.ts owns that threshold) — it's a separate
-// signal from status, not a funnel stage itself.
+// A prospective client who DM'd after seeing an ad.
 model Lead {
   id            String     @id @default(cuid())
   waNumber      String
@@ -235,6 +233,11 @@ model Lead {
   // conversion-rate chart buckets by (updatedAt isn't reliable for this
   // since any field edit bumps it, not just a status change).
   convertedAt   DateTime?
+  // Soft delete — "Hapus" sets these instead of removing the row, so the
+  // deletion still shows up in the Riwayat history.
+  deletedAt     DateTime?
+  deletedById   String?
+  deletedBy     User?      @relation("DeletedLeads", fields: [deletedById], references: [id])
   capturedById  String
   capturedBy    User       @relation("CapturedLeads", fields: [capturedById], references: [id])
   capturedAt    DateTime   @default(now())

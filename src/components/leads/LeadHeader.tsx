@@ -38,7 +38,6 @@ export function LeadHeader({ leadId, name, waNumber }: { leadId: string; name: s
   }
 
   async function handleDelete() {
-    if (!confirm(`Hapus lead "${name}"? Semua riwayat follow up-nya ikut terhapus permanen.`)) return;
     setPending(true);
     try {
       const res = await fetch(`/api/leads/${leadId}`, { method: "DELETE" });

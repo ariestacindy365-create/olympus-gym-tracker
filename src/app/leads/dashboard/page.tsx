@@ -19,7 +19,9 @@ export default async function LeadsDashboardPage() {
 
   const [target, capturesToday, followUpsDoneToday, dueFollowUps] = await Promise.all([
     prisma.target.findUnique({ where: { adminId: admin.id } }),
-    prisma.lead.count({ where: { capturedById: admin.id, capturedAt: { gte: today, lt: tomorrow } } }),
+    prisma.lead.count({
+      where: { capturedById: admin.id, capturedAt: { gte: today, lt: tomorrow }, deletedAt: null },
+    }),
     prisma.followUp.count({
       where: { completedById: admin.id, completedAt: { gte: today, lt: tomorrow } },
     }),
