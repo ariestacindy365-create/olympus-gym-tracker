@@ -7,6 +7,7 @@ import { ReplyButton } from "@/components/leads/ReplyButton";
 import { TrialForm } from "@/components/leads/TrialForm";
 import { TrialOutcomeForm } from "@/components/leads/TrialOutcomeForm";
 import { FollowUpActions } from "@/components/leads/FollowUpActions";
+import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
 
 const STATUS_LABEL: Record<string, string> = {
   NEW: "Baru",
@@ -59,6 +60,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
           Dicapture oleh {lead.capturedBy.name} · {lead.capturedAt.toLocaleDateString("id-ID")}
         </span>
         {isAdmin && <ReplyButton leadId={lead.id} />}
+        <WhatsAppLink waNumber={lead.waNumber}>Follow Up via WhatsApp</WhatsAppLink>
       </Card>
 
       {openTrial ? (

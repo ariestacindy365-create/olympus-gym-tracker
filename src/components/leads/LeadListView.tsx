@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
+import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
 
 export interface LeadRow {
   id: string;
@@ -74,21 +75,20 @@ export function LeadListView({ leads }: { leads: LeadRow[] }) {
       <div className="flex flex-col gap-2">
         {filtered.length === 0 && <p className="text-sm text-muted">Tidak ada lead yang cocok.</p>}
         {filtered.map((lead) => (
-          <Link key={lead.id} href={`/leads/${lead.id}`}>
-            <Card className="flex flex-col gap-2 transition hover:border-accent sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-medium">{lead.name}</p>
-                <p className="text-xs text-muted">
-                  {lead.waNumber} · dicapture oleh {lead.capturedByName} ·{" "}
-                  {new Date(lead.capturedAt).toLocaleDateString("id-ID")}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {lead.replyCount >= 2 && <Badge tone="accent">Qualified · {lead.replyCount}x balas</Badge>}
-                <Badge tone={STATUS_TONE[lead.status] ?? "default"}>{STATUS_LABEL[lead.status] ?? lead.status}</Badge>
-              </div>
-            </Card>
-          </Link>
+          <Card key={lead.id} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <Link href={`/leads/${lead.id}`} className="flex-1 hover:text-accent">
+              <p className="font-medium">{lead.name}</p>
+              <p className="text-xs text-muted">
+                {lead.waNumber} · dicapture oleh {lead.capturedByName} ·{" "}
+                {new Date(lead.capturedAt).toLocaleDateString("id-ID")}
+              </p>
+            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              {lead.replyCount >= 2 && <Badge tone="accent">Qualified · {lead.replyCount}x balas</Badge>}
+              <Badge tone={STATUS_TONE[lead.status] ?? "default"}>{STATUS_LABEL[lead.status] ?? lead.status}</Badge>
+              <WhatsAppLink waNumber={lead.waNumber}>WhatsApp</WhatsAppLink>
+            </div>
+          </Card>
         ))}
       </div>
     </div>

@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { CaptureLeadForm } from "@/components/leads/CaptureLeadForm";
 import { FollowUpActions } from "@/components/leads/FollowUpActions";
+import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
 
 export default async function LeadsDashboardPage() {
   const admin = await requireRole("ADMIN");
@@ -59,7 +60,10 @@ export default async function LeadsDashboardPage() {
                     </Link>{" "}
                     <span className="text-sm text-muted">{fu.lead.waNumber}</span>
                   </div>
-                  <Badge tone={fu.type === "H1" ? "accent" : "danger"}>{fu.type === "H1" ? "H+1" : "H+3"}</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge tone={fu.type === "H1" ? "accent" : "danger"}>{fu.type === "H1" ? "H+1" : "H+3"}</Badge>
+                    <WhatsAppLink waNumber={fu.lead.waNumber}>WhatsApp</WhatsAppLink>
+                  </div>
                 </div>
                 <FollowUpActions followUpId={fu.id} />
               </li>
