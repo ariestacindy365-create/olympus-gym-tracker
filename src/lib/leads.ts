@@ -3,14 +3,6 @@ import { addDays } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { todayDateKey } from "@/lib/workout";
 
-// 2+ replies from the prospect to the admin's DM shows a "qualified" badge.
-// This is just a display signal — it doesn't drive status transitions.
-export const QUALIFY_THRESHOLD = 2;
-
-export function isQualified(replyCount: number): boolean {
-  return replyCount >= QUALIFY_THRESHOLD;
-}
-
 // H+1 / H+3 due dates measured from when the lead was marked TRIAL,
 // normalized to local midnight so "due today" is a plain equality check
 // against todayDateKey() (same convention DailyWorkout.workoutDate uses).

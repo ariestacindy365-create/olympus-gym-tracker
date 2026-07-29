@@ -3,7 +3,6 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { ReplyButton } from "@/components/leads/ReplyButton";
 import { LeadStatusActions } from "@/components/leads/LeadStatusActions";
 import { LeadHeader } from "@/components/leads/LeadHeader";
 import { FollowUpActions } from "@/components/leads/FollowUpActions";
@@ -41,11 +40,9 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
 
       <Card className="flex flex-wrap items-center gap-3">
         <Badge tone={STATUS_TONE[lead.status] ?? "default"}>{STATUS_LABEL[lead.status] ?? lead.status}</Badge>
-        <Badge tone={lead.replyCount >= 2 ? "accent" : "muted"}>{lead.replyCount}x balasan</Badge>
         <span className="text-xs text-muted">
           Dicapture oleh {lead.capturedBy.name} · {lead.capturedAt.toLocaleDateString("id-ID")}
         </span>
-        {isAdmin && <ReplyButton leadId={lead.id} />}
         <WhatsAppLink waNumber={lead.waNumber}>Follow Up via WhatsApp</WhatsAppLink>
       </Card>
 

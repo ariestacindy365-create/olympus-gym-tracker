@@ -130,10 +130,6 @@ export const createLeadSchema = z.object({
 
 export const editLeadSchema = createLeadSchema;
 
-export const addReplySchema = z.object({
-  count: z.number().int().min(1).max(20).optional().default(1),
-});
-
 export const updateLeadStatusSchema = z.object({
   status: z.enum(["DM", "TRIAL", "MEMBER", "RETENSI", "LOST"]),
 });

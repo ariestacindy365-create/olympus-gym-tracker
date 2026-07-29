@@ -12,7 +12,6 @@ export default async function LeadsListPage() {
     waNumber: l.waNumber,
     name: l.name,
     status: l.status,
-    replyCount: l.replyCount,
     capturedByName: l.capturedBy.name,
     capturedAt: l.capturedAt.toISOString(),
   }));

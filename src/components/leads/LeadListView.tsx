@@ -14,7 +14,6 @@ export interface LeadRow {
   waNumber: string;
   name: string;
   status: string;
-  replyCount: number;
   capturedByName: string;
   capturedAt: string;
 }
@@ -22,13 +21,11 @@ export interface LeadRow {
 export function LeadListView({ leads }: { leads: LeadRow[] }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("ALL");
-  const [qualifiedOnly, setQualifiedOnly] = useState(false);
 
   const filtered = leads.filter((l) => {
     const q = search.trim().toLowerCase();
     if (q && !l.name.toLowerCase().includes(q) && !l.waNumber.includes(q)) return false;
     if (status !== "ALL" && l.status !== status) return false;
-    if (qualifiedOnly && l.replyCount < 2) return false;
     return true;
   });
 
@@ -49,10 +46,6 @@ export function LeadListView({ leads }: { leads: LeadRow[] }) {
             </option>
           ))}
         </Select>
-        <label className="flex items-center gap-2 whitespace-nowrap rounded-md border border-border bg-surface-2 px-3 py-2.5 text-sm">
-          <input type="checkbox" checked={qualifiedOnly} onChange={(e) => setQualifiedOnly(e.target.checked)} />
-          Qualified saja
-        </label>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -67,7 +60,6 @@ export function LeadListView({ leads }: { leads: LeadRow[] }) {
               </p>
             </Link>
             <div className="flex flex-wrap items-center gap-2">
-              {lead.replyCount >= 2 && <Badge tone="accent">Qualified · {lead.replyCount}x balas</Badge>}
               <Badge tone={STATUS_TONE[lead.status] ?? "default"}>{STATUS_LABEL[lead.status] ?? lead.status}</Badge>
               <WhatsAppLink waNumber={lead.waNumber}>WhatsApp</WhatsAppLink>
             </div>
