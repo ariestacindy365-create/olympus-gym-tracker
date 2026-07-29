@@ -22,7 +22,7 @@ export default async function LeadsOwnerPage() {
         prisma.lead.count({ where: { capturedById: admin.id, capturedAt: { gte: today, lt: tomorrow } } }),
         prisma.followUp.count({ where: { completedById: admin.id, completedAt: { gte: today, lt: tomorrow } } }),
         prisma.lead.count({ where: { capturedById: admin.id, replyCount: { gte: 2 } } }),
-        prisma.lead.count({ where: { capturedById: admin.id, status: "CONVERTED" } }),
+        prisma.lead.count({ where: { capturedById: admin.id, status: "MEMBER" } }),
       ]);
       return { admin, target, capturesToday, followUpsDoneToday, qualifiedCount, convertedCount };
     })
@@ -48,7 +48,7 @@ export default async function LeadsOwnerPage() {
               accent={followUpsDoneToday >= (target?.targetFollowup ?? 0)}
             />
             <StatTile label="Total Qualified" value={qualifiedCount} />
-            <StatTile label="Total Konversi" value={convertedCount} />
+            <StatTile label="Total Member" value={convertedCount} />
           </div>
 
           <TargetEditForm

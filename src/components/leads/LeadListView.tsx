@@ -19,20 +19,18 @@ export interface LeadRow {
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  NEW: "Baru",
-  CONTACTED: "Dihubungi",
-  QUALIFIED: "Qualified",
+  DM: "DM",
   TRIAL: "Trial",
-  CONVERTED: "Member",
+  MEMBER: "Member",
+  RETENSI: "Retensi",
   LOST: "Tidak Lanjut",
 };
 
 const STATUS_TONE: Record<string, "default" | "success" | "accent" | "danger" | "muted"> = {
-  NEW: "muted",
-  CONTACTED: "default",
-  QUALIFIED: "accent",
+  DM: "muted",
   TRIAL: "accent",
-  CONVERTED: "success",
+  MEMBER: "success",
+  RETENSI: "success",
   LOST: "danger",
 };
 

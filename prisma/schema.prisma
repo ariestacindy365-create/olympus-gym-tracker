@@ -208,58 +208,40 @@ model ProgramSlot {
 
 // --- CRM: WA lead capture & follow-up (ADMIN/OWNER only) -------------------
 
+// The funnel stage an admin moves a lead through by hand. Trial booking
+// itself happens in the separate Fitquarter app — this only tracks status.
 enum LeadStatus {
-  NEW
-  CONTACTED
-  QUALIFIED
+  DM
   TRIAL
-  CONVERTED
+  MEMBER
+  RETENSI
   LOST
 }
 
 // A prospective client who DM'd after seeing an ad. replyCount tracks how
-// many times they've replied to the admin's DM; 2+ replies = "qualified"
-// (lib/leads.ts owns that threshold so it isn't duplicated across routes).
+// many times they've replied to the admin's DM; 2+ replies shows a
+// "qualified" badge (lib/leads.ts owns that threshold) — it's a separate
+// signal from status, not a funnel stage itself.
 model Lead {
-  id           String     @id @default(cuid())
-  waNumber     String
-  name         String
-  status       LeadStatus @default(NEW)
-  replyCount   Int        @default(0)
-  capturedById String
-  capturedBy   User       @relation("CapturedLeads", fields: [capturedById], references: [id])
-  capturedAt   DateTime   @default(now())
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id            String     @id @default(cuid())
+  waNumber      String
+  name          String
+  status        LeadStatus @default(DM)
+  replyCount    Int        @default(0)
+  // Set when status is marked TRIAL (booking itself happens in Fitquarter).
+  // Base date for the auto-generated H+1/H+3 follow-ups below.
+  trialMarkedAt DateTime?
+  capturedById  String
+  capturedBy    User       @relation("CapturedLeads", fields: [capturedById], references: [id])
+  capturedAt    DateTime   @default(now())
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
-  trials    Trial[]
   followUps FollowUp[]
 
   @@index([capturedAt])
   @@index([status])
   @@index([capturedById])
-}
-
-// A trial offered to a lead. converted stays null until the admin records an
-// outcome; discountGiven is set automatically when convertedAt falls on the
-// same calendar day as endDate (same-day conversion incentive).
-model Trial {
-  id            String    @id @default(cuid())
-  leadId        String
-  lead          Lead      @relation(fields: [leadId], references: [id])
-  offeredAt     DateTime  @default(now())
-  startDate     DateTime
-  endDate       DateTime
-  converted     Boolean?
-  convertedAt   DateTime?
-  discountGiven Boolean   @default(false)
-  note          String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  followUps FollowUp[]
-
-  @@index([leadId])
 }
 
 enum FollowUpType {
@@ -273,15 +255,14 @@ enum FollowUpStatus {
   MISSED
 }
 
-// Auto-generated (H1 = endDate+1, H3 = endDate+3) when a trial ends without
-// same-day conversion. dueDate uses the same local-midnight convention as
-// DailyWorkout.workoutDate so "due today" is a plain equality check.
+// Auto-generated (H1 = trialMarkedAt+1, H3 = trialMarkedAt+3) the moment a
+// lead's status is set to TRIAL. dueDate uses the same local-midnight
+// convention as DailyWorkout.workoutDate so "due today" is a plain equality
+// check.
 model FollowUp {
   id            String         @id @default(cuid())
   leadId        String
   lead          Lead           @relation(fields: [leadId], references: [id])
-  trialId       String?
-  trial         Trial?         @relation(fields: [trialId], references: [id])
   type          FollowUpType
   dueDate       DateTime
   status        FollowUpStatus @default(PENDING)

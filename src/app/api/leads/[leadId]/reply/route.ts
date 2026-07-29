@@ -3,7 +3,6 @@ import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { addReplySchema } from "@/lib/validation";
-import { statusAfterReply } from "@/lib/leads";
 import { Role } from "@/generated/prisma/client";
 
 export async function POST(request: NextRequest, ctx: RouteContext<"/api/leads/[leadId]/reply">) {
@@ -27,7 +26,7 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/leads/[
   const replyCount = lead.replyCount + parsed.data.count;
   const updated = await prisma.lead.update({
     where: { id: leadId },
-    data: { replyCount, status: statusAfterReply(lead.status, replyCount) },
+    data: { replyCount },
   });
 
   return NextResponse.json({ lead: updated });

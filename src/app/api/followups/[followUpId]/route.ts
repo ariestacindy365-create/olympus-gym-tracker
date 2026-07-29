@@ -37,12 +37,7 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/follow
   ];
 
   if (outcome === "CONVERTED") {
-    ops.push(prisma.lead.update({ where: { id: followUp.leadId }, data: { status: "CONVERTED" } }));
-    if (followUp.trialId) {
-      ops.push(
-        prisma.trial.update({ where: { id: followUp.trialId }, data: { converted: true, convertedAt: now } })
-      );
-    }
+    ops.push(prisma.lead.update({ where: { id: followUp.leadId }, data: { status: "MEMBER" } }));
   } else if (outcome === "LOST") {
     ops.push(prisma.lead.update({ where: { id: followUp.leadId }, data: { status: "LOST" } }));
   }

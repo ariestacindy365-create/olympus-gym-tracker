@@ -125,15 +125,8 @@ export const addReplySchema = z.object({
   count: z.number().int().min(1).max(20).optional().default(1),
 });
 
-export const createTrialSchema = z.object({
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Tanggal mulai tidak valid." }),
-  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Tanggal selesai tidak valid." }),
-  note: z.string().trim().max(280).optional(),
-});
-
-export const completeTrialSchema = z.object({
-  converted: z.boolean(),
-  note: z.string().trim().max(280).optional(),
+export const updateLeadStatusSchema = z.object({
+  status: z.enum(["DM", "TRIAL", "MEMBER", "RETENSI", "LOST"]),
 });
 
 export const completeFollowUpSchema = z.object({

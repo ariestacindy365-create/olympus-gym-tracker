@@ -4,18 +4,24 @@ import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { ReplyButton } from "@/components/leads/ReplyButton";
-import { TrialForm } from "@/components/leads/TrialForm";
-import { TrialOutcomeForm } from "@/components/leads/TrialOutcomeForm";
+import { LeadStatusActions } from "@/components/leads/LeadStatusActions";
 import { FollowUpActions } from "@/components/leads/FollowUpActions";
 import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
 
 const STATUS_LABEL: Record<string, string> = {
-  NEW: "Baru",
-  CONTACTED: "Dihubungi",
-  QUALIFIED: "Qualified",
+  DM: "DM",
   TRIAL: "Trial",
-  CONVERTED: "Member",
+  MEMBER: "Member",
+  RETENSI: "Retensi",
   LOST: "Tidak Lanjut",
+};
+
+const STATUS_TONE: Record<string, "default" | "success" | "accent" | "danger" | "muted"> = {
+  DM: "muted",
+  TRIAL: "accent",
+  MEMBER: "success",
+  RETENSI: "success",
+  LOST: "danger",
 };
 
 const FOLLOWUP_STATUS_LABEL: Record<string, string> = {
@@ -33,7 +39,6 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
     where: { id: leadId },
     include: {
       capturedBy: { select: { name: true } },
-      trials: { orderBy: { createdAt: "desc" } },
       followUps: {
         orderBy: { dueDate: "asc" },
         include: { completedBy: { select: { name: true } } },
@@ -43,9 +48,6 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
 
   if (!lead) notFound();
 
-  const openTrial = lead.trials.find((t) => t.converted === null);
-  const canOfferTrial = isAdmin && !openTrial && lead.status !== "CONVERTED" && lead.status !== "LOST";
-
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -54,7 +56,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
       </div>
 
       <Card className="flex flex-wrap items-center gap-3">
-        <Badge tone="default">{STATUS_LABEL[lead.status] ?? lead.status}</Badge>
+        <Badge tone={STATUS_TONE[lead.status] ?? "default"}>{STATUS_LABEL[lead.status] ?? lead.status}</Badge>
         <Badge tone={lead.replyCount >= 2 ? "accent" : "muted"}>{lead.replyCount}x balasan</Badge>
         <span className="text-xs text-muted">
           Dicapture oleh {lead.capturedBy.name} · {lead.capturedAt.toLocaleDateString("id-ID")}
@@ -63,35 +65,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
         <WhatsAppLink waNumber={lead.waNumber}>Follow Up via WhatsApp</WhatsAppLink>
       </Card>
 
-      {openTrial ? (
-        isAdmin && (
-          <TrialOutcomeForm trialId={openTrial.id} endDateLabel={openTrial.endDate.toLocaleDateString("id-ID")} />
-        )
-      ) : (
-        canOfferTrial && <TrialForm leadId={lead.id} />
-      )}
-
-      {lead.trials.length > 0 && (
-        <Card>
-          <h2 className="mb-3 font-display text-lg font-semibold">Riwayat Trial</h2>
-          <ul className="flex flex-col gap-2 text-sm">
-            {lead.trials.map((t) => (
-              <li key={t.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 last:border-0">
-                <span>
-                  {t.startDate.toLocaleDateString("id-ID")} – {t.endDate.toLocaleDateString("id-ID")}
-                </span>
-                {t.converted === null ? (
-                  <Badge tone="muted">Menunggu hasil</Badge>
-                ) : t.converted ? (
-                  <Badge tone="success">Konversi{t.discountGiven ? " (diskon)" : ""}</Badge>
-                ) : (
-                  <Badge tone="danger">Belum konversi</Badge>
-                )}
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
+      {isAdmin && <LeadStatusActions leadId={lead.id} status={lead.status} />}
 
       <Card>
         <h2 className="mb-3 font-display text-lg font-semibold">Follow Up</h2>
