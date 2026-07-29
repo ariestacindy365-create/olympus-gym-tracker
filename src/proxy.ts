@@ -40,7 +40,7 @@ export async function proxy(request: NextRequest) {
   const isMemberRoute = pathname.startsWith("/member");
   const isCoachRoute = pathname.startsWith("/coach");
   const isLeadsRoute = pathname.startsWith("/leads");
-  const isAuthRoute = pathname === "/login" || pathname === "/register";
+  const isAuthRoute = pathname === "/login" || pathname === "/register" || pathname === "/register-admin";
 
   if (isMemberRoute && role !== "MEMBER") {
     return NextResponse.redirect(

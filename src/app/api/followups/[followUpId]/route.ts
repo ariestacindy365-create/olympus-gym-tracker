@@ -37,7 +37,7 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/follow
   ];
 
   if (outcome === "CONVERTED") {
-    ops.push(prisma.lead.update({ where: { id: followUp.leadId }, data: { status: "MEMBER" } }));
+    ops.push(prisma.lead.update({ where: { id: followUp.leadId }, data: { status: "MEMBER", convertedAt: now } }));
   } else if (outcome === "LOST") {
     ops.push(prisma.lead.update({ where: { id: followUp.leadId }, data: { status: "LOST" } }));
   }

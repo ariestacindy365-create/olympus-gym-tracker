@@ -27,6 +27,13 @@ export const registerSchema = z.object({
   pin: z.string().regex(/^\d{4}$/, { error: "PIN must be exactly 4 digits." }),
 });
 
+export const registerAdminSchema = z.object({
+  name: z.string().trim().min(2, { error: "Isi nama Anda." }).max(80),
+  email: z.email({ error: "Masukkan email yang valid." }),
+  pin: z.string().regex(/^\d{4}$/, { error: "PIN harus 4 digit angka." }),
+  inviteCode: z.string().trim().min(1, { error: "Isi kode registrasi admin." }),
+});
+
 export const setEntrySchema = z.object({
   exerciseId: z.string().min(1),
   setNumber: z.number().int().positive().optional(),

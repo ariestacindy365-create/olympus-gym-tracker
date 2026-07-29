@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { PinInput } from "@/components/ui/PinInput";
 
-export function ChangePinForm() {
+export function ChangePinForm({ endpoint = "/api/member/pin" }: { endpoint?: string } = {}) {
   const [currentPin, setCurrentPin] = useState("");
   const [newPin, setNewPin] = useState("");
   const [pending, setPending] = useState(false);
@@ -23,7 +23,7 @@ export function ChangePinForm() {
 
     setPending(true);
     try {
-      const res = await fetch("/api/member/pin", {
+      const res = await fetch(endpoint, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ currentPin, newPin }),

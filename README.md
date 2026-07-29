@@ -7,17 +7,25 @@ capture WhatsApp leads from ads, track DM replies (2+ = qualified), run the
 trial → conversion flow, and follow up at H+1/H+3. OWNER accounts see both
 admins' daily progress and set their capture/follow-up targets.
 
-- Schema: `Lead`, `Trial`, `FollowUp`, `Target` in `prisma/schema.prisma`.
+- Schema: `Lead`, `FollowUp`, `Target` in `prisma/schema.prisma`. Status is a
+  manual funnel stage the admin sets by hand: `DM → TRIAL → MEMBER →
+  RETENSI`, with `LOST` reachable from DM or TRIAL. Trial *booking* itself
+  happens in the separate Fitquarter app — this only tracks the status.
 - Business logic: `src/lib/leads.ts` (qualification threshold, H+1/H+3 date
-  math, auto follow-up scheduling).
+  math, auto follow-up scheduling from `trialMarkedAt`).
 - Seeded accounts (`prisma/seed-crm.ts` — safe to re-run, only upserts these
   three, never touches COACH/MEMBER data):
   - Admin: `sekar@olympus.gym` / PIN `1010`
   - Admin: `esti@olympus.gym` / PIN `2020`
   - Owner: `owner@olympus.gym` / PIN `9999`
 
-  **Change these PINs before real use** — either log in and use a future
-  "change PIN" flow, or re-run with different values and upsert by hand.
+  Anyone can change their own email/PIN from **Akun Saya** once logged in
+  (`/leads/account`).
+- New admins (e.g. replacing Sekar or Esti after they leave) can self-register
+  at `/register-admin` using the shared `ADMIN_INVITE_CODE` env var (see
+  `.env`) — give that code only to people who should get admin access to
+  lead/customer data. Rotate it (edit `.env` locally and the env var on
+  Vercel) if it's ever shared too widely.
 
 Schema changes were applied with `npx prisma db push` (this project doesn't
 use `prisma migrate`, see `prisma.config.ts`). Do **not** run `prisma/seed.ts`

@@ -231,6 +231,10 @@ model Lead {
   // Set when status is marked TRIAL (booking itself happens in Fitquarter).
   // Base date for the auto-generated H+1/H+3 follow-ups below.
   trialMarkedAt DateTime?
+  // Set the moment status first becomes MEMBER — the timestamp the
+  // conversion-rate chart buckets by (updatedAt isn't reliable for this
+  // since any field edit bumps it, not just a status change).
+  convertedAt   DateTime?
   capturedById  String
   capturedBy    User       @relation("CapturedLeads", fields: [capturedById], references: [id])
   capturedAt    DateTime   @default(now())

@@ -4,7 +4,13 @@ import { useState } from "react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 
-export function ChangeEmailForm({ currentEmail }: { currentEmail: string }) {
+export function ChangeEmailForm({
+  currentEmail,
+  endpoint = "/api/member/email",
+}: {
+  currentEmail: string;
+  endpoint?: string;
+}) {
   const [email, setEmail] = useState(currentEmail);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +28,7 @@ export function ChangeEmailForm({ currentEmail }: { currentEmail: string }) {
 
     setPending(true);
     try {
-      const res = await fetch("/api/member/email", {
+      const res = await fetch(endpoint, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim() }),

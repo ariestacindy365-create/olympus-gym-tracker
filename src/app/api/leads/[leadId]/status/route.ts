@@ -38,6 +38,12 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/leads/
     return NextResponse.json({ lead: updated });
   }
 
-  const updated = await prisma.lead.update({ where: { id: leadId }, data: { status } });
+  const updated = await prisma.lead.update({
+    where: { id: leadId },
+    data: {
+      status,
+      ...(status === "MEMBER" && lead.status !== "MEMBER" ? { convertedAt: new Date() } : {}),
+    },
+  });
   return NextResponse.json({ lead: updated });
 }

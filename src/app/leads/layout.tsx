@@ -5,12 +5,14 @@ const ADMIN_LINKS = [
   { href: "/leads/dashboard", label: "Dashboard" },
   { href: "/leads", label: "Semua Lead" },
   { href: "/leads/history", label: "Riwayat" },
+  { href: "/leads/account", label: "Akun Saya" },
 ];
 
 const OWNER_LINKS = [
   { href: "/leads/owner", label: "Overview" },
   { href: "/leads", label: "Semua Lead" },
   { href: "/leads/history", label: "Riwayat" },
+  { href: "/leads/account", label: "Akun Saya" },
 ];
 
 export default async function LeadsLayout({ children }: { children: React.ReactNode }) {
