@@ -17,29 +17,42 @@ export default async function LeadsOwnerPage() {
 
   const admins = await prisma.user.findMany({ where: { role: Role.ADMIN }, orderBy: { name: "asc" } });
 
+  // Only leads that actually went through a trial belong in the trial->
+  // conversion chart — a lead marked MEMBER straight from DM (no trial)
+  // has no trialMarkedAt and would otherwise inflate the numerator without
+  // a matching trial in the same bucket, pushing the rate past 100%.
   const chartRangeStart = startOfMonth(subMonths(today, 11));
   const conversionEvents = await prisma.lead.findMany({
-    where: {
-      deletedAt: null,
-      OR: [{ trialMarkedAt: { gte: chartRangeStart } }, { convertedAt: { gte: chartRangeStart } }],
-    },
+    where: { deletedAt: null, trialMarkedAt: { gte: chartRangeStart } },
     select: { trialMarkedAt: true, convertedAt: true },
   });
 
   const adminStats = await Promise.all(
     admins.map(async (admin) => {
-      const [target, capturesToday, followUpsDoneToday, totalTrial, totalConversion] = await Promise.all([
-        prisma.target.findUnique({ where: { adminId: admin.id } }),
-        prisma.lead.count({
-          where: { capturedById: admin.id, capturedAt: { gte: today, lt: tomorrow }, deletedAt: null },
-        }),
-        prisma.followUp.count({ where: { completedById: admin.id, completedAt: { gte: today, lt: tomorrow } } }),
-        prisma.lead.count({ where: { capturedById: admin.id, trialMarkedAt: { not: null }, deletedAt: null } }),
-        prisma.lead.count({
-          where: { capturedById: admin.id, status: { in: ["MEMBER", "RETENSI"] }, deletedAt: null },
-        }),
-      ]);
-      const conversionRate = totalTrial > 0 ? Math.round((totalConversion / totalTrial) * 100) : null;
+      const [target, capturesToday, followUpsDoneToday, totalTrial, totalConversion, trialConversionCount] =
+        await Promise.all([
+          prisma.target.findUnique({ where: { adminId: admin.id } }),
+          prisma.lead.count({
+            where: { capturedById: admin.id, capturedAt: { gte: today, lt: tomorrow }, deletedAt: null },
+          }),
+          prisma.followUp.count({ where: { completedById: admin.id, completedAt: { gte: today, lt: tomorrow } } }),
+          prisma.lead.count({ where: { capturedById: admin.id, trialMarkedAt: { not: null }, deletedAt: null } }),
+          // Headline "how many members" — includes DM->MEMBER direct signups.
+          prisma.lead.count({
+            where: { capturedById: admin.id, status: { in: ["MEMBER", "RETENSI"] }, deletedAt: null },
+          }),
+          // Conversion Rate's numerator: only conversions that came from a
+          // trial, so a direct signup doesn't distort the trial funnel rate.
+          prisma.lead.count({
+            where: {
+              capturedById: admin.id,
+              trialMarkedAt: { not: null },
+              status: { in: ["MEMBER", "RETENSI"] },
+              deletedAt: null,
+            },
+          }),
+        ]);
+      const conversionRate = totalTrial > 0 ? Math.round((trialConversionCount / totalTrial) * 100) : null;
       return { admin, target, capturesToday, followUpsDoneToday, totalTrial, totalConversion, conversionRate };
     })
   );

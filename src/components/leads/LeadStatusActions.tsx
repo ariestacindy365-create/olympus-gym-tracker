@@ -9,6 +9,7 @@ type LeadStatus = "DM" | "TRIAL" | "MEMBER" | "RETENSI" | "LOST";
 const NEXT_ACTIONS: Record<LeadStatus, { label: string; status: LeadStatus; variant: "primary" | "secondary" | "danger" }[]> = {
   DM: [
     { label: "Tandai Trial", status: "TRIAL", variant: "primary" },
+    { label: "Langsung Jadi Member", status: "MEMBER", variant: "secondary" },
     { label: "Tidak Lanjut", status: "LOST", variant: "danger" },
   ],
   TRIAL: [
