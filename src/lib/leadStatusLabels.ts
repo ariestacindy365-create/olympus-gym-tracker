@@ -26,7 +26,7 @@ export const FOLLOWUP_TYPE_LABEL: Record<string, string> = {
   H1: "H+1",
   H3: "H+3",
   H7: "H+7",
-  H21: "H+3 Minggu",
+  H21: "H+21",
 };
 
 export const FOLLOWUP_TYPE_TONE: Record<string, "default" | "success" | "accent" | "danger" | "muted"> = {
