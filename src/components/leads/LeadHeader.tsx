@@ -5,7 +5,19 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 
-export function LeadHeader({ leadId, name, waNumber }: { leadId: string; name: string; waNumber: string }) {
+export function LeadHeader({
+  leadId,
+  name,
+  waNumber,
+  canEdit = true,
+  canDelete = true,
+}: {
+  leadId: string;
+  name: string;
+  waNumber: string;
+  canEdit?: boolean;
+  canDelete?: boolean;
+}) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(name);
@@ -25,6 +37,11 @@ export function LeadHeader({ leadId, name, waNumber }: { leadId: string; name: s
       });
       const data = await res.json();
       if (!res.ok) {
+        if (data.existingLeadId) {
+          alert(`Nomor ini sudah tercatat sebagai "${data.existingLeadName}". Kamu akan diarahkan ke lead itu.`);
+          router.push(`/leads/${data.existingLeadId}`);
+          return;
+        }
         setError(data.error ?? "Gagal menyimpan.");
         return;
       }
@@ -77,14 +94,20 @@ export function LeadHeader({ leadId, name, waNumber }: { leadId: string; name: s
         <h1 className="font-display text-2xl font-bold">{name}</h1>
         <p className="text-sm text-muted">{waNumber}</p>
       </div>
-      <div className="flex gap-2">
-        <Button variant="secondary" className="text-xs" disabled={pending} onClick={() => setEditing(true)}>
-          Edit
-        </Button>
-        <Button variant="danger" className="text-xs" disabled={pending} onClick={handleDelete}>
-          {pending ? "..." : "Hapus"}
-        </Button>
-      </div>
+      {(canEdit || canDelete) && (
+        <div className="flex gap-2">
+          {canEdit && (
+            <Button variant="secondary" className="text-xs" disabled={pending} onClick={() => setEditing(true)}>
+              Edit
+            </Button>
+          )}
+          {canDelete && (
+            <Button variant="danger" className="text-xs" disabled={pending} onClick={handleDelete}>
+              {pending ? "..." : "Hapus"}
+            </Button>
+          )}
+        </div>
+      )}
       {error && <p className="w-full text-sm text-danger">{error}</p>}
     </div>
   );

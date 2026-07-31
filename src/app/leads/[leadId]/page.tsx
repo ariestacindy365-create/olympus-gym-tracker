@@ -14,6 +14,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
   const { leadId } = await params;
   const user = await getCurrentUser();
   const isAdmin = user?.role === "ADMIN";
+  const isOwner = user?.role === "OWNER";
 
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
@@ -42,8 +43,14 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
 
   return (
     <div className="flex flex-col gap-6">
-      {isAdmin && !isDeleted ? (
-        <LeadHeader leadId={lead.id} name={lead.name} waNumber={lead.waNumber} />
+      {!isDeleted && (isAdmin || isOwner) ? (
+        <LeadHeader
+          leadId={lead.id}
+          name={lead.name}
+          waNumber={lead.waNumber}
+          canEdit={isAdmin}
+          canDelete={isOwner}
+        />
       ) : (
         <div>
           <h1 className="font-display text-2xl font-bold">{lead.name}</h1>

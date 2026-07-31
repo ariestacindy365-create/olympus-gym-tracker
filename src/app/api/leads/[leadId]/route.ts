@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { editLeadSchema } from "@/lib/validation";
+import { normalizeWaNumber } from "@/lib/whatsapp";
 import { Role } from "@/generated/prisma/client";
 
 export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/leads/[leadId]">) {
@@ -23,17 +24,32 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/leads/
     return NextResponse.json({ error: "Lead tidak ditemukan." }, { status: 404 });
   }
 
+  const waNumberNormalized = normalizeWaNumber(parsed.data.waNumber);
+  const existing = await prisma.lead.findFirst({
+    where: { waNumberNormalized, deletedAt: null, id: { not: leadId } },
+  });
+  if (existing) {
+    return NextResponse.json(
+      {
+        error: `Nomor ini sudah tercatat sebagai "${existing.name}".`,
+        existingLeadId: existing.id,
+        existingLeadName: existing.name,
+      },
+      { status: 409 }
+    );
+  }
+
   const updated = await prisma.lead.update({
     where: { id: leadId },
-    data: { waNumber: parsed.data.waNumber, name: parsed.data.name },
+    data: { waNumber: parsed.data.waNumber, waNumberNormalized, name: parsed.data.name },
   });
 
   return NextResponse.json({ lead: updated });
 }
 
 export async function DELETE(_request: NextRequest, ctx: RouteContext<"/api/leads/[leadId]">) {
-  const admin = await getCurrentUser();
-  if (!admin || admin.role !== Role.ADMIN) {
+  const user = await getCurrentUser();
+  if (!user || user.role !== Role.OWNER) {
     return NextResponse.json({ error: "Not authorized." }, { status: 401 });
   }
 
@@ -50,7 +66,7 @@ export async function DELETE(_request: NextRequest, ctx: RouteContext<"/api/lead
   // shows up in Riwayat instead of vanishing without a trace.
   await prisma.lead.update({
     where: { id: leadId },
-    data: { deletedAt: new Date(), deletedById: admin.id },
+    data: { deletedAt: new Date(), deletedById: user.id },
   });
 
   return NextResponse.json({ ok: true });

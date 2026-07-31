@@ -23,15 +23,15 @@ enum PRType {
 }
 
 model User {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   name         String
-  email        String   @unique
+  email        String    @unique
   pinHash      String
   role         Role
   lastActiveAt DateTime  @default(now())
   presentDate  DateTime?
   createdAt    DateTime  @default(now())
-  updatedAt    DateTime @updatedAt
+  updatedAt    DateTime  @updatedAt
 
   setEntries           SetEntry[]
   personalRecords      PersonalRecord[]
@@ -41,10 +41,10 @@ model User {
   achievementUnlocks   AchievementUnlock[]
 
   // CRM (lead capture / follow-up) — used by ADMIN and OWNER roles only.
-  capturedLeads       Lead[]     @relation("CapturedLeads")
-  completedFollowUps  FollowUp[] @relation("CompletedFollowUps")
-  deletedLeads        Lead[]     @relation("DeletedLeads")
-  target              Target?    @relation("AdminTarget")
+  capturedLeads      Lead[]     @relation("CapturedLeads")
+  completedFollowUps FollowUp[] @relation("CompletedFollowUps")
+  deletedLeads       Lead[]     @relation("DeletedLeads")
+  target             Target?    @relation("AdminTarget")
 }
 
 // Achievement definitions live in code (src/lib/achievements.ts), not the
@@ -221,34 +221,41 @@ enum LeadStatus {
 
 // A prospective client who DM'd after seeing an ad.
 model Lead {
-  id            String     @id @default(cuid())
-  waNumber      String
-  name          String
-  status        LeadStatus @default(DM)
-  replyCount    Int        @default(0)
+  id                 String     @id @default(cuid())
+  waNumber           String
+  // Digits-only, 62-prefixed form of waNumber (see lib/whatsapp.ts). Used to
+  // catch duplicate captures regardless of how the number was typed
+  // (0812... vs 62812... vs with spaces/dashes) — enforced in the API layer
+  // rather than a DB unique constraint so a soft-deleted lead's old number
+  // can be re-captured later.
+  waNumberNormalized String     @default("")
+  name               String
+  status             LeadStatus @default(DM)
+  replyCount         Int        @default(0)
   // Set when status is marked TRIAL (booking itself happens in Fitquarter).
   // Base date for the auto-generated H+1/H+3 follow-ups below.
-  trialMarkedAt DateTime?
+  trialMarkedAt      DateTime?
   // Set the moment status first becomes MEMBER — the timestamp the
   // conversion-rate chart buckets by (updatedAt isn't reliable for this
   // since any field edit bumps it, not just a status change).
-  convertedAt   DateTime?
+  convertedAt        DateTime?
   // Soft delete — "Hapus" sets these instead of removing the row, so the
   // deletion still shows up in the Riwayat history.
-  deletedAt     DateTime?
-  deletedById   String?
-  deletedBy     User?      @relation("DeletedLeads", fields: [deletedById], references: [id])
-  capturedById  String
-  capturedBy    User       @relation("CapturedLeads", fields: [capturedById], references: [id])
-  capturedAt    DateTime   @default(now())
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  deletedAt          DateTime?
+  deletedById        String?
+  deletedBy          User?      @relation("DeletedLeads", fields: [deletedById], references: [id])
+  capturedById       String
+  capturedBy         User       @relation("CapturedLeads", fields: [capturedById], references: [id])
+  capturedAt         DateTime   @default(now())
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
   followUps FollowUp[]
 
   @@index([capturedAt])
   @@index([status])
   @@index([capturedById])
+  @@index([waNumberNormalized])
 }
 
 enum FollowUpType {

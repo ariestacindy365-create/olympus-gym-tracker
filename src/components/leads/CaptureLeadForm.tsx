@@ -25,6 +25,11 @@ export function CaptureLeadForm() {
       });
       const data = await res.json();
       if (!res.ok) {
+        if (data.existingLeadId) {
+          alert(`Nomor ini sudah tercatat sebagai "${data.existingLeadName}". Kamu akan diarahkan ke lead itu untuk follow up ulang.`);
+          router.push(`/leads/${data.existingLeadId}`);
+          return;
+        }
         setError(data.error ?? "Gagal menyimpan lead.");
         return;
       }
