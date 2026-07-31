@@ -12,7 +12,7 @@ export function waOpeningMessage(name: string): string {
 // after a lead has been marked TRIAL, timed off trialMarkedAt.
 export function waFollowUpMessage(name: string, type: "H1" | "H3"): string {
   if (type === "H1") {
-    return `Halo Kak ${name}, gimana kondisinya setelah latihan kemarin? 😊`;
+    return `Halo Kak ${name}, gimana kondisinya setelah latihan kemarin? 🙂`;
   }
-  return `Halo Kak ${name}, gimana sesi latihannya sejauh ini? 😊`;
+  return `Halo Kak ${name}, gimana sesi latihannya sejauh ini? 🙂`;
 }
