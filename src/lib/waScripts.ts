@@ -10,12 +10,9 @@ export function waOpeningMessage(name: string): string {
 
 // Langkah 5 (H+1) / Langkah 6 opening line (H+3) — check-in messages sent
 // after a lead has been marked TRIAL, timed off trialMarkedAt.
-// No emoji here — wa.me's text= param has repeatedly corrupted emoji
-// (both on iOS and WhatsApp Web) into a broken character, while plain
-// text always comes through fine.
 export function waFollowUpMessage(name: string, type: "H1" | "H3"): string {
   if (type === "H1") {
-    return `Halo Kak ${name}, gimana kondisinya setelah latihan kemarin?`;
+    return `Halo Kak ${name}, gimana kondisinya setelah latihan kemarin? 🙂`;
   }
-  return `Halo Kak ${name}, gimana sesi latihannya sejauh ini?`;
+  return `Halo Kak ${name}, gimana sesi latihannya sejauh ini? 🙂`;
 }
