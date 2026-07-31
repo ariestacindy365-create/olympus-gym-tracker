@@ -135,7 +135,7 @@ export const updateLeadStatusSchema = z.object({
 });
 
 export const completeFollowUpSchema = z.object({
-  outcome: z.enum(["CONVERTED", "STILL_FOLLOWING", "LOST"]),
+  outcome: z.enum(["CONVERTED", "STILL_FOLLOWING", "LOST", "FOLLOWED_UP"]),
   note: z.string().trim().max(280).optional(),
 });
 

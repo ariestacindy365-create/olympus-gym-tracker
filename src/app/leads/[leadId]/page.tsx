@@ -103,7 +103,9 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
                     {FOLLOWUP_STATUS_LABEL[fu.status] ?? fu.status}
                   </Badge>
                 </div>
-                {fu.status === "PENDING" && isAdmin && !isDeleted && <FollowUpActions followUpId={fu.id} />}
+                {fu.status === "PENDING" && isAdmin && !isDeleted && (
+                  <FollowUpActions followUpId={fu.id} type={fu.type} />
+                )}
                 {fu.status === "DONE" && (
                   <p className="mt-1 text-xs text-muted">
                     Oleh {fu.completedBy?.name} · {fu.note}

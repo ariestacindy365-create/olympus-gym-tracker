@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
-type Outcome = "CONVERTED" | "STILL_FOLLOWING" | "LOST";
+type Outcome = "CONVERTED" | "STILL_FOLLOWING" | "LOST" | "FOLLOWED_UP";
 
-export function FollowUpActions({ followUpId }: { followUpId: string }) {
+// H1/H3 are trial check-ins — the outcome decides whether the lead converts.
+// H7/H21 happen after someone is already a MEMBER, so there's nothing to
+// convert/lose here; completing them just records that the admin followed up.
+export function FollowUpActions({ followUpId, type }: { followUpId: string; type: "H1" | "H3" | "H7" | "H21" }) {
   const router = useRouter();
   const [note, setNote] = useState("");
   const [pending, setPending] = useState<Outcome | null>(null);
@@ -35,6 +38,8 @@ export function FollowUpActions({ followUpId }: { followUpId: string }) {
     }
   }
 
+  const isPostConversion = type === "H7" || type === "H21";
+
   return (
     <div className="mt-2 flex flex-col gap-2">
       <Input
@@ -43,30 +48,43 @@ export function FollowUpActions({ followUpId }: { followUpId: string }) {
         onChange={(e) => setNote(e.target.value)}
       />
       <div className="flex flex-wrap gap-2">
-        <Button
-          variant="primary"
-          className="px-3 py-1.5 text-xs"
-          disabled={pending !== null}
-          onClick={() => complete("CONVERTED")}
-        >
-          {pending === "CONVERTED" ? "..." : "Konversi Member"}
-        </Button>
-        <Button
-          variant="secondary"
-          className="px-3 py-1.5 text-xs"
-          disabled={pending !== null}
-          onClick={() => complete("STILL_FOLLOWING")}
-        >
-          {pending === "STILL_FOLLOWING" ? "..." : "Masih Follow Up"}
-        </Button>
-        <Button
-          variant="danger"
-          className="px-3 py-1.5 text-xs"
-          disabled={pending !== null}
-          onClick={() => complete("LOST")}
-        >
-          {pending === "LOST" ? "..." : "Tidak Lanjut"}
-        </Button>
+        {isPostConversion ? (
+          <Button
+            variant="primary"
+            className="px-3 py-1.5 text-xs"
+            disabled={pending !== null}
+            onClick={() => complete("FOLLOWED_UP")}
+          >
+            {pending === "FOLLOWED_UP" ? "..." : "Sudah Follow Up"}
+          </Button>
+        ) : (
+          <>
+            <Button
+              variant="primary"
+              className="px-3 py-1.5 text-xs"
+              disabled={pending !== null}
+              onClick={() => complete("CONVERTED")}
+            >
+              {pending === "CONVERTED" ? "..." : "Konversi Member"}
+            </Button>
+            <Button
+              variant="secondary"
+              className="px-3 py-1.5 text-xs"
+              disabled={pending !== null}
+              onClick={() => complete("STILL_FOLLOWING")}
+            >
+              {pending === "STILL_FOLLOWING" ? "..." : "Masih Follow Up"}
+            </Button>
+            <Button
+              variant="danger"
+              className="px-3 py-1.5 text-xs"
+              disabled={pending !== null}
+              onClick={() => complete("LOST")}
+            >
+              {pending === "LOST" ? "..." : "Tidak Lanjut"}
+            </Button>
+          </>
+        )}
       </div>
       {error && <p className="text-sm text-danger">{error}</p>}
     </div>
