@@ -11,6 +11,7 @@ import { CaptureLeadForm } from "@/components/leads/CaptureLeadForm";
 import { FollowUpActions } from "@/components/leads/FollowUpActions";
 import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
 import { waFollowUpMessage } from "@/lib/waScripts";
+import { FOLLOWUP_TYPE_LABEL, FOLLOWUP_TYPE_TONE } from "@/lib/leadStatusLabels";
 
 export default async function LeadsDashboardPage() {
   const admin = await requireRole("ADMIN");
@@ -49,7 +50,7 @@ export default async function LeadsDashboardPage() {
       <CaptureLeadForm />
 
       <Card>
-        <h2 className="mb-3 font-display text-lg font-semibold">Follow Up Hari Ini (H+1 &amp; H+3)</h2>
+        <h2 className="mb-3 font-display text-lg font-semibold">Follow Up Hari Ini</h2>
         {dueFollowUps.length === 0 ? (
           <p className="text-sm text-muted">Tidak ada follow up yang jatuh tempo hari ini.</p>
         ) : (
@@ -64,7 +65,7 @@ export default async function LeadsDashboardPage() {
                     <span className="text-sm text-muted">{fu.lead.waNumber}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge tone={fu.type === "H1" ? "accent" : "danger"}>{fu.type === "H1" ? "H+1" : "H+3"}</Badge>
+                    <Badge tone={FOLLOWUP_TYPE_TONE[fu.type] ?? "default"}>{FOLLOWUP_TYPE_LABEL[fu.type] ?? fu.type}</Badge>
                     <WhatsAppLink waNumber={fu.lead.waNumber} message={waFollowUpMessage(fu.lead.name, fu.type)}>
                       WhatsApp
                     </WhatsAppLink>

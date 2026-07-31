@@ -7,7 +7,13 @@ import { LeadStatusActions } from "@/components/leads/LeadStatusActions";
 import { LeadHeader } from "@/components/leads/LeadHeader";
 import { FollowUpActions } from "@/components/leads/FollowUpActions";
 import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
-import { STATUS_LABEL, STATUS_TONE, FOLLOWUP_STATUS_LABEL } from "@/lib/leadStatusLabels";
+import {
+  STATUS_LABEL,
+  STATUS_TONE,
+  FOLLOWUP_STATUS_LABEL,
+  FOLLOWUP_TYPE_LABEL,
+  FOLLOWUP_TYPE_TONE,
+} from "@/lib/leadStatusLabels";
 import { waOpeningMessage, waFollowUpMessage } from "@/lib/waScripts";
 
 export default async function LeadDetailPage({ params }: { params: Promise<{ leadId: string }> }) {
@@ -90,7 +96,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
               <li key={fu.id} className="border-b border-border pb-4 last:border-0 last:pb-0">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-sm">
-                    <Badge tone={fu.type === "H1" ? "accent" : "danger"}>{fu.type === "H1" ? "H+1" : "H+3"}</Badge>{" "}
+                    <Badge tone={FOLLOWUP_TYPE_TONE[fu.type] ?? "default"}>{FOLLOWUP_TYPE_LABEL[fu.type] ?? fu.type}</Badge>{" "}
                     {fu.dueDate.toLocaleDateString("id-ID")}
                   </span>
                   <Badge tone={fu.status === "DONE" ? "success" : "muted"}>

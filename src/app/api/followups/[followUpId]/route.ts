@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { completeFollowUpSchema } from "@/lib/validation";
+import { scheduleMemberFollowUps } from "@/lib/leads";
 import { Role, Prisma } from "@/generated/prisma/client";
 
 export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/followups/[followUpId]">) {
@@ -29,6 +30,9 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/follow
   const { outcome, note } = parsed.data;
   const now = new Date();
 
+  const lead = await prisma.lead.findUnique({ where: { id: followUp.leadId } });
+  const becomingMember = outcome === "CONVERTED" && lead?.status !== "MEMBER";
+
   const ops: Prisma.PrismaPromise<unknown>[] = [
     prisma.followUp.update({
       where: { id: followUpId },
@@ -43,6 +47,10 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/follow
   }
 
   const [updatedFollowUp] = await prisma.$transaction(ops);
+
+  if (becomingMember) {
+    await scheduleMemberFollowUps({ leadId: followUp.leadId, convertedAt: now });
+  }
 
   return NextResponse.json({ followUp: updatedFollowUp });
 }

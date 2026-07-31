@@ -4,11 +4,11 @@ import { getFollowUpHistory, getDeletedLeads } from "@/lib/leads";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
-import { STATUS_LABEL, STATUS_TONE } from "@/lib/leadStatusLabels";
+import { STATUS_LABEL, STATUS_TONE, FOLLOWUP_TYPE_LABEL, FOLLOWUP_TYPE_TONE } from "@/lib/leadStatusLabels";
 import { waFollowUpMessage } from "@/lib/waScripts";
 
 function FollowUpTypeBadge({ type }: { type: string }) {
-  return <Badge tone={type === "H1" ? "accent" : "danger"}>{type === "H1" ? "H+1" : "H+3"}</Badge>;
+  return <Badge tone={FOLLOWUP_TYPE_TONE[type] ?? "default"}>{FOLLOWUP_TYPE_LABEL[type] ?? type}</Badge>;
 }
 
 function LeadStatusBadge({ status }: { status: string }) {

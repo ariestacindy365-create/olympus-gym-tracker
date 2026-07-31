@@ -24,6 +24,28 @@ export async function scheduleTrialFollowUps(params: { leadId: string; trialMark
   });
 }
 
+// H+7 / H+21 due dates measured from the moment a lead became a member,
+// same local-midnight convention as followUpDueDates above.
+export function memberFollowUpDueDates(convertedAt: Date): { h7: Date; h21: Date } {
+  const base = new Date(convertedAt.getFullYear(), convertedAt.getMonth(), convertedAt.getDate());
+  return { h7: addDays(base, 7), h21: addDays(base, 21) };
+}
+
+// Creates the two post-conversion follow-ups (H+7 check-in + Google review
+// ask, H+21 check-in + membership-expiring reminder) the moment a lead is
+// first marked MEMBER — regardless of whether they came via TRIAL or a
+// direct DM->MEMBER signup.
+export async function scheduleMemberFollowUps(params: { leadId: string; convertedAt: Date }) {
+  const { leadId, convertedAt } = params;
+  const { h7, h21 } = memberFollowUpDueDates(convertedAt);
+  await prisma.followUp.createMany({
+    data: [
+      { leadId, type: "H7", dueDate: h7 },
+      { leadId, type: "H21", dueDate: h21 },
+    ],
+  });
+}
+
 export async function getTodayDueFollowUps(adminId?: string) {
   const today = todayDateKey();
   return prisma.followUp.findMany({

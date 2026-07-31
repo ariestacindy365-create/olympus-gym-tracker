@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { updateLeadStatusSchema } from "@/lib/validation";
-import { scheduleTrialFollowUps } from "@/lib/leads";
+import { scheduleTrialFollowUps, scheduleMemberFollowUps } from "@/lib/leads";
 import { Role } from "@/generated/prisma/client";
 
 export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/leads/[leadId]/status">) {
@@ -38,12 +38,17 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/leads/
     return NextResponse.json({ lead: updated });
   }
 
+  const becomingMember = status === "MEMBER" && lead.status !== "MEMBER";
+  const convertedAt = new Date();
   const updated = await prisma.lead.update({
     where: { id: leadId },
     data: {
       status,
-      ...(status === "MEMBER" && lead.status !== "MEMBER" ? { convertedAt: new Date() } : {}),
+      ...(becomingMember ? { convertedAt } : {}),
     },
   });
+  if (becomingMember) {
+    await scheduleMemberFollowUps({ leadId, convertedAt });
+  }
   return NextResponse.json({ lead: updated });
 }

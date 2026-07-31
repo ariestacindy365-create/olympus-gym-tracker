@@ -261,6 +261,8 @@ model Lead {
 enum FollowUpType {
   H1
   H3
+  H7
+  H21
 }
 
 enum FollowUpStatus {
@@ -269,10 +271,12 @@ enum FollowUpStatus {
   MISSED
 }
 
-// Auto-generated (H1 = trialMarkedAt+1, H3 = trialMarkedAt+3) the moment a
-// lead's status is set to TRIAL. dueDate uses the same local-midnight
-// convention as DailyWorkout.workoutDate so "due today" is a plain equality
-// check.
+// Auto-generated from two events: H1/H3 (trialMarkedAt+1/+3) the moment a
+// lead's status is set to TRIAL, and H7/H21 (convertedAt+7/+21) the moment
+// it's set to MEMBER — a check-in + Google review ask at one week, and a
+// check-in + membership-expiring reminder at three weeks. dueDate uses the
+// same local-midnight convention as DailyWorkout.workoutDate so "due today"
+// is a plain equality check.
 model FollowUp {
   id            String         @id @default(cuid())
   leadId        String
