@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
 import { STATUS_LABEL, STATUS_TONE } from "@/lib/leadStatusLabels";
@@ -32,21 +31,36 @@ export function LeadListView({ leads }: { leads: LeadRow[] }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="flex flex-col gap-2">
         <Input
           type="text"
           placeholder="🔍 Cari nama atau nomor WA..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <Select value={status} onChange={(e) => setStatus(e.target.value)} className="sm:max-w-[180px]">
-          <option value="ALL">Semua Status</option>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => setStatus("ALL")}
+            className={`rounded-md px-3 py-1.5 text-xs font-medium ${
+              status === "ALL" ? "bg-accent text-background" : "bg-surface-2 text-muted"
+            }`}
+          >
+            Semua ({leads.length})
+          </button>
           {Object.entries(STATUS_LABEL).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
+            <button
+              key={value}
+              type="button"
+              onClick={() => setStatus(value)}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium ${
+                status === value ? "bg-accent text-background" : "bg-surface-2 text-muted"
+              }`}
+            >
+              {label} ({leads.filter((l) => l.status === value).length})
+            </button>
           ))}
-        </Select>
+        </div>
       </div>
 
       <div className="flex flex-col gap-2">
