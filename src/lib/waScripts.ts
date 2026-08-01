@@ -16,8 +16,7 @@ export function waOpeningMessage(name: string): string {
 // trialMarkedAt. H7/H21 = post-conversion check-ins, timed off convertedAt:
 // H+7 asks how it's going and asks for a Google review; H+21 (3 weeks) asks
 // how it's going and gives a heads-up their membership is about to run out.
-// CUSTOM = admin-scheduled for an arbitrary date the lead asked for — no
-// fixed script since the reason varies, just a neutral opener to edit.
+// CUSTOM = admin-scheduled for an arbitrary date the lead asked for.
 export function waFollowUpMessage(name: string, type: "H1" | "H3" | "H7" | "H21" | "CUSTOM"): string {
   switch (type) {
     case "H1":
@@ -34,6 +33,6 @@ export function waFollowUpMessage(name: string, type: "H1" | "H3" | "H7" | "H21"
     case "H21":
       return `Halo Kak ${name}, gimana kabar latihannya? Mau info aja nih, membership Kakak bakal segera berakhir — kalau mau lanjut, kabari kami ya biar dibantu perpanjang.`;
     case "CUSTOM":
-      return `Halo Kak ${name}, mau follow up lagi nih sesuai yang kita janjikan kemarin.`;
+      return `Halo kak ${name}, gimana kak terkait rencana latihannya kemarin\n\nJadi buat cobain workoutnya bareng kita kak?`;
   }
 }
