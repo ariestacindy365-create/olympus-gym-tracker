@@ -71,7 +71,7 @@ export default async function LeadsDashboardPage() {
                     </WhatsAppLink>
                   </div>
                 </div>
-                <FollowUpActions followUpId={fu.id} type={fu.type} />
+                <FollowUpActions followUpId={fu.id} leadStatus={fu.lead.status} />
               </li>
             ))}
           </ul>

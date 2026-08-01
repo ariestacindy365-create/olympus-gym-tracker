@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/Input";
 
 type Outcome = "CONVERTED" | "STILL_FOLLOWING" | "LOST" | "FOLLOWED_UP";
 
-// H1/H3 are trial check-ins — the outcome decides whether the lead converts.
-// H7/H21 happen after someone is already a MEMBER, so there's nothing to
-// convert/lose here; completing them just records that the admin followed up.
-export function FollowUpActions({ followUpId, type }: { followUpId: string; type: "H1" | "H3" | "H7" | "H21" }) {
+// Decided by the lead's *current* status, not the follow-up's type — a
+// CUSTOM (manually scheduled) follow-up can land at any stage, and even
+// H7/H21 should fall back to conversion outcomes if the lead somehow isn't
+// MEMBER/RETENSI yet. Once already a member, there's nothing to convert;
+// completing just records that the admin followed up.
+export function FollowUpActions({ followUpId, leadStatus }: { followUpId: string; leadStatus: string }) {
   const router = useRouter();
   const [note, setNote] = useState("");
   const [pending, setPending] = useState<Outcome | null>(null);
@@ -38,7 +40,7 @@ export function FollowUpActions({ followUpId, type }: { followUpId: string; type
     }
   }
 
-  const isPostConversion = type === "H7" || type === "H21";
+  const isPostConversion = leadStatus === "MEMBER" || leadStatus === "RETENSI";
 
   return (
     <div className="mt-2 flex flex-col gap-2">

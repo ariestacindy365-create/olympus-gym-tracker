@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { LeadStatusActions } from "@/components/leads/LeadStatusActions";
 import { LeadHeader } from "@/components/leads/LeadHeader";
 import { FollowUpActions } from "@/components/leads/FollowUpActions";
+import { ScheduleFollowUpForm } from "@/components/leads/ScheduleFollowUpForm";
 import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
 import {
   STATUS_LABEL,
@@ -86,6 +87,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
 
       {isAdmin && !isDeleted && <LeadStatusActions leadId={lead.id} status={lead.status} />}
 
+      {isAdmin && !isDeleted && <ScheduleFollowUpForm leadId={lead.id} />}
+
       <Card>
         <h2 className="mb-3 font-display text-lg font-semibold">Follow Up</h2>
         {lead.followUps.length === 0 ? (
@@ -104,7 +107,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
                   </Badge>
                 </div>
                 {fu.status === "PENDING" && isAdmin && !isDeleted && (
-                  <FollowUpActions followUpId={fu.id} type={fu.type} />
+                  <FollowUpActions followUpId={fu.id} leadStatus={lead.status} />
                 )}
                 {fu.status === "DONE" && (
                   <p className="mt-1 text-xs text-muted">

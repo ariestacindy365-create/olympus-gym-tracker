@@ -263,6 +263,9 @@ enum FollowUpType {
   H3
   H7
   H21
+  // Admin-scheduled for an arbitrary date — e.g. the lead asked to be
+  // followed up again next week/month. See /api/leads/[leadId]/followups.
+  CUSTOM
 }
 
 enum FollowUpStatus {

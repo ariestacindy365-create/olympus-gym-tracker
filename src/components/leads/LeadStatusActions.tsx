@@ -18,7 +18,10 @@ const NEXT_ACTIONS: Record<LeadStatus, { label: string; status: LeadStatus; vari
   ],
   MEMBER: [{ label: "Tandai Retensi", status: "RETENSI", variant: "secondary" }],
   RETENSI: [],
-  LOST: [],
+  // A "Tidak Lanjut" lead who DMs again later (e.g. after ghosting a follow
+  // up) goes back to DM — that's what puts the normal DM opening-message
+  // automation back in play for them.
+  LOST: [{ label: "Aktifkan Lagi", status: "DM", variant: "secondary" }],
 };
 
 export function LeadStatusActions({ leadId, status }: { leadId: string; status: LeadStatus }) {

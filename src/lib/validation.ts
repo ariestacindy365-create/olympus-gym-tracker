@@ -139,6 +139,11 @@ export const completeFollowUpSchema = z.object({
   note: z.string().trim().max(280).optional(),
 });
 
+export const createFollowUpSchema = z.object({
+  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Tanggal tidak valid." }),
+  note: z.string().trim().max(280).optional(),
+});
+
 export const updateTargetSchema = z.object({
   targetCapture: z.number().int().min(0).max(200),
   targetFollowup: z.number().int().min(0).max(200),
