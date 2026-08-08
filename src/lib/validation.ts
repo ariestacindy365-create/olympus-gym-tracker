@@ -94,6 +94,7 @@ export const programSlotSchema = z.object({
   repTarget: z.string().trim().max(40).optional(),
   targetWeight: z.number().positive().max(2000).optional(),
   note: z.string().trim().max(280).optional(),
+  roundScheme: z.string().trim().max(60).optional(),
 });
 
 export const programDaySchema = z.object({

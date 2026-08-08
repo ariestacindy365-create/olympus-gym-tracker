@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { type MovementOption } from "@/components/coach/MovementCombobox";
 import { type SlotState } from "@/components/coach/SortableSlotRow";
+import { ProgramDaySlide } from "@/components/coach/ProgramDaySlide";
 
 interface DayState {
   dayLabel: string;
@@ -48,6 +49,7 @@ function buildProgramText(weekNumber: number, days: DayState[], movementById: Ma
 // pasting into WhatsApp), rather than the input-heavy editable table.
 export function ProgramWeekPreview({ weekNumber, days, movements, onEdit }: ProgramWeekPreviewProps) {
   const [copied, setCopied] = useState(false);
+  const [slideDay, setSlideDay] = useState<number | null>(null);
   const movementById = new Map(movements.map((m) => [m.id, m]));
 
   async function handleCopy() {
@@ -85,10 +87,21 @@ export function ProgramWeekPreview({ weekNumber, days, movements, onEdit }: Prog
           const slots = day.slots.filter((s) => s.movementId);
           return (
             <div key={dayIndex}>
-              <p className="font-display text-base font-bold uppercase tracking-wide text-accent">
-                {day.dayLabel || "(tanpa nama)"}
-                {day.focusLabel && <span className="text-foreground"> &mdash; {day.focusLabel}</span>}
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-display text-base font-bold uppercase tracking-wide text-accent">
+                  {day.dayLabel || "(tanpa nama)"}
+                  {day.focusLabel && <span className="text-foreground"> &mdash; {day.focusLabel}</span>}
+                </p>
+                {slots.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSlideDay(slideDay === dayIndex ? null : dayIndex)}
+                    className="shrink-0 text-xs font-semibold text-accent hover:underline"
+                  >
+                    {slideDay === dayIndex ? "Tutup slide" : "🖼️ Buat Slide"}
+                  </button>
+                )}
+              </div>
               <div className="mt-2 flex flex-col gap-1">
                 {slots.length === 0 && <p className="text-sm text-muted">Belum ada gerakan.</p>}
                 {slots.map((slot, slotIndex) => {
@@ -105,6 +118,16 @@ export function ProgramWeekPreview({ weekNumber, days, movements, onEdit }: Prog
                   );
                 })}
               </div>
+              {slideDay === dayIndex && (
+                <div className="mt-3">
+                  <ProgramDaySlide
+                    dayLabel={day.dayLabel}
+                    focusLabel={day.focusLabel}
+                    slots={day.slots}
+                    movements={movements}
+                  />
+                </div>
+              )}
             </div>
           );
         })}

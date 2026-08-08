@@ -30,14 +30,14 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 // src pre-converted to a data: URI, Safari's SVG-foreignObject rasterizer
 // has separately been seen to just skip <img> elements when flattening the
 // captured node to a canvas. So after toPng() produces the card, stamp the
-// already-loaded logo image on top ourselves with plain canvas drawImage —
+// already-loaded image(s) on top ourselves with plain canvas drawImage —
 // that draw call never goes through foreignObject, so it can't hit the same
-// bug. If html-to-image DID render the logo, this just redraws it in the
-// same spot with no visible difference.
-export async function compositeLogoOntoDataUrl(
+// bug. If html-to-image DID render them, this just redraws them in the same
+// spot with no visible difference.
+export async function compositeImagesOntoDataUrl(
   cardDataUrl: string,
   cardEl: HTMLElement,
-  logoEl: HTMLImageElement
+  imageEls: HTMLImageElement[]
 ): Promise<string> {
   const cardImg = await loadImage(cardDataUrl);
   const canvas = document.createElement("canvas");
@@ -48,16 +48,27 @@ export async function compositeLogoOntoDataUrl(
   ctx.drawImage(cardImg, 0, 0);
 
   const cardRect = cardEl.getBoundingClientRect();
-  const logoRect = logoEl.getBoundingClientRect();
   if (cardRect.width === 0 || cardRect.height === 0) return cardDataUrl;
-
   const scaleX = canvas.width / cardRect.width;
   const scaleY = canvas.height / cardRect.height;
-  const x = (logoRect.left - cardRect.left) * scaleX;
-  const y = (logoRect.top - cardRect.top) * scaleY;
-  const w = logoRect.width * scaleX;
-  const h = logoRect.height * scaleY;
-  ctx.drawImage(logoEl, x, y, w, h);
+
+  for (const imgEl of imageEls) {
+    const rect = imgEl.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) continue;
+    const x = (rect.left - cardRect.left) * scaleX;
+    const y = (rect.top - cardRect.top) * scaleY;
+    const w = rect.width * scaleX;
+    const h = rect.height * scaleY;
+    ctx.drawImage(imgEl, x, y, w, h);
+  }
 
   return canvas.toDataURL("image/png");
+}
+
+export async function compositeLogoOntoDataUrl(
+  cardDataUrl: string,
+  cardEl: HTMLElement,
+  logoEl: HTMLImageElement
+): Promise<string> {
+  return compositeImagesOntoDataUrl(cardDataUrl, cardEl, [logoEl]);
 }

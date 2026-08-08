@@ -47,6 +47,7 @@ function mapDays(
       repTarget: string | null;
       targetWeight: number | null;
       note: string | null;
+      roundScheme: string | null;
     }[];
   }[]
 ) {
@@ -61,6 +62,7 @@ function mapDays(
       repTarget: s.repTarget ?? "",
       targetWeight: s.targetWeight != null ? String(s.targetWeight) : "",
       note: s.note ?? "",
+      roundScheme: s.roundScheme ?? "",
     })),
   }));
 }

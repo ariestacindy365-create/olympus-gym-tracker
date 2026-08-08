@@ -202,6 +202,11 @@ model ProgramSlot {
   repTarget    String?
   targetWeight Float?
   note         String?
+  // Shared training scheme for the round this slot belongs to (e.g. "E3MOM",
+  // "Team of 2", "AMRAP") — a round is every slot whose slotLabel shares the
+  // same leading letter ("A1"/"A2" = one round). Only meaningful on the
+  // round's first slot; only that value is read when rendering.
+  roundScheme  String?
   order        Int
 
   @@index([dayId])

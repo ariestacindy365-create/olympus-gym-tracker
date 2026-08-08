@@ -12,12 +12,15 @@ export interface SlotState {
   repTarget: string;
   targetWeight: string;
   note: string;
+  roundScheme: string;
 }
 
 interface SortableSlotRowProps {
   slot: SlotState;
   striped: boolean;
   movements: MovementOption[];
+  /** True for the first slot in its round (e.g. "A1") — only that slot's roundScheme is read when rendering a slide. */
+  isRoundStart: boolean;
   onChange: (patch: Partial<SlotState>) => void;
   onRemove: () => void;
   onMovementCreated: (movement: MovementOption) => void;
@@ -31,6 +34,7 @@ export function SortableSlotRow({
   slot,
   striped,
   movements,
+  isRoundStart,
   onChange,
   onRemove,
   onMovementCreated,
@@ -58,12 +62,22 @@ export function SortableSlotRow({
           >
             ⠿
           </button>
-          <input
-            placeholder="-"
-            value={slot.slotLabel}
-            onChange={(e) => onChange({ slotLabel: e.target.value })}
-            className={cellInputClass("font-semibold text-muted")}
-          />
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <input
+              placeholder="-"
+              value={slot.slotLabel}
+              onChange={(e) => onChange({ slotLabel: e.target.value })}
+              className={cellInputClass("font-semibold text-muted")}
+            />
+            {isRoundStart && (
+              <input
+                placeholder="Skema (E3MOM, dst)"
+                value={slot.roundScheme}
+                onChange={(e) => onChange({ roundScheme: e.target.value })}
+                className={cellInputClass("text-xs")}
+              />
+            )}
+          </div>
         </div>
       </td>
       <td className="border-b border-border px-2 py-1 align-top">

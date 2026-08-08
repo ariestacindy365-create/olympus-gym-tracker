@@ -50,6 +50,7 @@ export async function PUT(
             repTarget: s.repTarget ?? null,
             targetWeight: s.targetWeight ?? null,
             note: s.note ?? null,
+            roundScheme: s.roundScheme ?? null,
             order: j,
           })),
         });

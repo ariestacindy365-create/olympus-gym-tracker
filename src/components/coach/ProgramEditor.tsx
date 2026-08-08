@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { type MovementOption } from "@/components/coach/MovementCombobox";
 import { SortableSlotRow, type SlotState } from "@/components/coach/SortableSlotRow";
 import { ProgramWeekPreview } from "@/components/coach/ProgramWeekPreview";
+import { slotRoundKey } from "@/lib/programRounds";
 
 interface DayState {
   dayLabel: string;
@@ -66,6 +67,7 @@ function emptySlot(): SlotState {
     repTarget: "",
     targetWeight: "",
     note: "",
+    roundScheme: "",
   };
 }
 
@@ -197,6 +199,7 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
             repTarget: s.repTarget.trim() || undefined,
             targetWeight: s.targetWeight ? Number(s.targetWeight) : undefined,
             note: s.note.trim() || undefined,
+            roundScheme: s.roundScheme.trim() || undefined,
           })),
       })),
     };
@@ -221,6 +224,7 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
         repTarget: string | null;
         targetWeight: number | null;
         note: string | null;
+        roundScheme: string | null;
       }
       interface SavedDay {
         dayLabel: string;
@@ -238,6 +242,7 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
           repTarget: s.repTarget ?? "",
           targetWeight: s.targetWeight != null ? String(s.targetWeight) : "",
           note: s.note ?? "",
+          roundScheme: s.roundScheme ?? "",
         })),
       }));
       setWeeks((prev) => ({ ...prev, [activeWeek]: mapped }));
@@ -338,6 +343,10 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
                         slot={slot}
                         striped={slotIndex % 2 === 0}
                         movements={movements}
+                        isRoundStart={
+                          slotIndex === 0 ||
+                          slotRoundKey(slot.slotLabel) !== slotRoundKey(day.slots[slotIndex - 1].slotLabel)
+                        }
                         onChange={(patch) => updateSlot(dayIndex, slotIndex, patch)}
                         onRemove={() => removeSlot(dayIndex, slotIndex)}
                         onMovementCreated={handleMovementCreated}
