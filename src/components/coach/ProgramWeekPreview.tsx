@@ -98,7 +98,7 @@ export function ProgramWeekPreview({ weekNumber, days, movements, onEdit }: Prog
                     onClick={() => setSlideDay(slideDay === dayIndex ? null : dayIndex)}
                     className="shrink-0 text-xs font-semibold text-accent hover:underline"
                   >
-                    {slideDay === dayIndex ? "Tutup slide" : "🖼️ Buat Slide"}
+                    {slideDay === dayIndex ? "Tutup gambar" : "🖼️ Buat Gambar Round"}
                   </button>
                 )}
               </div>
