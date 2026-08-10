@@ -39,8 +39,33 @@ export function ProgramDaySlide({ dayLabel, focusLabel, slots, movements }: Prog
 
   const movementById = new Map(movements.map((m) => [m.id, m]));
   const rounds = groupSlotsIntoRounds(slots.filter((s) => s.movementId));
-  const mid = Math.ceil(rounds.length / 2);
-  const columns = [rounds.slice(0, mid), rounds.slice(mid)];
+
+  // Balance the two columns by content weight (not just round count) — a
+  // plain half-and-half split by count can leave one column much taller
+  // than the other when rounds have uneven exercise counts, which spills
+  // text past the card's fixed bottom edge. Try every split point (rounds
+  // are few, so this is cheap) and keep whichever minimizes the taller side.
+  const weights = rounds.map((r) => 2 + r.slots.length);
+  const prefix = [0];
+  for (const w of weights) prefix.push(prefix[prefix.length - 1] + w);
+  const totalWeight = prefix[prefix.length - 1];
+  let splitIndex = rounds.length;
+  let bestMax = Infinity;
+  for (let i = 1; i <= rounds.length; i++) {
+    const left = prefix[i];
+    const right = totalWeight - left;
+    const columnMax = Math.max(left, right);
+    if (columnMax < bestMax) {
+      bestMax = columnMax;
+      splitIndex = i;
+    }
+  }
+  const columns = [rounds.slice(0, splitIndex), rounds.slice(splitIndex)];
+  const maxColumnWeight = Math.max(bestMax, 1);
+  // Card height is fixed (matches Canva's 1920x1080 import size), so a day
+  // with more rounds/exercises than usual needs smaller text to still fit
+  // rather than spilling past the bottom edge.
+  const scale = Math.max(0.72, Math.min(1, 15 / maxColumnWeight));
 
   async function handleDownload() {
     setError(null);
@@ -72,12 +97,12 @@ export function ProgramDaySlide({ dayLabel, focusLabel, slots, movements }: Prog
     <div className="flex flex-col gap-3">
       <div className="overflow-x-auto rounded-lg border border-border">
         <div ref={cardRef} className="relative bg-white" style={{ width: 960, height: 540, padding: 40 }}>
-          <div className="absolute left-10 top-8 flex flex-col items-start gap-1">
-            <p style={{ fontSize: 12, fontWeight: 700, color: "#111827" }}>Track Progressmu</p>
-            <div className="relative" style={{ border: "2px solid #7c3aed", borderRadius: 6, padding: 6 }}>
+          <div className="absolute left-8 top-6 flex flex-col items-start gap-0.5">
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#111827" }}>Track Progressmu</p>
+            <div className="relative" style={{ border: "2px solid #7c3aed", borderRadius: 6, padding: 5 }}>
               {qrSrc && (
                 // eslint-disable-next-line @next/next/no-img-element -- rendered off-DOM into a downloadable PNG, next/image isn't applicable here
-                <img ref={qrRef} src={qrSrc} alt="QR" style={{ width: 76, height: 76, display: "block" }} />
+                <img ref={qrRef} src={qrSrc} alt="QR" style={{ width: 68, height: 68, display: "block" }} />
               )}
               <div
                 className="absolute"
@@ -93,13 +118,13 @@ export function ProgramDaySlide({ dayLabel, focusLabel, slots, movements }: Prog
             </div>
           </div>
 
-          <div className="absolute right-10 top-8 flex items-center gap-2">
+          <div className="absolute right-8 top-6 flex items-center gap-1.5">
             {logoSrc && (
               // eslint-disable-next-line @next/next/no-img-element -- rendered off-DOM into a downloadable PNG, next/image isn't applicable here
-              <img ref={logoRef} src={logoSrc} alt="OLYMPUS" style={{ height: 22, width: "auto" }} />
+              <img ref={logoRef} src={logoSrc} alt="OLYMPUS" style={{ height: 20, width: "auto" }} />
             )}
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>|</span>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#111827" }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#111827" }}>|</span>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.5, color: "#111827" }}>
               OLAHRAGA JADI SERU
             </span>
           </div>
@@ -107,9 +132,9 @@ export function ProgramDaySlide({ dayLabel, focusLabel, slots, movements }: Prog
           <h1
             className="text-center uppercase"
             style={{
-              marginTop: 90,
+              marginTop: 56,
               fontFamily: "var(--font-display, inherit)",
-              fontSize: 44,
+              fontSize: 42,
               fontWeight: 800,
               color: "#111827",
             }}
@@ -117,29 +142,44 @@ export function ProgramDaySlide({ dayLabel, focusLabel, slots, movements }: Prog
             {focusLabel || dayLabel}
           </h1>
 
-          <div className="grid grid-cols-2" style={{ marginTop: 24, columnGap: 48, rowGap: 20 }}>
+          <div className="grid grid-cols-2" style={{ marginTop: 20, columnGap: 48, rowGap: 14 }}>
             {columns.map((col, colIndex) => (
-              <div key={colIndex} className="flex flex-col" style={{ gap: 18 }}>
+              <div key={colIndex} className="flex flex-col" style={{ gap: 14 * scale }}>
                 {col.map((round, i) => {
-                  const roundNumber = colIndex * mid + i + 1;
+                  const roundNumber = (colIndex === 0 ? 0 : splitIndex) + i + 1;
                   const schemeLine =
                     round.scheme && round.sets
                       ? `${round.scheme} (${round.sets} set)`
                       : round.scheme || (round.sets ? `${round.sets} set` : "");
                   return (
                     <div key={roundNumber}>
-                      <p style={{ fontSize: 20, fontWeight: 800, color: "#111827", margin: 0 }}>
+                      <p style={{ fontSize: 20 * scale, fontWeight: 800, color: "#111827", margin: 0 }}>
                         Round {roundNumber}
                       </p>
                       {schemeLine && (
-                        <p style={{ fontSize: 14, fontWeight: 700, color: "#111827", margin: "2px 0 6px" }}>
+                        <p
+                          style={{
+                            fontSize: 14 * scale,
+                            fontWeight: 700,
+                            color: "#111827",
+                            margin: `${2 * scale}px 0 ${4 * scale}px`,
+                          }}
+                        >
                           {schemeLine}
                         </p>
                       )}
                       {round.slots.map((slot, si) => {
                         const name = movementById.get(slot.movementId)?.name ?? "";
                         return (
-                          <p key={si} style={{ fontSize: 15, fontWeight: 700, color: "#111827", margin: "1px 0" }}>
+                          <p
+                            key={si}
+                            style={{
+                              fontSize: 15 * scale,
+                              fontWeight: 700,
+                              color: "#111827",
+                              margin: `${1 * scale}px 0`,
+                            }}
+                          >
                             {slot.slotLabel ? `${slot.slotLabel}. ` : ""}
                             {name}
                             {slot.repTarget ? ` ${slot.repTarget} reps` : ""}

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { type MovementOption } from "@/components/coach/MovementCombobox";
 import { SortableSlotRow, type SlotState } from "@/components/coach/SortableSlotRow";
 import { ProgramWeekPreview } from "@/components/coach/ProgramWeekPreview";
-import { slotRoundKey } from "@/lib/programRounds";
+import { computeRoundStarts } from "@/lib/programRounds";
 
 interface DayState {
   dayLabel: string;
@@ -308,7 +308,9 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
                   <th className="w-8 px-2 py-2" />
                 </tr>
               </thead>
-              {days.map((day, dayIndex) => (
+              {days.map((day, dayIndex) => {
+                const roundStarts = computeRoundStarts(day.slots.map((s) => s.slotLabel));
+                return (
                 <tbody key={dayIndex}>
                   <tr>
                     <td colSpan={7} className="p-0" style={{ background: DAY_COLORS[dayIndex % DAY_COLORS.length] }}>
@@ -343,10 +345,7 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
                         slot={slot}
                         striped={slotIndex % 2 === 0}
                         movements={movements}
-                        isRoundStart={
-                          slotIndex === 0 ||
-                          slotRoundKey(slot.slotLabel) !== slotRoundKey(day.slots[slotIndex - 1].slotLabel)
-                        }
+                        isRoundStart={roundStarts[slotIndex]}
                         onChange={(patch) => updateSlot(dayIndex, slotIndex, patch)}
                         onRemove={() => removeSlot(dayIndex, slotIndex)}
                         onMovementCreated={handleMovementCreated}
@@ -365,7 +364,8 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
                     </td>
                   </tr>
                 </tbody>
-              ))}
+                );
+              })}
             </table>
           </DndContext>
         </div>

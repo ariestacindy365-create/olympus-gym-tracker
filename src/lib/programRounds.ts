@@ -22,18 +22,31 @@ export interface RoundGroup {
   slots: SlotLike[];
 }
 
+// One boolean per slot: true where a new round begins. A blank slotLabel
+// (the continuation rows under something like "FINISHER") doesn't start a
+// new round on its own — it stays part of whichever round came before it.
+export function computeRoundStarts(slotLabels: string[]): boolean[] {
+  const starts: boolean[] = [];
+  let currentKey: string | null = null;
+  slotLabels.forEach((label, i) => {
+    const trimmed = label.trim();
+    const key = trimmed ? slotRoundKey(trimmed) : currentKey;
+    starts.push(i === 0 || key !== currentKey);
+    currentKey = key;
+  });
+  return starts;
+}
+
 // Groups consecutive slots into rounds. Scheme/sets come from the round's
 // first slot only — that's the one slot the editor shows those inputs on.
 export function groupSlotsIntoRounds<T extends SlotLike>(slots: T[]): { scheme: string; sets: string; slots: T[] }[] {
+  const starts = computeRoundStarts(slots.map((s) => s.slotLabel));
   const groups: { scheme: string; sets: string; slots: T[] }[] = [];
-  let currentKey: string | null = null;
-  for (const slot of slots) {
-    const key = slotRoundKey(slot.slotLabel);
-    if (key !== currentKey || groups.length === 0) {
+  slots.forEach((slot, i) => {
+    if (starts[i]) {
       groups.push({ scheme: slot.roundScheme, sets: slot.sets, slots: [] });
-      currentKey = key;
     }
     groups[groups.length - 1].slots.push(slot);
-  }
+  });
   return groups;
 }
