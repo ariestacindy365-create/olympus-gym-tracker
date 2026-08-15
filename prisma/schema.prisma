@@ -38,6 +38,7 @@ model User {
   bodyMetrics          BodyMetric[]
   dailyWorkoutsCreated DailyWorkout[]      @relation("CoachDailyWorkouts")
   programsAsCoach      TrainingProgram[]   @relation("CoachPrograms")
+  programSnapshots     ProgramSnapshot[]   @relation("CoachProgramSnapshots")
   achievementUnlocks   AchievementUnlock[]
 
   // CRM (lead capture / follow-up) — used by ADMIN and OWNER roles only.
@@ -210,6 +211,23 @@ model ProgramSlot {
   order        Int
 
   @@index([dayId])
+}
+
+// Immutable snapshot of a week's full program, recorded automatically every
+// time a coach saves Minggu 1-4 — since the live TrainingProgram/ProgramDay
+// rows are fully deleted and recreated on each save, this is the only record
+// of what a program looked like on a past date. Movement names are baked
+// into `data` (denormalized) so old snapshots stay readable even if a
+// Movement is later renamed or removed.
+model ProgramSnapshot {
+  id         String   @id @default(cuid())
+  weekNumber Int
+  coachId    String
+  coach      User     @relation("CoachProgramSnapshots", fields: [coachId], references: [id])
+  data       Json
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 // --- CRM: WA lead capture & follow-up (ADMIN/OWNER only) -------------------

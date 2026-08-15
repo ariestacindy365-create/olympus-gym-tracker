@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { ProgramEditor } from "@/components/coach/ProgramEditor";
 
@@ -25,9 +26,17 @@ export default async function CoachProgramsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="font-display text-2xl font-bold">Program Latihan</h1>
-        <p className="text-sm text-muted">Program bootcamp class mingguan, berlaku untuk semua member.</p>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h1 className="font-display text-2xl font-bold">Program Latihan</h1>
+          <p className="text-sm text-muted">Program bootcamp class mingguan, berlaku untuk semua member.</p>
+        </div>
+        <Link
+          href="/coach/programs/riwayat"
+          className="shrink-0 whitespace-nowrap text-sm font-semibold text-accent hover:underline"
+        >
+          📅 Riwayat
+        </Link>
       </div>
 
       <ProgramEditor movements={movements} initialWeeks={initialWeeks} />

@@ -57,11 +57,38 @@ export async function PUT(
       }
     }
 
-    return tx.programDay.findMany({
+    const savedDays = await tx.programDay.findMany({
       where: { programId: program.id },
       orderBy: { order: "asc" },
       include: { slots: { orderBy: { order: "asc" }, include: { movement: true } } },
     });
+
+    // Movement names are baked in now — the live rows only keep movementId,
+    // so without this the snapshot would go stale if a movement is later
+    // renamed or deleted.
+    await tx.programSnapshot.create({
+      data: {
+        weekNumber,
+        coachId: coach.id,
+        data: {
+          days: savedDays.map((d) => ({
+            dayLabel: d.dayLabel,
+            focusLabel: d.focusLabel,
+            slots: d.slots.map((s) => ({
+              slotLabel: s.slotLabel,
+              movementName: s.movement.name,
+              sets: s.sets,
+              repTarget: s.repTarget,
+              targetWeight: s.targetWeight,
+              note: s.note,
+              roundScheme: s.roundScheme,
+            })),
+          })),
+        },
+      },
+    });
+
+    return savedDays;
   });
 
   return NextResponse.json({ days });
