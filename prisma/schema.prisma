@@ -216,9 +216,11 @@ model ProgramSlot {
 // Immutable snapshot of a week's full program, recorded automatically every
 // time a coach saves Minggu 1-4 — since the live TrainingProgram/ProgramDay
 // rows are fully deleted and recreated on each save, this is the only record
-// of what a program looked like on a past date. Movement names are baked
-// into `data` (denormalized) so old snapshots stay readable even if a
-// Movement is later renamed or removed.
+// of what a program looked like at a past point in time. Movement names are
+// baked into `data` (denormalized) so old snapshots stay readable even if a
+// Movement is later renamed or removed. Kept as an edit-history audit trail,
+// separate from ProgramRotation below (which powers the "what applies on
+// date X" calendar).
 model ProgramSnapshot {
   id         String   @id @default(cuid())
   weekNumber Int
@@ -228,6 +230,18 @@ model ProgramSnapshot {
   createdAt  DateTime @default(now())
 
   @@index([createdAt])
+}
+
+// Anchors the Minggu 1-4 rotation to real calendar weeks so the history
+// calendar can compute which week (1-4) applies to any date — e.g. "the
+// week starting 17 Aug 2026 is Minggu 2" — cycling forever from that one
+// point (not based on when a coach happens to edit/save a week). Singleton:
+// always exactly one row, id fixed to "singleton".
+model ProgramRotation {
+  id               String   @id @default("singleton")
+  anchorMonday     DateTime
+  anchorWeekNumber Int
+  updatedAt        DateTime @updatedAt
 }
 
 // --- CRM: WA lead capture & follow-up (ADMIN/OWNER only) -------------------

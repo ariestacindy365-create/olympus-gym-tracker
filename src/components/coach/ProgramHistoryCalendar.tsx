@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
-interface SnapshotSlot {
+interface DaySlot {
   slotLabel: string | null;
   movementName: string;
   sets: number | null;
@@ -13,24 +15,22 @@ interface SnapshotSlot {
   roundScheme: string | null;
 }
 
-interface SnapshotDay {
-  dayLabel: string;
-  focusLabel: string | null;
-  slots: SnapshotSlot[];
+interface DayEntry {
+  date: string; // YYYY-MM-DD
+  weekNumber: number;
+  day: { dayLabel: string; focusLabel: string | null; slots: DaySlot[] } | null;
 }
 
-export interface Snapshot {
-  id: string;
-  weekNumber: number;
-  createdAt: string;
-  coach: { name: string };
-  data: { days: SnapshotDay[] };
+interface Rotation {
+  anchorMonday: string;
+  anchorWeekNumber: number;
 }
 
 interface ProgramHistoryCalendarProps {
   initialYear: number;
   initialMonth: number; // 0-11
-  initialSnapshots: Snapshot[];
+  initialDays: DayEntry[];
+  initialRotation: Rotation;
 }
 
 const MONTH_NAMES = [
@@ -49,32 +49,24 @@ const MONTH_NAMES = [
 ];
 const WEEKDAY_NAMES = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
 
-function dateKey(year: number, month: number, day: number): string {
-  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
-
-function snapshotDateKey(iso: string): string {
-  const d = new Date(iso);
-  return dateKey(d.getFullYear(), d.getMonth(), d.getDate());
-}
-
-export function ProgramHistoryCalendar({ initialYear, initialMonth, initialSnapshots }: ProgramHistoryCalendarProps) {
+export function ProgramHistoryCalendar({
+  initialYear,
+  initialMonth,
+  initialDays,
+  initialRotation,
+}: ProgramHistoryCalendarProps) {
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
-  const [snapshots, setSnapshots] = useState(initialSnapshots);
+  const [days, setDays] = useState(initialDays);
+  const [rotation, setRotation] = useState(initialRotation);
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showRotationForm, setShowRotationForm] = useState(false);
+  const [rotationDate, setRotationDate] = useState("");
+  const [rotationWeek, setRotationWeek] = useState("1");
+  const [rotationSaving, setRotationSaving] = useState(false);
 
-  const snapshotsByDate = useMemo(() => {
-    const map = new Map<string, Snapshot[]>();
-    for (const s of snapshots) {
-      const key = snapshotDateKey(s.createdAt);
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(s);
-    }
-    return map;
-  }, [snapshots]);
+  const daysByDate = useMemo(() => new Map(days.map((d) => [d.date, d])), [days]);
 
   const cells = useMemo(() => {
     const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7; // Monday = 0
@@ -82,15 +74,29 @@ export function ProgramHistoryCalendar({ initialYear, initialMonth, initialSnaps
     const total = Math.ceil((firstWeekday + daysInMonth) / 7) * 7;
     const result: { day: number | null; key: string | null }[] = [];
     for (let i = 0; i < total; i++) {
-      const day = i - firstWeekday + 1;
-      if (day < 1 || day > daysInMonth) {
+      const dayNum = i - firstWeekday + 1;
+      if (dayNum < 1 || dayNum > daysInMonth) {
         result.push({ day: null, key: null });
       } else {
-        result.push({ day, key: dateKey(year, month, day) });
+        result.push({ day: dayNum, key: `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}` });
       }
     }
     return result;
   }, [year, month]);
+
+  async function loadMonth(newYear: number, newMonth: number) {
+    setLoading(true);
+    setSelectedDate(null);
+    const monthParam = `${newYear}-${String(newMonth + 1).padStart(2, "0")}`;
+    try {
+      const res = await fetch(`/api/coach/programs/riwayat?month=${monthParam}`);
+      const json = await res.json();
+      setDays(json.days ?? []);
+      if (json.rotation) setRotation(json.rotation);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   function goToMonth(delta: number) {
     let newMonth = month + delta;
@@ -104,17 +110,28 @@ export function ProgramHistoryCalendar({ initialYear, initialMonth, initialSnaps
     }
     setMonth(newMonth);
     setYear(newYear);
-    setSelectedDate(null);
-    setExpandedId(null);
-    setLoading(true);
-    const monthParam = `${newYear}-${String(newMonth + 1).padStart(2, "0")}`;
-    fetch(`/api/coach/programs/riwayat?month=${monthParam}`)
-      .then((r) => r.json())
-      .then((json) => setSnapshots(json.snapshots ?? []))
-      .finally(() => setLoading(false));
+    void loadMonth(newYear, newMonth);
   }
 
-  const selectedSnapshots = selectedDate ? (snapshotsByDate.get(selectedDate) ?? []) : [];
+  async function saveRotation() {
+    if (!rotationDate) return;
+    setRotationSaving(true);
+    try {
+      const res = await fetch("/api/coach/programs/rotation", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: rotationDate, weekNumber: Number(rotationWeek) }),
+      });
+      if (res.ok) {
+        setShowRotationForm(false);
+        await loadMonth(year, month);
+      }
+    } finally {
+      setRotationSaving(false);
+    }
+  }
+
+  const selectedEntry = selectedDate ? daysByDate.get(selectedDate) : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -149,20 +166,17 @@ export function ProgramHistoryCalendar({ initialYear, initialMonth, initialSnaps
         <div className={`grid grid-cols-7 gap-1 ${loading ? "opacity-50" : ""}`}>
           {cells.map((cell, i) => {
             if (cell.day === null) return <div key={i} />;
-            const entries = snapshotsByDate.get(cell.key!) ?? [];
-            const hasEntries = entries.length > 0;
+            const entry = daysByDate.get(cell.key!);
+            const hasProgram = !!entry?.day;
             const isSelected = selectedDate === cell.key;
             return (
               <button
                 key={i}
                 type="button"
-                disabled={!hasEntries}
-                onClick={() => {
-                  setSelectedDate(cell.key);
-                  setExpandedId(entries.length === 1 ? entries[0].id : null);
-                }}
+                disabled={!hasProgram}
+                onClick={() => setSelectedDate(cell.key)}
                 className={`flex flex-col items-center gap-0.5 rounded-md py-2 text-sm ${
-                  hasEntries
+                  hasProgram
                     ? isSelected
                       ? "bg-accent text-background font-semibold"
                       : "bg-surface-2 font-semibold text-foreground hover:brightness-110"
@@ -170,71 +184,82 @@ export function ProgramHistoryCalendar({ initialYear, initialMonth, initialSnaps
                 }`}
               >
                 <span>{cell.day}</span>
-                {hasEntries && (
-                  <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-background" : "bg-accent"}`} />
-                )}
+                {entry && <span className="text-[10px] leading-none opacity-70">M{entry.weekNumber}</span>}
               </button>
             );
           })}
         </div>
       </Card>
 
-      {selectedDate && (
+      {selectedEntry?.day && (
         <Card className="p-4">
           <p className="mb-3 font-display text-sm font-bold uppercase tracking-wide text-accent">
-            Riwayat {selectedDate.split("-").reverse().join("-")}
+            {selectedDate!.split("-").reverse().join("-")} &mdash; Minggu {selectedEntry.weekNumber} &mdash;{" "}
+            {selectedEntry.day.dayLabel}
+            {selectedEntry.day.focusLabel && <span className="text-foreground"> &mdash; {selectedEntry.day.focusLabel}</span>}
           </p>
-          <div className="flex flex-col gap-3">
-            {selectedSnapshots.map((snap) => (
-              <div key={snap.id} className="rounded-md border border-border">
-                <button
-                  type="button"
-                  onClick={() => setExpandedId(expandedId === snap.id ? null : snap.id)}
-                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-semibold hover:bg-surface-2"
-                >
-                  <span>
-                    Minggu {snap.weekNumber} &mdash; disimpan{" "}
-                    {new Date(snap.createdAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}{" "}
-                    oleh {snap.coach.name}
-                  </span>
-                  <span className="text-muted">{expandedId === snap.id ? "▲" : "▼"}</span>
-                </button>
-                {expandedId === snap.id && (
-                  <div className="flex flex-col gap-3 border-t border-border p-3">
-                    {snap.data.days.map((day, di) => (
-                      <div key={di}>
-                        <p className="text-sm font-bold uppercase text-foreground">
-                          {day.dayLabel}
-                          {day.focusLabel && <span className="font-normal"> &mdash; {day.focusLabel}</span>}
-                        </p>
-                        <div className="mt-1 flex flex-col gap-0.5">
-                          {day.slots.length === 0 && <p className="text-sm text-muted">(belum ada gerakan)</p>}
-                          {day.slots.map((slot, si) => {
-                            const setsReps = [slot.sets, slot.repTarget].filter(Boolean).join("x");
-                            return (
-                              <p key={si} className="text-sm">
-                                {slot.slotLabel && <span className="font-semibold">{slot.slotLabel}. </span>}
-                                <span>{slot.movementName}</span>
-                                {setsReps && <span className="text-muted"> &mdash; {setsReps}</span>}
-                                {slot.targetWeight != null && <span className="text-muted"> @{slot.targetWeight}kg</span>}
-                                {slot.note && <span className="italic text-muted"> ({slot.note})</span>}
-                              </p>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+          <div className="flex flex-col gap-0.5">
+            {selectedEntry.day.slots.length === 0 && <p className="text-sm text-muted">(belum ada gerakan)</p>}
+            {selectedEntry.day.slots.map((slot, si) => {
+              const setsReps = [slot.sets, slot.repTarget].filter(Boolean).join("x");
+              return (
+                <p key={si} className="text-sm">
+                  {slot.slotLabel && <span className="font-semibold">{slot.slotLabel}. </span>}
+                  <span>{slot.movementName}</span>
+                  {setsReps && <span className="text-muted"> &mdash; {setsReps}</span>}
+                  {slot.targetWeight != null && <span className="text-muted"> @{slot.targetWeight}kg</span>}
+                  {slot.note && <span className="italic text-muted"> ({slot.note})</span>}
+                </p>
+              );
+            })}
           </div>
         </Card>
       )}
 
       {!selectedDate && (
-        <p className="text-sm text-muted">Klik tanggal yang ada titiknya untuk lihat program yang disimpan hari itu.</p>
+        <p className="text-sm text-muted">
+          Klik tanggal yang ada tulisannya untuk lihat program di hari itu. Angka kecil di bawah tanggal (mis. &quot;M2&quot;)
+          menunjukkan Minggu ke berapa yang berlaku.
+        </p>
       )}
+
+      <Card className="p-4">
+        <button
+          type="button"
+          onClick={() => setShowRotationForm(!showRotationForm)}
+          className="text-xs font-semibold text-muted hover:text-accent hover:underline"
+        >
+          {showRotationForm ? "Tutup" : "⚙️ Rotasinya meleset? Atur ulang di sini"}
+        </button>
+        {showRotationForm && (
+          <div className="mt-3 flex flex-wrap items-end gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">Tanggal</label>
+              <Input type="date" value={rotationDate} onChange={(e) => setRotationDate(e.target.value)} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">Minggu ke</label>
+              <select
+                value={rotationWeek}
+                onChange={(e) => setRotationWeek(e.target.value)}
+                className="rounded-md border border-border bg-surface-2 px-3 py-2.5 text-sm text-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              >
+                <option value="1">Minggu 1</option>
+                <option value="2">Minggu 2</option>
+                <option value="3">Minggu 3</option>
+                <option value="4">Minggu 4</option>
+              </select>
+            </div>
+            <Button onClick={saveRotation} disabled={!rotationDate || rotationSaving} className="px-4">
+              {rotationSaving ? "Menyimpan..." : "Simpan"}
+            </Button>
+          </div>
+        )}
+        <p className="mt-2 text-xs text-muted">
+          Sekarang: minggu yang dimulai {new Date(rotation.anchorMonday).toLocaleDateString("id-ID")} dianggap Minggu{" "}
+          {rotation.anchorWeekNumber}, lalu berputar otomatis 1→2→3→4 tiap minggu.
+        </p>
+      </Card>
     </div>
   );
 }
