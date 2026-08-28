@@ -1,13 +1,17 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { LeadStatusActions } from "@/components/leads/LeadStatusActions";
 import { LeadHeader } from "@/components/leads/LeadHeader";
 import { FollowUpActions } from "@/components/leads/FollowUpActions";
 import { ScheduleFollowUpForm } from "@/components/leads/ScheduleFollowUpForm";
+import { RecordPaymentForm } from "@/components/leads/RecordPaymentForm";
 import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
+import { formatRupiah, PAYMENT_METHOD_LABEL } from "@/lib/packages";
 import {
   STATUS_LABEL,
   STATUS_TONE,
@@ -32,11 +36,16 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
         orderBy: { dueDate: "asc" },
         include: { completedBy: { select: { name: true } } },
       },
+      payments: {
+        orderBy: { paidAt: "desc" },
+        include: { createdBy: { select: { name: true } } },
+      },
     },
   });
 
   if (!lead) notFound();
   const isDeleted = lead.deletedAt !== null;
+  const isPayingMember = lead.status === "MEMBER" || lead.status === "RETENSI";
 
   // Pick the most relevant script for the main WhatsApp button: whichever
   // follow-up is still pending, otherwise the DM opening line if we haven't
@@ -88,6 +97,35 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
       {isAdmin && !isDeleted && <LeadStatusActions leadId={lead.id} status={lead.status} />}
 
       {isAdmin && !isDeleted && <ScheduleFollowUpForm leadId={lead.id} />}
+
+      {isAdmin && !isDeleted && isPayingMember && <RecordPaymentForm leadId={lead.id} />}
+
+      {lead.payments.length > 0 && (
+        <Card>
+          <h2 className="mb-3 font-display text-lg font-semibold">Riwayat Pembayaran</h2>
+          <ul className="flex flex-col gap-3">
+            {lead.payments.map((payment) => (
+              <li
+                key={payment.id}
+                className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3 last:border-0 last:pb-0"
+              >
+                <div>
+                  <p className="text-sm font-medium">{payment.packageName}</p>
+                  <p className="text-xs text-muted">
+                    {formatRupiah(payment.amount)} · {PAYMENT_METHOD_LABEL[payment.paymentMethod] ?? payment.paymentMethod} ·{" "}
+                    {payment.paidAt.toLocaleDateString("id-ID")} · oleh {payment.createdBy.name}
+                  </p>
+                </div>
+                <Link href={`/leads/${lead.id}/receipt/${payment.id}`}>
+                  <Button variant="secondary" className="px-3 py-1.5 text-xs">
+                    Cetak Struk
+                  </Button>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       <Card>
         <h2 className="mb-3 font-display text-lg font-semibold">Follow Up</h2>

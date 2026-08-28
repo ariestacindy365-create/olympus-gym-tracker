@@ -145,6 +145,14 @@ export const createFollowUpSchema = z.object({
   note: z.string().trim().max(280).optional(),
 });
 
+export const createPaymentSchema = z.object({
+  packageName: z.string().trim().min(1, { error: "Isi nama paket." }).max(80),
+  amount: z.number().int().positive({ error: "Nominal harus lebih dari 0." }).max(100_000_000),
+  paymentMethod: z.enum(["QRIS", "TRANSFER", "KARTU_KREDIT", "DEBIT", "FITQUARTER"]),
+  paidAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Tanggal tidak valid." }).optional(),
+  note: z.string().trim().max(280).optional(),
+});
+
 export const updateTargetSchema = z.object({
   targetCapture: z.number().int().min(0).max(200),
   targetFollowup: z.number().int().min(0).max(200),

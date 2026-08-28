@@ -1,0 +1,128 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { Button } from "@/components/ui/Button";
+import { PACKAGE_PRESETS, PAYMENT_METHOD_LABEL } from "@/lib/packages";
+
+const CUSTOM_PACKAGE = "__CUSTOM__";
+
+function todayInputValue(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+export function RecordPaymentForm({ leadId }: { leadId: string }) {
+  const router = useRouter();
+  const [preset, setPreset] = useState(PACKAGE_PRESETS[0].name);
+  const [customName, setCustomName] = useState("");
+  const [amount, setAmount] = useState(String(PACKAGE_PRESETS[0].price));
+  const [paymentMethod, setPaymentMethod] = useState("TRANSFER");
+  const [paidAt, setPaidAt] = useState(todayInputValue());
+  const [note, setNote] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function handlePresetChange(value: string) {
+    setPreset(value);
+    if (value !== CUSTOM_PACKAGE) {
+      const match = PACKAGE_PRESETS.find((p) => p.name === value);
+      if (match) setAmount(String(match.price));
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+
+    const packageName = preset === CUSTOM_PACKAGE ? customName.trim() : preset;
+    const amountNum = Number(amount);
+    if (!packageName) {
+      setError("Isi nama paket.");
+      return;
+    }
+    if (!amountNum || amountNum <= 0) {
+      setError("Isi nominal yang valid.");
+      return;
+    }
+
+    setPending(true);
+    try {
+      const res = await fetch(`/api/leads/${leadId}/payments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ packageName, amount: amountNum, paymentMethod, paidAt, note: note || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Gagal menyimpan pembayaran.");
+        return;
+      }
+      router.push(`/leads/${leadId}/receipt/${data.payment.id}`);
+    } catch {
+      setError("Terjadi kesalahan. Coba lagi.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <Card>
+      <h3 className="mb-1 font-display text-base font-semibold">Catat Pembayaran / Perpanjangan</h3>
+      <p className="mb-3 text-xs text-muted">Setelah disimpan, struknya bisa langsung dicetak.</p>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+        <Select value={preset} onChange={(e) => handlePresetChange(e.target.value)}>
+          {PACKAGE_PRESETS.map((p) => (
+            <option key={p.name} value={p.name}>
+              {p.name} — Rp {p.price.toLocaleString("id-ID")}
+            </option>
+          ))}
+          <option value={CUSTOM_PACKAGE}>Paket lain...</option>
+        </Select>
+        {preset === CUSTOM_PACKAGE && (
+          <Input
+            placeholder="Nama paket"
+            value={customName}
+            onChange={(e) => setCustomName(e.target.value)}
+            required
+          />
+        )}
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <label className="mb-1 block text-xs text-muted">Nominal (Rp)</label>
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              required
+            />
+          </div>
+          <div className="flex-1">
+            <label className="mb-1 block text-xs text-muted">Tanggal Bayar</label>
+            <Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} required />
+          </div>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-muted">Metode Pembayaran</label>
+          <Select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+            {Object.entries(PAYMENT_METHOD_LABEL).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <Input placeholder="Catatan (opsional, mis. diskon promo)" value={note} onChange={(e) => setNote(e.target.value)} />
+        {error && <p className="text-sm text-danger">{error}</p>}
+        <Button type="submit" disabled={pending} className="w-full sm:w-auto">
+          {pending ? "Menyimpan..." : "Simpan & Cetak Struk"}
+        </Button>
+      </form>
+    </Card>
+  );
+}

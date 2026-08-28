@@ -25,7 +25,7 @@ export function NavBar({ links, userName }: NavBarProps) {
   }
 
   return (
-    <header className="sticky top-0 z-10 border-b border-white/10 bg-nav-bg">
+    <header className="sticky top-0 z-10 border-b border-white/10 bg-nav-bg print:hidden">
       <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3">
         <div className="flex items-center gap-6">
           <OlympusLogo height={28} variant="light" />

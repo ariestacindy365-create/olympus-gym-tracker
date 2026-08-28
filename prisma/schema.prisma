@@ -46,6 +46,7 @@ model User {
   completedFollowUps FollowUp[] @relation("CompletedFollowUps")
   deletedLeads       Lead[]     @relation("DeletedLeads")
   target             Target?    @relation("AdminTarget")
+  paymentsRecorded   Payment[]  @relation("PaymentsRecorded")
 }
 
 // Achievement definitions live in code (src/lib/achievements.ts), not the
@@ -288,6 +289,7 @@ model Lead {
   updatedAt          DateTime   @updatedAt
 
   followUps FollowUp[]
+  payments  Payment[]
 
   @@index([capturedAt])
   @@index([status])
@@ -344,4 +346,31 @@ model Target {
   targetCapture  Int      @default(5)
   targetFollowup Int      @default(10)
   updatedAt      DateTime @updatedAt
+}
+
+enum PaymentMethod {
+  QRIS
+  TRANSFER
+  KARTU_KREDIT
+  DEBIT
+  FITQUARTER
+}
+
+// A payment an admin records for a member — initial or renewal — printable
+// as a receipt at /leads/[leadId]/receipt/[paymentId]. amount is in whole
+// Rupiah (no decimals).
+model Payment {
+  id            String        @id @default(cuid())
+  leadId        String
+  lead          Lead          @relation(fields: [leadId], references: [id])
+  packageName   String
+  amount        Int
+  paymentMethod PaymentMethod @default(TRANSFER)
+  paidAt        DateTime      @default(now())
+  note          String?
+  createdById   String
+  createdBy     User          @relation("PaymentsRecorded", fields: [createdById], references: [id])
+  createdAt     DateTime      @default(now())
+
+  @@index([leadId])
 }
