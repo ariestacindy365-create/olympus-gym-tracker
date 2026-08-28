@@ -158,6 +158,17 @@ export const updateTargetSchema = z.object({
   targetFollowup: z.number().int().min(0).max(200),
 });
 
+export const createPackageSchema = z.object({
+  name: z.string().trim().min(1, { error: "Isi nama paket." }).max(80),
+  price: z.number().int().positive({ error: "Harga harus lebih dari 0." }).max(100_000_000),
+});
+
+export const updatePackageSchema = z.object({
+  name: z.string().trim().min(1, { error: "Isi nama paket." }).max(80).optional(),
+  price: z.number().int().positive({ error: "Harga harus lebih dari 0." }).max(100_000_000).optional(),
+  isActive: z.boolean().optional(),
+});
+
 export const createMovementSchema = z.object({
   name: z.string().trim().min(2, { error: "Nama gerakan minimal 2 karakter." }).max(120),
   primaryMuscle: z.string().trim().min(1, { error: "Isi otot primer." }).max(60),

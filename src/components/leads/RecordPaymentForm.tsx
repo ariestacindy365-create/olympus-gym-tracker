@@ -6,20 +6,25 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
-import { PACKAGE_PRESETS, PAYMENT_METHOD_LABEL } from "@/lib/packages";
+import { PAYMENT_METHOD_LABEL } from "@/lib/packages";
 
 const CUSTOM_PACKAGE = "__CUSTOM__";
+
+export interface PackageOption {
+  name: string;
+  price: number;
+}
 
 function todayInputValue(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function RecordPaymentForm({ leadId }: { leadId: string }) {
+export function RecordPaymentForm({ leadId, packages }: { leadId: string; packages: PackageOption[] }) {
   const router = useRouter();
-  const [preset, setPreset] = useState(PACKAGE_PRESETS[0].name);
+  const [preset, setPreset] = useState(packages[0]?.name ?? CUSTOM_PACKAGE);
   const [customName, setCustomName] = useState("");
-  const [amount, setAmount] = useState(String(PACKAGE_PRESETS[0].price));
+  const [amount, setAmount] = useState(String(packages[0]?.price ?? ""));
   const [paymentMethod, setPaymentMethod] = useState("TRANSFER");
   const [paidAt, setPaidAt] = useState(todayInputValue());
   const [note, setNote] = useState("");
@@ -29,7 +34,7 @@ export function RecordPaymentForm({ leadId }: { leadId: string }) {
   function handlePresetChange(value: string) {
     setPreset(value);
     if (value !== CUSTOM_PACKAGE) {
-      const match = PACKAGE_PRESETS.find((p) => p.name === value);
+      const match = packages.find((p) => p.name === value);
       if (match) setAmount(String(match.price));
     }
   }
@@ -75,7 +80,7 @@ export function RecordPaymentForm({ leadId }: { leadId: string }) {
       <p className="mb-3 text-xs text-muted">Setelah disimpan, struknya bisa langsung dicetak.</p>
       <form onSubmit={handleSubmit} className="flex flex-col gap-2">
         <Select value={preset} onChange={(e) => handlePresetChange(e.target.value)}>
-          {PACKAGE_PRESETS.map((p) => (
+          {packages.map((p) => (
             <option key={p.name} value={p.name}>
               {p.name} — Rp {p.price.toLocaleString("id-ID")}
             </option>

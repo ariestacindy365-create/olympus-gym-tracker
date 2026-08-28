@@ -374,3 +374,18 @@ model Payment {
 
   @@index([leadId])
 }
+
+// Master price list, managed by OWNER at /leads/packages. Payment.packageName
+// is a plain string snapshot (not a foreign key here) so editing or
+// deactivating a package never changes what a past receipt shows.
+model Package {
+  id        String   @id @default(cuid())
+  name      String
+  price     Int
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+}

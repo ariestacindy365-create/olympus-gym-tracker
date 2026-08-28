@@ -12,6 +12,7 @@ const OWNER_LINKS = [
   { href: "/leads/owner", label: "Overview" },
   { href: "/leads", label: "Semua Lead" },
   { href: "/leads/history", label: "Riwayat" },
+  { href: "/leads/packages", label: "Daftar Harga" },
   { href: "/leads/account", label: "Akun Saya" },
 ];
 

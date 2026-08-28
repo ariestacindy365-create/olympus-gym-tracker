@@ -27,21 +27,24 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
   const isAdmin = user?.role === "ADMIN";
   const isOwner = user?.role === "OWNER";
 
-  const lead = await prisma.lead.findUnique({
-    where: { id: leadId },
-    include: {
-      capturedBy: { select: { name: true } },
-      deletedBy: { select: { name: true } },
-      followUps: {
-        orderBy: { dueDate: "asc" },
-        include: { completedBy: { select: { name: true } } },
+  const [lead, activePackages] = await Promise.all([
+    prisma.lead.findUnique({
+      where: { id: leadId },
+      include: {
+        capturedBy: { select: { name: true } },
+        deletedBy: { select: { name: true } },
+        followUps: {
+          orderBy: { dueDate: "asc" },
+          include: { completedBy: { select: { name: true } } },
+        },
+        payments: {
+          orderBy: { paidAt: "desc" },
+          include: { createdBy: { select: { name: true } } },
+        },
       },
-      payments: {
-        orderBy: { paidAt: "desc" },
-        include: { createdBy: { select: { name: true } } },
-      },
-    },
-  });
+    }),
+    prisma.package.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
+  ]);
 
   if (!lead) notFound();
   const isDeleted = lead.deletedAt !== null;
@@ -98,7 +101,12 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
 
       {isAdmin && !isDeleted && <ScheduleFollowUpForm leadId={lead.id} />}
 
-      {isAdmin && !isDeleted && isPayingMember && <RecordPaymentForm leadId={lead.id} />}
+      {isAdmin && !isDeleted && isPayingMember && (
+        <RecordPaymentForm
+          leadId={lead.id}
+          packages={activePackages.map((p) => ({ name: p.name, price: p.price }))}
+        />
+      )}
 
       {lead.payments.length > 0 && (
         <Card>
