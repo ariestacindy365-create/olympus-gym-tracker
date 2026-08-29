@@ -195,9 +195,9 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
           .map((s) => ({
             slotLabel: s.slotLabel.trim() || undefined,
             movementId: s.movementId,
-            sets: s.sets ? Number(s.sets) : undefined,
+            sets: Number(s.sets) > 0 ? Number(s.sets) : undefined,
             repTarget: s.repTarget.trim() || undefined,
-            targetWeight: s.targetWeight ? Number(s.targetWeight) : undefined,
+            targetWeight: Number(s.targetWeight) > 0 ? Number(s.targetWeight) : undefined,
             note: s.note.trim() || undefined,
             roundScheme: s.roundScheme.trim() || undefined,
           })),
