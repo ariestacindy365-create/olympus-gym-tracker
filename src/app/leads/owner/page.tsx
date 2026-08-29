@@ -85,7 +85,7 @@ export default async function LeadsOwnerPage() {
 
   const adminStats = await Promise.all(
     admins.map(async (admin) => {
-      const [target, capturesToday, followUpsDoneToday, totalTrial, totalConversion, trialConversionCount] =
+      const [target, capturesToday, followUpsDoneToday, totalTrial, totalConversion, trialConversionCount, missedFollowUps] =
         await Promise.all([
           prisma.target.findUnique({ where: { adminId: admin.id } }),
           prisma.lead.count({
@@ -107,9 +107,18 @@ export default async function LeadsOwnerPage() {
               deletedAt: null,
             },
           }),
+          // Still-pending follow-ups whose due date has already passed —
+          // an accountability signal separate from today's targets.
+          prisma.followUp.count({
+            where: {
+              status: "PENDING",
+              dueDate: { lt: today },
+              lead: { capturedById: admin.id, deletedAt: null },
+            },
+          }),
         ]);
       const conversionRate = totalTrial > 0 ? Math.round((trialConversionCount / totalTrial) * 100) : null;
-      return { admin, target, capturesToday, followUpsDoneToday, totalTrial, totalConversion, conversionRate };
+      return { admin, target, capturesToday, followUpsDoneToday, totalTrial, totalConversion, conversionRate, missedFollowUps };
     })
   );
 
@@ -203,11 +212,12 @@ export default async function LeadsOwnerPage() {
         )}
       </Card>
 
-      {adminStats.map(({ admin, target, capturesToday, followUpsDoneToday, totalTrial, totalConversion, conversionRate }) => (
+      {adminStats.map(
+        ({ admin, target, capturesToday, followUpsDoneToday, totalTrial, totalConversion, conversionRate, missedFollowUps }) => (
         <Card key={admin.id} className="flex flex-col gap-4">
           <h2 className="font-display text-lg font-semibold">{admin.name}</h2>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
             <StatTile
               label="Capture Hari Ini"
               value={`${capturesToday}/${target?.targetCapture ?? 0}`}
@@ -221,6 +231,7 @@ export default async function LeadsOwnerPage() {
             <StatTile label="Total Trial" value={totalTrial} />
             <StatTile label="Total Conversion" value={totalConversion} />
             <StatTile label="Conversion Rate" value={conversionRate != null ? `${conversionRate}%` : "-"} accent />
+            <StatTile label="Follow Up Terlambat" value={missedFollowUps} danger={missedFollowUps > 0} />
           </div>
 
           <TargetEditForm

@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { differenceInCalendarDays } from "date-fns";
 import { getCurrentUser } from "@/lib/auth";
 import { getFollowUpHistory, getDeletedLeads } from "@/lib/leads";
+import { todayDateKey } from "@/lib/workout";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
@@ -24,6 +26,9 @@ export default async function LeadsHistoryPage() {
     getDeletedLeads(adminId),
   ]);
 
+  const today = todayDateKey();
+  const missedCount = dueNow.filter((fu) => fu.dueDate < today).length;
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="font-display text-2xl font-bold">Riwayat Follow Up</h1>
@@ -31,27 +36,34 @@ export default async function LeadsHistoryPage() {
       <Card>
         <h2 className="mb-3 font-display text-lg font-semibold">Belum Follow Up ({dueNow.length})</h2>
         <p className="mb-3 text-xs text-muted">Sudah jatuh tempo (hari ini atau lebih awal), belum ditindaklanjuti.</p>
+        {missedCount > 0 && (
+          <p className="mb-3 text-sm font-medium text-danger">{missedCount} di antaranya sudah terlewat dari hari jatuh temponya.</p>
+        )}
         {dueNow.length === 0 ? (
           <p className="text-sm text-muted">Tidak ada yang menunggu.</p>
         ) : (
           <ul className="flex flex-col gap-3">
-            {dueNow.map((fu) => (
-              <li key={fu.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3 last:border-0 last:pb-0">
-                <div>
-                  <Link href={`/leads/${fu.leadId}`} className="font-medium hover:text-accent">
-                    {fu.lead.name}
-                  </Link>{" "}
-                  <span className="text-xs text-muted">{fu.lead.waNumber} · jatuh tempo {fu.dueDate.toLocaleDateString("id-ID")}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <FollowUpTypeBadge type={fu.type} />
-                  <LeadStatusBadge status={fu.lead.status} />
-                  <WhatsAppLink waNumber={fu.lead.waNumber} message={waFollowUpMessage(fu.lead.name, fu.type)}>
-                    WhatsApp
-                  </WhatsAppLink>
-                </div>
-              </li>
-            ))}
+            {dueNow.map((fu) => {
+              const overdueDays = differenceInCalendarDays(today, fu.dueDate);
+              return (
+                <li key={fu.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3 last:border-0 last:pb-0">
+                  <div>
+                    <Link href={`/leads/${fu.leadId}`} className="font-medium hover:text-accent">
+                      {fu.lead.name}
+                    </Link>{" "}
+                    <span className="text-xs text-muted">{fu.lead.waNumber} · jatuh tempo {fu.dueDate.toLocaleDateString("id-ID")}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {overdueDays > 0 && <Badge tone="danger">Terlambat {overdueDays} hari</Badge>}
+                    <FollowUpTypeBadge type={fu.type} />
+                    <LeadStatusBadge status={fu.lead.status} />
+                    <WhatsAppLink waNumber={fu.lead.waNumber} message={waFollowUpMessage(fu.lead.name, fu.type)}>
+                      WhatsApp
+                    </WhatsAppLink>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </Card>
