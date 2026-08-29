@@ -30,3 +30,23 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/packag
 
   return NextResponse.json({ package: updated });
 }
+
+// Payment.packageName is a plain string snapshot, not a foreign key, so
+// deleting a Package here never touches past receipts — safe to hard-delete
+// rather than just deactivate.
+export async function DELETE(_request: NextRequest, ctx: RouteContext<"/api/packages/[packageId]">) {
+  const owner = await getCurrentUser();
+  if (!owner || owner.role !== Role.OWNER) {
+    return NextResponse.json({ error: "Not authorized." }, { status: 401 });
+  }
+
+  const { packageId } = await ctx.params;
+  const pkg = await prisma.package.findUnique({ where: { id: packageId } });
+  if (!pkg) {
+    return NextResponse.json({ error: "Paket tidak ditemukan." }, { status: 404 });
+  }
+
+  await prisma.package.delete({ where: { id: packageId } });
+
+  return NextResponse.json({ ok: true });
+}

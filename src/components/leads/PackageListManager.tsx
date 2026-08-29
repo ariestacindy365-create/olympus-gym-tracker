@@ -105,6 +105,24 @@ function PackageRowItem({ pkg }: { pkg: PackageRow }) {
     }
   }
 
+  async function handleDelete() {
+    setPending(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/packages/${pkg.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body.error ?? "Gagal menghapus.");
+        return;
+      }
+      router.refresh();
+    } catch {
+      setError("Terjadi kesalahan. Coba lagi.");
+    } finally {
+      setPending(false);
+    }
+  }
+
   if (editing) {
     return (
       <Card className="flex flex-col gap-2">
@@ -151,6 +169,9 @@ function PackageRowItem({ pkg }: { pkg: PackageRow }) {
           onClick={() => patch({ isActive: !pkg.isActive })}
         >
           {pending ? "..." : pkg.isActive ? "Nonaktifkan" : "Aktifkan"}
+        </Button>
+        <Button variant="danger" className="px-3 py-1.5 text-xs" disabled={pending} onClick={handleDelete}>
+          {pending ? "..." : "Hapus"}
         </Button>
       </div>
       {error && <p className="w-full text-sm text-danger">{error}</p>}
