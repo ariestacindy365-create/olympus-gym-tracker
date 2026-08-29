@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { TargetEditForm } from "@/components/leads/TargetEditForm";
 import { ConversionRateChart } from "@/components/leads/ConversionRateChart";
 import { AdminInviteCodeCard } from "@/components/leads/AdminInviteCodeCard";
+import { SendDailyReportButton } from "@/components/leads/SendDailyReportButton";
 import { toWhatsAppLink } from "@/lib/whatsapp";
 import { waWinBackMessage } from "@/lib/waScripts";
 import { formatRupiah, PAYMENT_METHOD_LABEL } from "@/lib/packages";
@@ -124,7 +125,10 @@ export default async function LeadsOwnerPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-display text-2xl font-bold">Overview Admin</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display text-2xl font-bold">Overview Admin</h1>
+        <SendDailyReportButton />
+      </div>
 
       {process.env.ADMIN_INVITE_CODE && <AdminInviteCodeCard code={process.env.ADMIN_INVITE_CODE} />}
 
