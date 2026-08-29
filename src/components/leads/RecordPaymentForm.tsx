@@ -14,6 +14,7 @@ const NEW_MEMBER = "__NEW__";
 export interface PackageOption {
   name: string;
   price: number;
+  durationDays: number | null;
 }
 
 export interface MemberOption {
@@ -43,6 +44,7 @@ export function RecordPaymentForm({
   const [preset, setPreset] = useState(packages[0]?.name ?? CUSTOM_PACKAGE);
   const [customName, setCustomName] = useState("");
   const [amount, setAmount] = useState(String(packages[0]?.price ?? ""));
+  const [durationDays, setDurationDays] = useState(packages[0]?.durationDays ? String(packages[0].durationDays) : "");
   const [paymentMethod, setPaymentMethod] = useState("TRANSFER");
   const [paidAt, setPaidAt] = useState(todayInputValue());
   const [note, setNote] = useState("");
@@ -53,7 +55,10 @@ export function RecordPaymentForm({
     setPreset(value);
     if (value !== CUSTOM_PACKAGE) {
       const match = packages.find((p) => p.name === value);
-      if (match) setAmount(String(match.price));
+      if (match) {
+        setAmount(String(match.price));
+        setDurationDays(match.durationDays ? String(match.durationDays) : "");
+      }
     }
   }
 
@@ -118,10 +123,18 @@ export function RecordPaymentForm({
         targetLeadId = created;
       }
 
+      const durationDaysNum = Number(durationDays);
       const res = await fetch(`/api/leads/${targetLeadId}/payments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packageName, amount: amountNum, paymentMethod, paidAt, note: note || undefined }),
+        body: JSON.stringify({
+          packageName,
+          amount: amountNum,
+          paymentMethod,
+          paidAt,
+          durationDays: durationDaysNum > 0 ? durationDaysNum : undefined,
+          note: note || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -171,6 +184,7 @@ export function RecordPaymentForm({
           {packages.map((p) => (
             <option key={p.name} value={p.name}>
               {p.name} — Rp {p.price.toLocaleString("id-ID")}
+              {p.durationDays ? ` (${p.durationDays} hari)` : ""}
             </option>
           ))}
           <option value={CUSTOM_PACKAGE}>Paket lain...</option>
@@ -199,6 +213,20 @@ export function RecordPaymentForm({
             <label className="mb-1 block text-xs text-muted">Tanggal Bayar</label>
             <Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} required />
           </div>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-muted">Durasi (hari, opsional)</label>
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            placeholder="mis. 30"
+            value={durationDays}
+            onChange={(e) => setDurationDays(e.target.value)}
+          />
+          <p className="mt-1 text-xs text-muted">
+            Diisi otomatis dari paket. Kosongkan kalau tidak tahu — reminder perpanjangan tidak akan dijadwalkan.
+          </p>
         </div>
         <div>
           <label className="mb-1 block text-xs text-muted">Metode Pembayaran</label>

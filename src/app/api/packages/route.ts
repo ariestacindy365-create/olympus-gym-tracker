@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
     data: {
       name: parsed.data.name,
       price: parsed.data.price,
+      durationDays: parsed.data.durationDays,
       sortOrder: (maxSortOrder._max.sortOrder ?? -1) + 1,
     },
   });

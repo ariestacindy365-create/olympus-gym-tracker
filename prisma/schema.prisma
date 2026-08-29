@@ -367,6 +367,15 @@ model Payment {
   amount        Int
   paymentMethod PaymentMethod @default(TRANSFER)
   paidAt        DateTime      @default(now())
+  // Snapshot of the package's duration at time of payment (like packageName/
+  // amount) — null when the package's duration wasn't known (e.g. a custom
+  // package typed in free-form). Drives expiresAt below and the renewal
+  // reminder; a later edit to Package.durationDays never changes past receipts.
+  durationDays  Int?
+  // paidAt + durationDays, computed once at creation. Null when durationDays
+  // is null. Used to schedule an accurate renewal-reminder follow-up instead
+  // of a fixed offset from the member's original conversion date.
+  expiresAt     DateTime?
   note          String?
   createdById   String
   createdBy     User          @relation("PaymentsRecorded", fields: [createdById], references: [id])
@@ -379,13 +388,17 @@ model Payment {
 // is a plain string snapshot (not a foreign key here) so editing or
 // deactivating a package never changes what a past receipt shows.
 model Package {
-  id        String   @id @default(cuid())
-  name      String
-  price     Int
-  isActive  Boolean  @default(true)
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  name         String
+  price        Int
+  // How long this package lasts once paid for — drives Payment.expiresAt and
+  // the renewal-reminder follow-up. Optional: some packages (or ad-hoc ones
+  // typed at payment time) may not have a fixed duration.
+  durationDays Int?
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@index([isActive])
 }

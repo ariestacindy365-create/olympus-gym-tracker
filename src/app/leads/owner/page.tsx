@@ -10,6 +10,7 @@ import { ConversionRateChart } from "@/components/leads/ConversionRateChart";
 import { AdminInviteCodeCard } from "@/components/leads/AdminInviteCodeCard";
 import { toWhatsAppLink } from "@/lib/whatsapp";
 import { waWinBackMessage } from "@/lib/waScripts";
+import { formatRupiah, PAYMENT_METHOD_LABEL } from "@/lib/packages";
 import { Role } from "@/generated/prisma/client";
 
 export default async function LeadsOwnerPage() {
@@ -42,6 +43,45 @@ export default async function LeadsOwnerPage() {
     where: { deletedAt: null, trialMarkedAt: { gte: chartRangeStart } },
     select: { trialMarkedAt: true, convertedAt: true },
   });
+
+  // Retention rate: of everyone who ever became a member, how many are
+  // still active vs. flagged "Tidak Perpanjang". Simple and always
+  // available — doesn't depend on package duration being tracked.
+  const [activeMemberCount, churnedCount] = await Promise.all([
+    prisma.lead.count({ where: { status: { in: ["MEMBER", "RETENSI"] }, deletedAt: null } }),
+    prisma.lead.count({ where: { status: "LOST", convertedAt: { not: null }, deletedAt: null } }),
+  ]);
+  const retentionRate =
+    activeMemberCount + churnedCount > 0
+      ? Math.round((activeMemberCount / (activeMemberCount + churnedCount)) * 100)
+      : null;
+
+  // Revenue reporting — all from Payment, no new tracking needed.
+  const monthStart = startOfMonth(today);
+  const [revenueThisMonth, revenueAllTime, paymentsThisMonth] = await Promise.all([
+    prisma.payment.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart } } }),
+    prisma.payment.aggregate({ _sum: { amount: true } }),
+    prisma.payment.findMany({
+      where: { paidAt: { gte: monthStart } },
+      select: { amount: true, packageName: true, paymentMethod: true },
+    }),
+  ]);
+
+  const revenueByPackage = new Map<string, { count: number; total: number }>();
+  const revenueByMethod = new Map<string, { count: number; total: number }>();
+  for (const p of paymentsThisMonth) {
+    const pkg = revenueByPackage.get(p.packageName) ?? { count: 0, total: 0 };
+    pkg.count += 1;
+    pkg.total += p.amount;
+    revenueByPackage.set(p.packageName, pkg);
+
+    const method = revenueByMethod.get(p.paymentMethod) ?? { count: 0, total: 0 };
+    method.count += 1;
+    method.total += p.amount;
+    revenueByMethod.set(p.paymentMethod, method);
+  }
+  const topPackagesThisMonth = [...revenueByPackage.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 5);
+  const byMethodThisMonth = [...revenueByMethod.entries()].sort((a, b) => b[1].total - a[1].total);
 
   const adminStats = await Promise.all(
     admins.map(async (admin) => {
@@ -85,6 +125,47 @@ export default async function LeadsOwnerPage() {
           convertedAt: e.convertedAt?.toISOString() ?? null,
         }))}
       />
+
+      <Card className="flex flex-col gap-4">
+        <h2 className="font-display text-lg font-semibold">Pendapatan</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <StatTile label="Bulan Ini" value={formatRupiah(revenueThisMonth._sum.amount ?? 0)} accent />
+          <StatTile label="Sepanjang Waktu" value={formatRupiah(revenueAllTime._sum.amount ?? 0)} />
+          <StatTile label="Retention Rate" value={retentionRate != null ? `${retentionRate}%` : "-"} accent />
+        </div>
+        {paymentsThisMonth.length === 0 ? (
+          <p className="text-sm text-muted">Belum ada pembayaran bulan ini.</p>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Paket Terlaris Bulan Ini</p>
+              <ul className="flex flex-col gap-1.5">
+                {topPackagesThisMonth.map(([name, stat]) => (
+                  <li key={name} className="flex items-center justify-between text-sm">
+                    <span>
+                      {name} <span className="text-xs text-muted">×{stat.count}</span>
+                    </span>
+                    <span className="font-medium">{formatRupiah(stat.total)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Metode Bayar Bulan Ini</p>
+              <ul className="flex flex-col gap-1.5">
+                {byMethodThisMonth.map(([method, stat]) => (
+                  <li key={method} className="flex items-center justify-between text-sm">
+                    <span>
+                      {PAYMENT_METHOD_LABEL[method] ?? method} <span className="text-xs text-muted">×{stat.count}</span>
+                    </span>
+                    <span className="font-medium">{formatRupiah(stat.total)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+      </Card>
 
       <Card className="flex flex-col gap-3">
         <div>

@@ -24,26 +24,38 @@ export async function scheduleTrialFollowUps(params: { leadId: string; trialMark
   });
 }
 
-// H+7 / H+21 due dates measured from the moment a lead became a member,
-// same local-midnight convention as followUpDueDates above.
-export function memberFollowUpDueDates(convertedAt: Date): { h7: Date; h21: Date } {
+// H+7 due date measured from the moment a lead became a member, same
+// local-midnight convention as followUpDueDates above. The membership-
+// expiring reminder used to live here too (a fixed H+21), but that's now
+// scheduled per-payment against the package's real duration — see
+// scheduleRenewalReminder below.
+export function memberFollowUpDueDates(convertedAt: Date): { h7: Date } {
   const base = new Date(convertedAt.getFullYear(), convertedAt.getMonth(), convertedAt.getDate());
-  return { h7: addDays(base, 7), h21: addDays(base, 21) };
+  return { h7: addDays(base, 7) };
 }
 
-// Creates the two post-conversion follow-ups (H+7 check-in + Google review
-// ask, H+21 check-in + membership-expiring reminder) the moment a lead is
-// first marked MEMBER — regardless of whether they came via TRIAL or a
-// direct DM->MEMBER signup.
+// Creates the post-conversion check-in + Google review ask the moment a
+// lead is first marked MEMBER — regardless of whether they came via TRIAL
+// or a direct DM->MEMBER signup.
 export async function scheduleMemberFollowUps(params: { leadId: string; convertedAt: Date }) {
   const { leadId, convertedAt } = params;
-  const { h7, h21 } = memberFollowUpDueDates(convertedAt);
-  await prisma.followUp.createMany({
-    data: [
-      { leadId, type: "H7", dueDate: h7 },
-      { leadId, type: "H21", dueDate: h21 },
-    ],
-  });
+  const { h7 } = memberFollowUpDueDates(convertedAt);
+  await prisma.followUp.create({ data: { leadId, type: "H7", dueDate: h7 } });
+}
+
+// Reminder fires a week before the package actually runs out, using the
+// duration snapshotted on the payment — accurate per package length instead
+// of a fixed 21 days from the original conversion. Called every time a
+// payment with a known expiresAt is recorded (initial or renewal); any
+// still-pending reminder from an earlier payment is cleared first so a
+// renewal doesn't leave a stale, now-wrong reminder sitting around.
+export async function scheduleRenewalReminder(params: { leadId: string; expiresAt: Date }) {
+  const { leadId, expiresAt } = params;
+  const base = new Date(expiresAt.getFullYear(), expiresAt.getMonth(), expiresAt.getDate());
+  const dueDate = addDays(base, -7);
+
+  await prisma.followUp.deleteMany({ where: { leadId, type: "H21", status: "PENDING" } });
+  await prisma.followUp.create({ data: { leadId, type: "H21", dueDate } });
 }
 
 export async function getTodayDueFollowUps(adminId?: string) {

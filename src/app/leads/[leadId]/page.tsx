@@ -10,6 +10,7 @@ import { LeadHeader } from "@/components/leads/LeadHeader";
 import { FollowUpActions } from "@/components/leads/FollowUpActions";
 import { ScheduleFollowUpForm } from "@/components/leads/ScheduleFollowUpForm";
 import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
+import { LeadTimeline, type TimelineEvent } from "@/components/leads/LeadTimeline";
 import { formatRupiah, PAYMENT_METHOD_LABEL } from "@/lib/packages";
 import {
   STATUS_LABEL,
@@ -56,6 +57,29 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
       ? waOpeningMessage(lead.name)
       : undefined;
 
+  const timelineEvents: TimelineEvent[] = [
+    { date: lead.capturedAt.toISOString(), label: "Lead di-capture", detail: `oleh ${lead.capturedBy.name}` },
+    ...(lead.trialMarkedAt
+      ? [{ date: lead.trialMarkedAt.toISOString(), label: "Ditandai Trial" }]
+      : []),
+    ...(lead.convertedAt ? [{ date: lead.convertedAt.toISOString(), label: "Jadi Member" }] : []),
+    ...lead.payments.map((p) => ({
+      date: p.paidAt.toISOString(),
+      label: `Pembayaran: ${p.packageName}`,
+      detail: `${formatRupiah(p.amount)} oleh ${p.createdBy.name}`,
+    })),
+    ...lead.followUps
+      .filter((fu) => fu.status === "DONE" && fu.completedAt)
+      .map((fu) => ({
+        date: fu.completedAt!.toISOString(),
+        label: `Follow up ${FOLLOWUP_TYPE_LABEL[fu.type] ?? fu.type} selesai`,
+        detail: [fu.completedBy?.name && `oleh ${fu.completedBy.name}`, fu.note].filter(Boolean).join(" · ") || undefined,
+      })),
+    ...(lead.deletedAt
+      ? [{ date: lead.deletedAt.toISOString(), label: "Lead dihapus", detail: `oleh ${lead.deletedBy?.name}` }]
+      : []),
+  ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
   return (
     <div className="flex flex-col gap-6">
       {!isDeleted && (isAdmin || isOwner) ? (
@@ -93,6 +117,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
         )}
       </Card>
 
+      <LeadTimeline events={timelineEvents} />
+
       {isAdmin && !isDeleted && <LeadStatusActions leadId={lead.id} status={lead.status} />}
 
       {isAdmin && !isDeleted && <ScheduleFollowUpForm leadId={lead.id} />}
@@ -124,6 +150,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
                       {formatRupiah(payment.amount)} ·{" "}
                       {PAYMENT_METHOD_LABEL[payment.paymentMethod] ?? payment.paymentMethod} ·{" "}
                       {payment.paidAt.toLocaleDateString("id-ID")} · oleh {payment.createdBy.name}
+                      {payment.expiresAt && ` · berlaku sampai ${payment.expiresAt.toLocaleDateString("id-ID")}`}
                     </p>
                   </div>
                   <Link href={`/leads/${lead.id}/receipt/${payment.id}`}>

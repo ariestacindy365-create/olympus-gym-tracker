@@ -12,6 +12,7 @@ export interface PackageRow {
   id: string;
   name: string;
   price: number;
+  durationDays: number | null;
   isActive: boolean;
 }
 
@@ -19,6 +20,7 @@ function AddPackageForm() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [durationDays, setDurationDays] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,12 +32,17 @@ function AddPackageForm() {
       setError("Isi nama paket dan harga yang valid.");
       return;
     }
+    const durationDaysNum = Number(durationDays);
     setPending(true);
     try {
       const res = await fetch("/api/packages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), price: priceNum }),
+        body: JSON.stringify({
+          name: name.trim(),
+          price: priceNum,
+          durationDays: durationDaysNum > 0 ? durationDaysNum : undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -44,6 +51,7 @@ function AddPackageForm() {
       }
       setName("");
       setPrice("");
+      setDurationDays("");
       router.refresh();
     } catch {
       setError("Terjadi kesalahan. Coba lagi.");
@@ -65,6 +73,14 @@ function AddPackageForm() {
           onChange={(e) => setPrice(e.target.value)}
           className="sm:max-w-[180px]"
         />
+        <Input
+          type="number"
+          inputMode="numeric"
+          placeholder="Durasi (hari)"
+          value={durationDays}
+          onChange={(e) => setDurationDays(e.target.value)}
+          className="sm:max-w-[140px]"
+        />
         <Button type="submit" disabled={pending} className="whitespace-nowrap">
           {pending ? "..." : "+ Tambah"}
         </Button>
@@ -79,6 +95,7 @@ function PackageRowItem({ pkg }: { pkg: PackageRow }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(pkg.name);
   const [price, setPrice] = useState(String(pkg.price));
+  const [durationDays, setDurationDays] = useState(pkg.durationDays ? String(pkg.durationDays) : "");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -134,12 +151,26 @@ function PackageRowItem({ pkg }: { pkg: PackageRow }) {
           onChange={(e) => setPrice(e.target.value)}
           placeholder="Harga (Rp)"
         />
+        <Input
+          type="number"
+          inputMode="numeric"
+          value={durationDays}
+          onChange={(e) => setDurationDays(e.target.value)}
+          placeholder="Durasi (hari, opsional)"
+        />
         {error && <p className="text-sm text-danger">{error}</p>}
         <div className="flex gap-2">
           <Button
             className="px-3 py-1.5 text-xs"
             disabled={pending}
-            onClick={() => patch({ name: name.trim(), price: Number(price) })}
+            onClick={() => {
+              const durationDaysNum = Number(durationDays);
+              patch({
+                name: name.trim(),
+                price: Number(price),
+                durationDays: durationDaysNum > 0 ? durationDaysNum : null,
+              });
+            }}
           >
             {pending ? "..." : "Simpan"}
           </Button>
@@ -155,7 +186,10 @@ function PackageRowItem({ pkg }: { pkg: PackageRow }) {
     <Card className="flex flex-wrap items-center justify-between gap-3">
       <div>
         <p className={`font-medium ${!pkg.isActive ? "text-muted line-through" : ""}`}>{pkg.name}</p>
-        <p className="text-sm text-muted">{formatRupiah(pkg.price)}</p>
+        <p className="text-sm text-muted">
+          {formatRupiah(pkg.price)}
+          {pkg.durationDays ? ` · ${pkg.durationDays} hari` : ""}
+        </p>
       </div>
       <div className="flex items-center gap-2">
         <Badge tone={pkg.isActive ? "success" : "muted"}>{pkg.isActive ? "Aktif" : "Nonaktif"}</Badge>

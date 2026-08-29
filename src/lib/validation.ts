@@ -150,6 +150,7 @@ export const createPaymentSchema = z.object({
   amount: z.number().int().positive({ error: "Nominal harus lebih dari 0." }).max(100_000_000),
   paymentMethod: z.enum(["QRIS", "TRANSFER", "KARTU_KREDIT", "DEBIT", "FITQUARTER"]),
   paidAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Tanggal tidak valid." }).optional(),
+  durationDays: z.number().int().positive({ error: "Durasi harus lebih dari 0." }).max(3650).optional(),
   note: z.string().trim().max(280).optional(),
 });
 
@@ -161,11 +162,13 @@ export const updateTargetSchema = z.object({
 export const createPackageSchema = z.object({
   name: z.string().trim().min(1, { error: "Isi nama paket." }).max(80),
   price: z.number().int().positive({ error: "Harga harus lebih dari 0." }).max(100_000_000),
+  durationDays: z.number().int().positive({ error: "Durasi harus lebih dari 0." }).max(3650).optional(),
 });
 
 export const updatePackageSchema = z.object({
   name: z.string().trim().min(1, { error: "Isi nama paket." }).max(80).optional(),
   price: z.number().int().positive({ error: "Harga harus lebih dari 0." }).max(100_000_000).optional(),
+  durationDays: z.number().int().positive({ error: "Durasi harus lebih dari 0." }).max(3650).nullable().optional(),
   isActive: z.boolean().optional(),
 });
 

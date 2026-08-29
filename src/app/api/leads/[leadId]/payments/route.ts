@@ -1,9 +1,11 @@
+import { addDays } from "date-fns";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createPaymentSchema } from "@/lib/validation";
 import { dateKeyFromString } from "@/lib/workout";
+import { scheduleRenewalReminder } from "@/lib/leads";
 import { Role } from "@/generated/prisma/client";
 
 // Records a payment (initial or renewal) for a member so it can be printed
@@ -26,17 +28,27 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/leads/[
     return NextResponse.json({ error: "Lead tidak ditemukan." }, { status: 404 });
   }
 
+  const paidAt = parsed.data.paidAt ? dateKeyFromString(parsed.data.paidAt) : new Date();
+  const durationDays = parsed.data.durationDays;
+  const expiresAt = durationDays ? addDays(paidAt, durationDays) : null;
+
   const payment = await prisma.payment.create({
     data: {
       leadId,
       packageName: parsed.data.packageName,
       amount: parsed.data.amount,
       paymentMethod: parsed.data.paymentMethod,
-      paidAt: parsed.data.paidAt ? dateKeyFromString(parsed.data.paidAt) : new Date(),
+      paidAt,
+      durationDays,
+      expiresAt,
       note: parsed.data.note,
       createdById: admin.id,
     },
   });
+
+  if (expiresAt) {
+    await scheduleRenewalReminder({ leadId, expiresAt });
+  }
 
   return NextResponse.json({ payment });
 }

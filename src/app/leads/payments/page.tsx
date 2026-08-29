@@ -40,7 +40,7 @@ export default async function PaymentsPage({
       {isAdmin && (
         <RecordPaymentForm
           members={members}
-          packages={activePackages.map((p) => ({ name: p.name, price: p.price }))}
+          packages={activePackages.map((p) => ({ name: p.name, price: p.price, durationDays: p.durationDays }))}
           initialLeadId={leadId}
         />
       )}
@@ -63,6 +63,7 @@ export default async function PaymentsPage({
                   <p className="text-xs text-muted">
                     {formatRupiah(payment.amount)} · {PAYMENT_METHOD_LABEL[payment.paymentMethod] ?? payment.paymentMethod} ·{" "}
                     {payment.paidAt.toLocaleDateString("id-ID")} · oleh {payment.createdBy.name}
+                    {payment.expiresAt && ` · berlaku sampai ${payment.expiresAt.toLocaleDateString("id-ID")}`}
                   </p>
                 </div>
                 <Link href={`/leads/${payment.leadId}/receipt/${payment.id}`}>

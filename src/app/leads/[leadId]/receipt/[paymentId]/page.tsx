@@ -60,6 +60,14 @@ export default async function ReceiptPage({
                   {PAYMENT_METHOD_LABEL[payment.paymentMethod] ?? payment.paymentMethod}
                 </td>
               </tr>
+              {payment.expiresAt && (
+                <tr>
+                  <td className="py-1 text-muted">Berlaku Sampai</td>
+                  <td className="py-1 text-right font-medium">
+                    {payment.expiresAt.toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" })}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

@@ -20,14 +20,16 @@ export const FOLLOWUP_STATUS_LABEL: Record<string, string> = {
   MISSED: "Terlewat",
 };
 
-// H1/H3 = trial check-ins, H7/H21 = post-conversion check-ins (review ask
-// + membership-expiring reminder), CUSTOM = admin-scheduled for an
-// arbitrary date. See lib/leads.ts for the auto-scheduling.
+// H1/H3 = trial check-ins. H7 = fixed post-conversion check-in + review ask.
+// H21 = renewal reminder — despite the name, its due date is no longer a
+// fixed 21 days; it's scheduled 7 days before the package's real expiry
+// (see scheduleRenewalReminder in lib/leads.ts). CUSTOM = admin-scheduled
+// for an arbitrary date.
 export const FOLLOWUP_TYPE_LABEL: Record<string, string> = {
   H1: "H+1",
   H3: "H+3",
   H7: "H+7",
-  H21: "H+21",
+  H21: "Reminder Perpanjangan",
   CUSTOM: "Manual",
 };
 
