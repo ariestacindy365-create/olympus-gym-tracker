@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { PAYMENT_METHOD_LABEL } from "@/lib/packages";
 
 const CUSTOM_PACKAGE = "__CUSTOM__";
+const NEW_MEMBER = "__NEW__";
 
 export interface PackageOption {
   name: string;
@@ -36,7 +37,9 @@ export function RecordPaymentForm({
   initialLeadId?: string;
 }) {
   const router = useRouter();
-  const [leadId, setLeadId] = useState(initialLeadId ?? members[0]?.id ?? "");
+  const [leadId, setLeadId] = useState(initialLeadId ?? members[0]?.id ?? NEW_MEMBER);
+  const [newName, setNewName] = useState("");
+  const [newWaNumber, setNewWaNumber] = useState("");
   const [preset, setPreset] = useState(packages[0]?.name ?? CUSTOM_PACKAGE);
   const [customName, setCustomName] = useState("");
   const [amount, setAmount] = useState(String(packages[0]?.price ?? ""));
@@ -54,14 +57,47 @@ export function RecordPaymentForm({
     }
   }
 
+  // A walk-in who never went through the DM/lead funnel — create them as a
+  // Lead (straight to MEMBER, same as "Langsung Jadi Member") first, so the
+  // payment/receipt can attach to a real lead like everyone else's.
+  async function createWalkInLead(): Promise<string | null> {
+    const name = newName.trim();
+    const waNumber = newWaNumber.trim();
+    if (!name || !waNumber) {
+      setError("Isi nama dan nomor WA member baru.");
+      return null;
+    }
+
+    const createRes = await fetch("/api/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, waNumber }),
+    });
+    const createData = await createRes.json();
+    if (!createRes.ok) {
+      setError(createData.error ?? "Gagal menambahkan member baru.");
+      return null;
+    }
+
+    const newLeadId = createData.lead.id as string;
+    const statusRes = await fetch(`/api/leads/${newLeadId}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "MEMBER" }),
+    });
+    if (!statusRes.ok) {
+      const statusData = await statusRes.json().catch(() => ({}));
+      setError(statusData.error ?? "Gagal menandai sebagai member.");
+      return null;
+    }
+
+    return newLeadId;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    if (!leadId) {
-      setError("Pilih member.");
-      return;
-    }
     const packageName = preset === CUSTOM_PACKAGE ? customName.trim() : preset;
     const amountNum = Number(amount);
     if (!packageName) {
@@ -75,7 +111,14 @@ export function RecordPaymentForm({
 
     setPending(true);
     try {
-      const res = await fetch(`/api/leads/${leadId}/payments`, {
+      let targetLeadId = leadId;
+      if (leadId === NEW_MEMBER) {
+        const created = await createWalkInLead();
+        if (!created) return;
+        targetLeadId = created;
+      }
+
+      const res = await fetch(`/api/leads/${targetLeadId}/payments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ packageName, amount: amountNum, paymentMethod, paidAt, note: note || undefined }),
@@ -85,21 +128,12 @@ export function RecordPaymentForm({
         setError(data.error ?? "Gagal menyimpan pembayaran.");
         return;
       }
-      router.push(`/leads/${leadId}/receipt/${data.payment.id}`);
+      router.push(`/leads/${targetLeadId}/receipt/${data.payment.id}`);
     } catch {
       setError("Terjadi kesalahan. Coba lagi.");
     } finally {
       setPending(false);
     }
-  }
-
-  if (members.length === 0) {
-    return (
-      <Card>
-        <h2 className="mb-1 font-display text-lg font-semibold">Catat Pembayaran / Perpanjangan</h2>
-        <p className="text-sm text-muted">Belum ada lead berstatus Member atau Retensi.</p>
-      </Card>
-    );
   }
 
   return (
@@ -115,8 +149,24 @@ export function RecordPaymentForm({
                 {m.name} — {m.waNumber}
               </option>
             ))}
+            <option value={NEW_MEMBER}>+ Member Baru (Walk-in / belum pernah tercatat)</option>
           </Select>
         </div>
+        {leadId === NEW_MEMBER && (
+          <div className="flex flex-col gap-2 rounded-md border border-dashed border-border p-3">
+            <p className="text-xs text-muted">
+              Member ini akan otomatis dicatat sebagai lead baru dengan status Member.
+            </p>
+            <Input placeholder="Nama member" value={newName} onChange={(e) => setNewName(e.target.value)} required />
+            <Input
+              type="tel"
+              placeholder="Nomor WA (mis. 081234567890)"
+              value={newWaNumber}
+              onChange={(e) => setNewWaNumber(e.target.value)}
+              required
+            />
+          </div>
+        )}
         <Select value={preset} onChange={(e) => handlePresetChange(e.target.value)}>
           {packages.map((p) => (
             <option key={p.name} value={p.name}>
