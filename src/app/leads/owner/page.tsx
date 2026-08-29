@@ -4,9 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { todayDateKey } from "@/lib/workout";
 import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
+import { Button } from "@/components/ui/Button";
 import { TargetEditForm } from "@/components/leads/TargetEditForm";
 import { ConversionRateChart } from "@/components/leads/ConversionRateChart";
 import { AdminInviteCodeCard } from "@/components/leads/AdminInviteCodeCard";
+import { toWhatsAppLink } from "@/lib/whatsapp";
+import { waWinBackMessage } from "@/lib/waScripts";
 import { Role } from "@/generated/prisma/client";
 
 export default async function LeadsOwnerPage() {
@@ -16,6 +19,19 @@ export default async function LeadsOwnerPage() {
   const tomorrow = addDays(today, 1);
 
   const admins = await prisma.user.findMany({ where: { role: Role.ADMIN }, orderBy: { name: "asc" } });
+
+  // Former members who reached MEMBER at some point (convertedAt set) and
+  // are now LOST — i.e. flagged "Tidak Perpanjang" on their H21 follow up,
+  // not a trial/DM lead that never converted in the first place.
+  const churnedMembers = await prisma.lead.findMany({
+    where: { status: "LOST", convertedAt: { not: null }, deletedAt: null },
+    orderBy: { updatedAt: "desc" },
+    include: {
+      payments: { orderBy: { paidAt: "desc" }, take: 1 },
+      capturedBy: { select: { name: true } },
+    },
+    take: 30,
+  });
 
   // Only leads that actually went through a trial belong in the trial->
   // conversion chart — a lead marked MEMBER straight from DM (no trial)
@@ -69,6 +85,42 @@ export default async function LeadsOwnerPage() {
           convertedAt: e.convertedAt?.toISOString() ?? null,
         }))}
       />
+
+      <Card className="flex flex-col gap-3">
+        <div>
+          <h2 className="font-display text-lg font-semibold">Member Tidak Perpanjang</h2>
+          <p className="text-xs text-muted">Dari hasil follow up H+21 yang ditandai &quot;Tidak Perpanjang&quot;.</p>
+        </div>
+        {churnedMembers.length === 0 ? (
+          <p className="text-sm text-muted">Belum ada member yang tidak perpanjang.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {churnedMembers.map((lead) => {
+              const lastPayment = lead.payments[0];
+              return (
+                <div
+                  key={lead.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border p-3"
+                >
+                  <div>
+                    <p className="font-medium">{lead.name}</p>
+                    <p className="text-xs text-muted">
+                      {lead.waNumber}
+                      {lastPayment && ` — terakhir ${lastPayment.packageName}`}
+                      {lead.capturedBy && ` · capture: ${lead.capturedBy.name}`}
+                    </p>
+                  </div>
+                  <a href={toWhatsAppLink(lead.waNumber, waWinBackMessage(lead.name))} target="_blank" rel="noreferrer">
+                    <Button variant="secondary" className="px-3 py-1.5 text-xs">
+                      Chat WA
+                    </Button>
+                  </a>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
 
       {adminStats.map(({ admin, target, capturesToday, followUpsDoneToday, totalTrial, totalConversion, conversionRate }) => (
         <Card key={admin.id} className="flex flex-col gap-4">

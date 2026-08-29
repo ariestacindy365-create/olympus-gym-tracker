@@ -36,3 +36,9 @@ export function waFollowUpMessage(name: string, type: "H1" | "H3" | "H7" | "H21"
       return `Halo kak ${name}, gimana kak terkait rencana latihannya kemarin\n\nJadi buat cobain workoutnya bareng kita kak?`;
   }
 }
+
+// Sent by the owner from the "Member Tidak Perpanjang" list — a win-back
+// nudge for a former member whose membership lapsed without renewal.
+export function waWinBackMessage(name: string): string {
+  return `Halo Kak ${name}, lama ga ketemu di Olympus! Kangen latihan bareng lagi? Kalau mau lanjut lagi, kabari kami ya, nanti dibantu info paketnya.`;
+}

@@ -51,14 +51,24 @@ export function FollowUpActions({ followUpId, leadStatus }: { followUpId: string
       />
       <div className="flex flex-wrap gap-2">
         {isPostConversion ? (
-          <Button
-            variant="primary"
-            className="px-3 py-1.5 text-xs"
-            disabled={pending !== null}
-            onClick={() => complete("FOLLOWED_UP")}
-          >
-            {pending === "FOLLOWED_UP" ? "..." : "Sudah Follow Up"}
-          </Button>
+          <>
+            <Button
+              variant="primary"
+              className="px-3 py-1.5 text-xs"
+              disabled={pending !== null}
+              onClick={() => complete("FOLLOWED_UP")}
+            >
+              {pending === "FOLLOWED_UP" ? "..." : "Sudah Follow Up"}
+            </Button>
+            <Button
+              variant="danger"
+              className="px-3 py-1.5 text-xs"
+              disabled={pending !== null}
+              onClick={() => complete("LOST")}
+            >
+              {pending === "LOST" ? "..." : "Tidak Perpanjang"}
+            </Button>
+          </>
         ) : (
           <>
             <Button
