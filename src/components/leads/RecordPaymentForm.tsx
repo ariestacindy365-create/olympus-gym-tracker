@@ -15,13 +15,28 @@ export interface PackageOption {
   price: number;
 }
 
+export interface MemberOption {
+  id: string;
+  name: string;
+  waNumber: string;
+}
+
 function todayInputValue(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function RecordPaymentForm({ leadId, packages }: { leadId: string; packages: PackageOption[] }) {
+export function RecordPaymentForm({
+  members,
+  packages,
+  initialLeadId,
+}: {
+  members: MemberOption[];
+  packages: PackageOption[];
+  initialLeadId?: string;
+}) {
   const router = useRouter();
+  const [leadId, setLeadId] = useState(initialLeadId ?? members[0]?.id ?? "");
   const [preset, setPreset] = useState(packages[0]?.name ?? CUSTOM_PACKAGE);
   const [customName, setCustomName] = useState("");
   const [amount, setAmount] = useState(String(packages[0]?.price ?? ""));
@@ -43,6 +58,10 @@ export function RecordPaymentForm({ leadId, packages }: { leadId: string; packag
     e.preventDefault();
     setError(null);
 
+    if (!leadId) {
+      setError("Pilih member.");
+      return;
+    }
     const packageName = preset === CUSTOM_PACKAGE ? customName.trim() : preset;
     const amountNum = Number(amount);
     if (!packageName) {
@@ -74,11 +93,30 @@ export function RecordPaymentForm({ leadId, packages }: { leadId: string; packag
     }
   }
 
+  if (members.length === 0) {
+    return (
+      <Card>
+        <h2 className="mb-1 font-display text-lg font-semibold">Catat Pembayaran / Perpanjangan</h2>
+        <p className="text-sm text-muted">Belum ada lead berstatus Member atau Retensi.</p>
+      </Card>
+    );
+  }
+
   return (
     <Card>
-      <h3 className="mb-1 font-display text-base font-semibold">Catat Pembayaran / Perpanjangan</h3>
+      <h2 className="mb-1 font-display text-lg font-semibold">Catat Pembayaran / Perpanjangan</h2>
       <p className="mb-3 text-xs text-muted">Setelah disimpan, struknya bisa langsung dicetak.</p>
       <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+        <div>
+          <label className="mb-1 block text-xs text-muted">Member</label>
+          <Select value={leadId} onChange={(e) => setLeadId(e.target.value)}>
+            {members.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name} — {m.waNumber}
+              </option>
+            ))}
+          </Select>
+        </div>
         <Select value={preset} onChange={(e) => handlePresetChange(e.target.value)}>
           {packages.map((p) => (
             <option key={p.name} value={p.name}>

@@ -9,7 +9,6 @@ import { LeadStatusActions } from "@/components/leads/LeadStatusActions";
 import { LeadHeader } from "@/components/leads/LeadHeader";
 import { FollowUpActions } from "@/components/leads/FollowUpActions";
 import { ScheduleFollowUpForm } from "@/components/leads/ScheduleFollowUpForm";
-import { RecordPaymentForm } from "@/components/leads/RecordPaymentForm";
 import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
 import { formatRupiah, PAYMENT_METHOD_LABEL } from "@/lib/packages";
 import {
@@ -27,24 +26,21 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
   const isAdmin = user?.role === "ADMIN";
   const isOwner = user?.role === "OWNER";
 
-  const [lead, activePackages] = await Promise.all([
-    prisma.lead.findUnique({
-      where: { id: leadId },
-      include: {
-        capturedBy: { select: { name: true } },
-        deletedBy: { select: { name: true } },
-        followUps: {
-          orderBy: { dueDate: "asc" },
-          include: { completedBy: { select: { name: true } } },
-        },
-        payments: {
-          orderBy: { paidAt: "desc" },
-          include: { createdBy: { select: { name: true } } },
-        },
+  const lead = await prisma.lead.findUnique({
+    where: { id: leadId },
+    include: {
+      capturedBy: { select: { name: true } },
+      deletedBy: { select: { name: true } },
+      followUps: {
+        orderBy: { dueDate: "asc" },
+        include: { completedBy: { select: { name: true } } },
       },
-    }),
-    prisma.package.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
-  ]);
+      payments: {
+        orderBy: { paidAt: "desc" },
+        include: { createdBy: { select: { name: true } } },
+      },
+    },
+  });
 
   if (!lead) notFound();
   const isDeleted = lead.deletedAt !== null;
@@ -101,37 +97,44 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
 
       {isAdmin && !isDeleted && <ScheduleFollowUpForm leadId={lead.id} />}
 
-      {isAdmin && !isDeleted && isPayingMember && (
-        <RecordPaymentForm
-          leadId={lead.id}
-          packages={activePackages.map((p) => ({ name: p.name, price: p.price }))}
-        />
-      )}
-
-      {lead.payments.length > 0 && (
+      {(isPayingMember || lead.payments.length > 0) && (
         <Card>
-          <h2 className="mb-3 font-display text-lg font-semibold">Riwayat Pembayaran</h2>
-          <ul className="flex flex-col gap-3">
-            {lead.payments.map((payment) => (
-              <li
-                key={payment.id}
-                className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3 last:border-0 last:pb-0"
-              >
-                <div>
-                  <p className="text-sm font-medium">{payment.packageName}</p>
-                  <p className="text-xs text-muted">
-                    {formatRupiah(payment.amount)} · {PAYMENT_METHOD_LABEL[payment.paymentMethod] ?? payment.paymentMethod} ·{" "}
-                    {payment.paidAt.toLocaleDateString("id-ID")} · oleh {payment.createdBy.name}
-                  </p>
-                </div>
-                <Link href={`/leads/${lead.id}/receipt/${payment.id}`}>
-                  <Button variant="secondary" className="px-3 py-1.5 text-xs">
-                    Cetak Struk
-                  </Button>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-display text-lg font-semibold">Riwayat Pembayaran</h2>
+            {isAdmin && !isDeleted && isPayingMember && (
+              <Link href={`/leads/payments?leadId=${lead.id}`}>
+                <Button variant="secondary" className="px-3 py-1.5 text-xs">
+                  Catat Pembayaran
+                </Button>
+              </Link>
+            )}
+          </div>
+          {lead.payments.length === 0 ? (
+            <p className="text-sm text-muted">Belum ada pembayaran tercatat.</p>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {lead.payments.map((payment) => (
+                <li
+                  key={payment.id}
+                  className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3 last:border-0 last:pb-0"
+                >
+                  <div>
+                    <p className="text-sm font-medium">{payment.packageName}</p>
+                    <p className="text-xs text-muted">
+                      {formatRupiah(payment.amount)} ·{" "}
+                      {PAYMENT_METHOD_LABEL[payment.paymentMethod] ?? payment.paymentMethod} ·{" "}
+                      {payment.paidAt.toLocaleDateString("id-ID")} · oleh {payment.createdBy.name}
+                    </p>
+                  </div>
+                  <Link href={`/leads/${lead.id}/receipt/${payment.id}`}>
+                    <Button variant="secondary" className="px-3 py-1.5 text-xs">
+                      Cetak Struk
+                    </Button>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
       )}
 
