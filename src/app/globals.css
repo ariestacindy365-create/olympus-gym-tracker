@@ -48,3 +48,8 @@ h1, h2, h3, h4, .font-display {
   font-family: var(--font-display), system-ui, sans-serif;
   letter-spacing: 0.02em;
 }
+
+@page {
+  size: 58mm 2000mm;
+  margin: 2mm;
+}
