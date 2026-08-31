@@ -57,13 +57,21 @@ export async function getRememberedBluetoothPrinter(): Promise<BluetoothDevice |
   return devices[0] ?? null;
 }
 
-/** Shows the browser's one-time Bluetooth device picker. */
+// The shared printer identifies itself as "RPP02N" over Bluetooth —
+// filtering to it by name keeps the picker down to just that one device
+// instead of listing every nearby Bluetooth device (most of which show up
+// as "Unknown or Unsupported Device" and are useless noise here, since
+// getDevices() can't remember the choice to skip the picker entirely —
+// see getRememberedBluetoothPrinter above).
+const PRINTER_NAME_PREFIX = "RPP02N";
+
+/** Shows the browser's Bluetooth device picker, filtered to the shared printer. */
 export async function requestBluetoothPrinter(): Promise<BluetoothDevice> {
   if (!navigator.bluetooth) {
     throw new Error("Browser ini tidak mendukung Web Bluetooth. Gunakan Chrome di Android atau desktop.");
   }
   return navigator.bluetooth.requestDevice({
-    acceptAllDevices: true,
+    filters: [{ namePrefix: PRINTER_NAME_PREFIX }],
     optionalServices: OPTIONAL_SERVICES,
   });
 }
