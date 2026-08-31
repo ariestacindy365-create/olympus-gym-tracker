@@ -8,6 +8,8 @@ import {
   setThermalPrinterMode,
   subscribeThermalPrinterMode,
   connectThermalPrinter,
+  isThermalPrinterSettingsDismissed,
+  setThermalPrinterSettingsDismissed,
   type ThermalPrinterMode,
 } from "@/lib/thermal-printer";
 
@@ -40,6 +42,11 @@ function getCapabilitiesServerSnapshot() {
 // (e.g. iOS Safari, which supports none of WebUSB/Web Bluetooth).
 export function ThermalPrinterSettings() {
   const mode = useSyncExternalStore(subscribeThermalPrinterMode, getThermalPrinterMode, () => null);
+  const dismissed = useSyncExternalStore(
+    subscribeThermalPrinterMode,
+    isThermalPrinterSettingsDismissed,
+    () => false,
+  );
   const { usb: supportsUsb, bluetooth: supportsBluetooth } = useSyncExternalStore(
     noopSubscribe,
     getCapabilitiesSnapshot,
@@ -80,9 +87,34 @@ export function ThermalPrinterSettings() {
     );
   }
 
+  // Not connected, and this device has dismissed the prompt (e.g. it's
+  // never going to sit next to the printer) — leave only a tiny link so
+  // it's still reachable, without cluttering every visit to this page.
+  if (dismissed) {
+    return (
+      <button
+        type="button"
+        onClick={() => setThermalPrinterSettingsDismissed(false)}
+        className="text-xs text-muted underline"
+      >
+        Sambungkan Printer Thermal
+      </button>
+    );
+  }
+
   return (
     <Card>
-      <p className="font-display text-sm font-semibold">Printer Thermal (perangkat ini)</p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="font-display text-sm font-semibold">Printer Thermal (perangkat ini)</p>
+        <button
+          type="button"
+          onClick={() => setThermalPrinterSettingsDismissed(true)}
+          aria-label="Tutup"
+          className="shrink-0 text-muted hover:text-foreground"
+        >
+          ✕
+        </button>
+      </div>
       <div className="mt-2 flex flex-col gap-2">
         <p className="text-xs text-muted">
           Belum tersambung — struk masih cetak lewat dialog print browser. Sambungkan sekali di

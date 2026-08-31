@@ -49,6 +49,33 @@ export function setThermalPrinterMode(mode: ThermalPrinterMode | null): void {
   for (const listener of listeners) listener();
 }
 
+const DISMISSED_KEY = "thermal-printer-settings-dismissed";
+
+// Whether this device has dismissed the "not connected yet" prompt — for
+// devices that will never physically sit next to the printer, so the
+// prompt doesn't clutter every visit to the payment page. Independent of
+// `mode`: dismissing doesn't disconnect anything, it just hides the
+// not-connected card until re-opened from the small link left in its place.
+export function isThermalPrinterSettingsDismissed(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(DISMISSED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function setThermalPrinterSettingsDismissed(dismissed: boolean): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (dismissed) window.localStorage.setItem(DISMISSED_KEY, "1");
+    else window.localStorage.removeItem(DISMISSED_KEY);
+  } catch {
+    // not fatal — just won't persist across reloads
+  }
+  for (const listener of listeners) listener();
+}
+
 /**
  * Sends already-built ESC/POS bytes straight to the thermal printer —
  * reusing a previously-granted device silently when possible, otherwise
