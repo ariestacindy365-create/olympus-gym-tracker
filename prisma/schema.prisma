@@ -360,26 +360,33 @@ enum PaymentMethod {
 // as a receipt at /leads/[leadId]/receipt/[paymentId]. amount is in whole
 // Rupiah (no decimals).
 model Payment {
-  id            String        @id @default(cuid())
-  leadId        String
-  lead          Lead          @relation(fields: [leadId], references: [id])
-  packageName   String
-  amount        Int
-  paymentMethod PaymentMethod @default(TRANSFER)
-  paidAt        DateTime      @default(now())
+  id               String        @id @default(cuid())
+  leadId           String
+  lead             Lead          @relation(fields: [leadId], references: [id])
+  packageName      String
+  amount           Int
+  paymentMethod    PaymentMethod @default(TRANSFER)
+  paidAt           DateTime      @default(now())
   // Snapshot of the package's duration at time of payment (like packageName/
   // amount) — null when the package's duration wasn't known (e.g. a custom
   // package typed in free-form). Drives expiresAt below and the renewal
   // reminder; a later edit to Package.durationDays never changes past receipts.
-  durationDays  Int?
+  durationDays     Int?
   // paidAt + durationDays, computed once at creation. Null when durationDays
   // is null. Used to schedule an accurate renewal-reminder follow-up instead
   // of a fixed offset from the member's original conversion date.
-  expiresAt     DateTime?
-  note          String?
-  createdById   String
-  createdBy     User          @relation("PaymentsRecorded", fields: [createdById], references: [id])
-  createdAt     DateTime      @default(now())
+  expiresAt        DateTime?
+  // Bukti transfer/pembayaran, uploaded from camera or gallery, resized
+  // client-side then uploaded server-side to a Google Drive folder (see
+  // lib/googleDrive.ts) — this is that file's Drive file ID, not the image
+  // itself. Null when skipped. Viewed via /api/payments/[paymentId]/proof,
+  // which proxies it through the service account so the Drive file itself
+  // never has to be made public.
+  proofImageFileId String?
+  note             String?
+  createdById      String
+  createdBy        User          @relation("PaymentsRecorded", fields: [createdById], references: [id])
+  createdAt        DateTime      @default(now())
 
   @@index([leadId])
 }

@@ -153,11 +153,20 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
                       {payment.expiresAt && ` · berlaku sampai ${payment.expiresAt.toLocaleDateString("id-ID")}`}
                     </p>
                   </div>
-                  <Link href={`/leads/${lead.id}/receipt/${payment.id}`}>
-                    <Button variant="secondary" className="px-3 py-1.5 text-xs">
-                      Cetak Struk
-                    </Button>
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    {payment.proofImageFileId && (
+                      <a href={`/api/payments/${payment.id}/proof`} target="_blank" rel="noreferrer">
+                        <Button variant="secondary" className="px-3 py-1.5 text-xs">
+                          Lihat Bukti
+                        </Button>
+                      </a>
+                    )}
+                    <Link href={`/leads/${lead.id}/receipt/${payment.id}`}>
+                      <Button variant="secondary" className="px-3 py-1.5 text-xs">
+                        Cetak Struk
+                      </Button>
+                    </Link>
+                  </div>
                 </li>
               ))}
             </ul>

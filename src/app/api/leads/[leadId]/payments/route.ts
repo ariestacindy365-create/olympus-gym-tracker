@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { createPaymentSchema } from "@/lib/validation";
 import { dateKeyFromString } from "@/lib/workout";
 import { scheduleRenewalReminder } from "@/lib/leads";
+import { uploadProofImage } from "@/lib/googleDrive";
 import { Role } from "@/generated/prisma/client";
 
 // Records a payment (initial or renewal) for a member so it can be printed
@@ -32,6 +33,21 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/leads/[
   const durationDays = parsed.data.durationDays;
   const expiresAt = durationDays ? addDays(paidAt, durationDays) : null;
 
+  let proofImageFileId: string | undefined;
+  if (parsed.data.proofImage) {
+    try {
+      proofImageFileId = await uploadProofImage({
+        dataUrl: parsed.data.proofImage,
+        filename: `${leadId}-${Date.now()}.jpg`,
+      });
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Gagal mengunggah bukti pembayaran." },
+        { status: 500 }
+      );
+    }
+  }
+
   const payment = await prisma.payment.create({
     data: {
       leadId,
@@ -41,6 +57,7 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/leads/[
       paidAt,
       durationDays,
       expiresAt,
+      proofImageFileId,
       note: parsed.data.note,
       createdById: admin.id,
     },

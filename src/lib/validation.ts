@@ -151,6 +151,14 @@ export const createPaymentSchema = z.object({
   paymentMethod: z.enum(["QRIS", "TRANSFER", "KARTU_KREDIT", "DEBIT", "FITQUARTER"]),
   paidAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Tanggal tidak valid." }).optional(),
   durationDays: z.number().int().positive({ error: "Durasi harus lebih dari 0." }).max(3650).optional(),
+  // A "data:image/...;base64,..." string, resized/compressed client-side
+  // before upload — cap generous enough for a compressed photo, small
+  // enough to keep a rogue payload out of the database.
+  proofImage: z
+    .string()
+    .startsWith("data:image/", { error: "Format bukti pembayaran tidak valid." })
+    .max(3_000_000, { error: "Ukuran bukti pembayaran terlalu besar." })
+    .optional(),
   note: z.string().trim().max(280).optional(),
 });
 
