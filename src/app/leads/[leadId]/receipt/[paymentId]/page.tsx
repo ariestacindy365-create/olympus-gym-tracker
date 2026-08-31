@@ -22,6 +22,18 @@ export default async function ReceiptPage({
   if (!payment || payment.leadId !== leadId) notFound();
 
   const receiptNumber = `OLY-${payment.id.slice(-8).toUpperCase()}`;
+  const receiptData = {
+    receiptNumber,
+    paidAt: payment.paidAt.toISOString(),
+    leadName: payment.lead.name,
+    leadWaNumber: payment.lead.waNumber,
+    packageName: payment.packageName,
+    amount: payment.amount,
+    paymentMethod: payment.paymentMethod,
+    expiresAt: payment.expiresAt ? payment.expiresAt.toISOString() : null,
+    note: payment.note,
+    createdByName: payment.createdBy.name,
+  };
 
   return (
     <div className="mx-auto flex max-w-md flex-col gap-4 py-4 print:max-w-none print:gap-2 print:py-0">
@@ -89,7 +101,7 @@ export default async function ReceiptPage({
         </div>
       </div>
 
-      <PrintReceiptButton />
+      <PrintReceiptButton receipt={receiptData} />
     </div>
   );
 }

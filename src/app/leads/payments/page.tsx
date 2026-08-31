@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { RecordPaymentForm } from "@/components/leads/RecordPaymentForm";
+import { ThermalPrinterSettings } from "@/components/leads/ThermalPrinterSettings";
 import { formatRupiah, PAYMENT_METHOD_LABEL } from "@/lib/packages";
 
 export default async function PaymentsPage({
@@ -36,6 +37,8 @@ export default async function PaymentsPage({
         <h1 className="font-display text-2xl font-bold">Pembayaran</h1>
         <p className="text-sm text-muted">Catat pembayaran atau perpanjangan paket member, lalu cetak struknya.</p>
       </div>
+
+      <ThermalPrinterSettings />
 
       {isAdmin && (
         <RecordPaymentForm
