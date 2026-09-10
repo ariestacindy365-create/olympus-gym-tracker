@@ -2,25 +2,30 @@ import "server-only";
 import { Readable } from "node:stream";
 import { google } from "googleapis";
 
+// Authenticates as the owner's own Google account via a long-lived OAuth
+// refresh token, obtained once through scripts/google-drive-setup.ts —
+// not a service-account key, since Google now blocks key creation by
+// default on most new accounts/projects.
 function getDriveClient() {
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, "\n");
-  if (!email || !privateKey) {
-    throw new Error("GOOGLE_SERVICE_ACCOUNT_EMAIL atau GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY belum diatur.");
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error(
+      "GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, atau GOOGLE_OAUTH_REFRESH_TOKEN belum diatur."
+    );
   }
 
-  const auth = new google.auth.JWT({
-    email,
-    key: privateKey,
-    scopes: ["https://www.googleapis.com/auth/drive.file"],
-  });
+  const auth = new google.auth.OAuth2(clientId, clientSecret);
+  auth.setCredentials({ refresh_token: refreshToken });
   return google.drive({ version: "v3", auth });
 }
 
 // Uploads a compressed photo (client sends a "data:image/...;base64,..."
-// string) into the shared folder, returning the Drive file ID to store on
-// the Payment row. The folder must already be shared with the service
-// account (Editor access) — see the setup notes given to the owner.
+// string) into the owner's Drive folder, returning the Drive file ID to
+// store on the Payment row. The folder is created once by
+// scripts/google-drive-setup.ts, in the same Drive the OAuth token
+// authenticates as.
 export async function uploadProofImage(params: { dataUrl: string; filename: string }): Promise<string> {
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
   if (!folderId) {
