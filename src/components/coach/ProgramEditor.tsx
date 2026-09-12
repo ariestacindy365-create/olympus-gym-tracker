@@ -7,19 +7,17 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { type MovementOption } from "@/components/coach/MovementCombobox";
-import { SortableSlotRow, type SlotState } from "@/components/coach/SortableSlotRow";
+import { type SlotState } from "@/components/coach/SortableSlotRow";
+import { SortableDayBlock, type DayState } from "@/components/coach/SortableDayBlock";
 import { ProgramWeekPreview } from "@/components/coach/ProgramWeekPreview";
-import { computeRoundStarts } from "@/lib/programRounds";
 
-interface DayState {
-  dayLabel: string;
-  focusLabel: string;
-  slots: SlotState[];
-}
+export type { DayState };
 
 interface ProgramEditorProps {
   movements: MovementOption[];
-  initialWeeks: Record<number, DayState[]>;
+  // Days come from the server without a client-side drag id yet — assigned
+  // once on mount (see the weeks state initializer below).
+  initialWeeks: Record<number, Omit<DayState, "id">[]>;
 }
 
 const WEEKS = [1, 2, 3, 4];
@@ -55,7 +53,7 @@ const MUSCLE_ROLLUP: Record<string, string> = {
 };
 
 function emptyDay(): DayState {
-  return { dayLabel: "", focusLabel: "", slots: [] };
+  return { id: crypto.randomUUID(), dayLabel: "", focusLabel: "", slots: [] };
 }
 
 function emptySlot(): SlotState {
@@ -71,14 +69,21 @@ function emptySlot(): SlotState {
   };
 }
 
-function headerInputClass(extra = "") {
-  return `w-full min-w-0 border-none bg-transparent px-1 py-0.5 font-display font-bold uppercase tracking-wide text-white placeholder:text-white/50 focus:outline-none focus:ring-1 focus:ring-white/40 ${extra}`;
-}
-
 const EMPTY_DAYS: DayState[] = [];
 
+// Days arrive from the server without a drag id (see ProgramEditorProps) —
+// assign one per day once, here, so it stays stable across re-renders and
+// reorders for the rest of the session.
+function withDayIds(weeks: Record<number, Omit<DayState, "id">[]>): Record<number, DayState[]> {
+  const result: Record<number, DayState[]> = {};
+  for (const [week, days] of Object.entries(weeks)) {
+    result[Number(week)] = days.map((d) => ({ ...d, id: crypto.randomUUID() }));
+  }
+  return result;
+}
+
 export function ProgramEditor({ movements: initialMovements, initialWeeks }: ProgramEditorProps) {
-  const [weeks, setWeeks] = useState(initialWeeks);
+  const [weeks, setWeeks] = useState(() => withDayIds(initialWeeks));
   const [movements, setMovements] = useState(initialMovements);
   const [activeWeek, setActiveWeek] = useState(1);
   const [pending, setPending] = useState(false);
@@ -162,9 +167,20 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
     updateDay(dayIndex, { slots: nextSlots });
   }
 
-  function handleSlotDragEnd(event: DragEndEvent) {
+  function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
+
+    // Dragging a day's own grip handle (active.id is a day id, not a slot id).
+    const dayDragIndex = days.findIndex((d) => d.id === active.id);
+    if (dayDragIndex !== -1) {
+      const overDayIndex = days.findIndex((d) => d.id === over.id);
+      if (overDayIndex === -1) return;
+      updateDays(arrayMove(days, dayDragIndex, overDayIndex));
+      return;
+    }
+
+    // Otherwise it's a slot row, reordering within its own day.
     const dayIndex = days.findIndex((d) => d.slots.some((s) => s.id === active.id));
     if (dayIndex === -1) return;
     const slots = days[dayIndex].slots;
@@ -232,6 +248,7 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
         slots: SavedSlot[];
       }
       const mapped: DayState[] = (data.days as SavedDay[]).map((d) => ({
+        id: crypto.randomUUID(),
         dayLabel: d.dayLabel,
         focusLabel: d.focusLabel ?? "",
         slots: d.slots.map((s) => ({
@@ -291,10 +308,10 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
 
         <div className="overflow-x-auto">
           <DndContext
-            id="program-slots-dnd"
+            id="program-dnd"
             sensors={sensors}
             collisionDetection={closestCenter}
-            onDragEnd={handleSlotDragEnd}
+            onDragEnd={handleDragEnd}
           >
             <table className="w-full min-w-[720px] border-collapse text-sm">
               <thead>
@@ -308,64 +325,22 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
                   <th className="w-8 px-2 py-2" />
                 </tr>
               </thead>
-              {days.map((day, dayIndex) => {
-                const roundStarts = computeRoundStarts(day.slots.map((s) => s.slotLabel));
-                return (
-                <tbody key={dayIndex}>
-                  <tr>
-                    <td colSpan={7} className="p-0" style={{ background: DAY_COLORS[dayIndex % DAY_COLORS.length] }}>
-                      <div className="flex items-center gap-2 px-3 py-2">
-                        <input
-                          placeholder="HARI"
-                          value={day.dayLabel}
-                          onChange={(e) => updateDay(dayIndex, { dayLabel: e.target.value.toUpperCase() })}
-                          className={headerInputClass("max-w-[110px] shrink-0")}
-                        />
-                        <span className="text-white/60">&middot;</span>
-                        <input
-                          placeholder="FOKUS"
-                          value={day.focusLabel}
-                          onChange={(e) => updateDay(dayIndex, { focusLabel: e.target.value })}
-                          className={headerInputClass("flex-1")}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeDay(dayIndex)}
-                          className="shrink-0 rounded px-2 py-1 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white"
-                        >
-                          Hapus Hari
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  <SortableContext items={day.slots.map((s) => s.id)} strategy={verticalListSortingStrategy}>
-                    {day.slots.map((slot, slotIndex) => (
-                      <SortableSlotRow
-                        key={slot.id}
-                        slot={slot}
-                        striped={slotIndex % 2 === 0}
-                        movements={movements}
-                        isRoundStart={roundStarts[slotIndex]}
-                        onChange={(patch) => updateSlot(dayIndex, slotIndex, patch)}
-                        onRemove={() => removeSlot(dayIndex, slotIndex)}
-                        onMovementCreated={handleMovementCreated}
-                      />
-                    ))}
-                  </SortableContext>
-                  <tr>
-                    <td colSpan={7} className="border-b border-border bg-surface px-3 py-2">
-                      <button
-                        type="button"
-                        onClick={() => addSlot(dayIndex)}
-                        className="text-xs font-semibold text-accent hover:underline"
-                      >
-                        + Tambah Gerakan
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-                );
-              })}
+              <SortableContext items={days.map((d) => d.id)} strategy={verticalListSortingStrategy}>
+                {days.map((day, dayIndex) => (
+                  <SortableDayBlock
+                    key={day.id}
+                    day={day}
+                    color={DAY_COLORS[dayIndex % DAY_COLORS.length]}
+                    movements={movements}
+                    onChangeDay={(patch) => updateDay(dayIndex, patch)}
+                    onRemoveDay={() => removeDay(dayIndex)}
+                    onAddSlot={() => addSlot(dayIndex)}
+                    onChangeSlot={(slotIndex, patch) => updateSlot(dayIndex, slotIndex, patch)}
+                    onRemoveSlot={(slotIndex) => removeSlot(dayIndex, slotIndex)}
+                    onMovementCreated={handleMovementCreated}
+                  />
+                ))}
+              </SortableContext>
             </table>
           </DndContext>
         </div>
