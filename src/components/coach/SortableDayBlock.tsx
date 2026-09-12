@@ -17,8 +17,12 @@ interface SortableDayBlockProps {
   day: DayState;
   color: string;
   movements: MovementOption[];
+  canMoveUp: boolean;
+  canMoveDown: boolean;
   onChangeDay: (patch: Partial<Pick<DayState, "dayLabel" | "focusLabel">>) => void;
   onRemoveDay: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
   onAddSlot: () => void;
   onChangeSlot: (slotIndex: number, patch: Partial<SlotState>) => void;
   onRemoveSlot: (slotIndex: number) => void;
@@ -33,8 +37,12 @@ export function SortableDayBlock({
   day,
   color,
   movements,
+  canMoveUp,
+  canMoveDown,
   onChangeDay,
   onRemoveDay,
+  onMoveUp,
+  onMoveDown,
   onAddSlot,
   onChangeSlot,
   onRemoveSlot,
@@ -58,6 +66,26 @@ export function SortableDayBlock({
             >
               ⠿
             </button>
+            <div className="flex shrink-0 flex-col">
+              <button
+                type="button"
+                onClick={onMoveUp}
+                disabled={!canMoveUp}
+                className="rounded px-1 leading-none text-white/70 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                aria-label="Pindah hari ke atas"
+              >
+                ▲
+              </button>
+              <button
+                type="button"
+                onClick={onMoveDown}
+                disabled={!canMoveDown}
+                className="rounded px-1 leading-none text-white/70 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                aria-label="Pindah hari ke bawah"
+              >
+                ▼
+              </button>
+            </div>
             <input
               placeholder="HARI"
               value={day.dayLabel}

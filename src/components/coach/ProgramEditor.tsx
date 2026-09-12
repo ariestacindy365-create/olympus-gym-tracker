@@ -154,6 +154,14 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
     updateDays(days.map((d, i) => (i === dayIndex ? { ...d, ...patch } : d)));
   }
 
+  // Backup for the drag handle — dragging a day far up/down a long list
+  // relies on auto-scroll, which isn't reliable, so a plain click always works.
+  function moveDay(dayIndex: number, delta: number) {
+    const targetIndex = dayIndex + delta;
+    if (targetIndex < 0 || targetIndex >= days.length) return;
+    updateDays(arrayMove(days, dayIndex, targetIndex));
+  }
+
   function addSlot(dayIndex: number) {
     updateDay(dayIndex, { slots: [...days[dayIndex].slots, emptySlot()] });
   }
@@ -332,8 +340,12 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
                     day={day}
                     color={DAY_COLORS[dayIndex % DAY_COLORS.length]}
                     movements={movements}
+                    canMoveUp={dayIndex > 0}
+                    canMoveDown={dayIndex < days.length - 1}
                     onChangeDay={(patch) => updateDay(dayIndex, patch)}
                     onRemoveDay={() => removeDay(dayIndex)}
+                    onMoveUp={() => moveDay(dayIndex, -1)}
+                    onMoveDown={() => moveDay(dayIndex, 1)}
                     onAddSlot={() => addSlot(dayIndex)}
                     onChangeSlot={(slotIndex, patch) => updateSlot(dayIndex, slotIndex, patch)}
                     onRemoveSlot={(slotIndex) => removeSlot(dayIndex, slotIndex)}
