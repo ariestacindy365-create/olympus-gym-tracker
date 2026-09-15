@@ -5,6 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { scanSaleSchema } from "@/lib/validation";
 import { Role } from "@/generated/prisma/client";
 
+// A jittery scanner (or a trigger held too long) can fire the same barcode
+// twice within a moment — the client already guards against this, but that's
+// just one browser tab; this is the backstop that holds regardless of what
+// sent the request.
+const DUPLICATE_SCAN_COOLDOWN_MS = 3000;
+
 // Each scan = one unit sold. Stock decrement uses a conditional updateMany
 // (stock > 0) inside the transaction instead of read-then-write, so two
 // scans landing at nearly the same moment can't both succeed against the
@@ -27,6 +33,21 @@ export async function POST(request: NextRequest) {
   }
   if (product.stock <= 0) {
     return NextResponse.json({ error: `Stok "${product.name}" habis.` }, { status: 400 });
+  }
+
+  const recentDuplicate = await prisma.sale.findFirst({
+    where: {
+      productId: product.id,
+      createdById: admin.id,
+      createdAt: { gte: new Date(Date.now() - DUPLICATE_SCAN_COOLDOWN_MS) },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  if (recentDuplicate) {
+    return NextResponse.json(
+      { error: `"${product.name}" baru saja dicatat — ditolak supaya tidak tercatat dobel.` },
+      { status: 409 }
+    );
   }
 
   try {

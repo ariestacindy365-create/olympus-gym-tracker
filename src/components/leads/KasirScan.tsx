@@ -15,6 +15,11 @@ export interface SaleRow {
   createdAt: string;
 }
 
+// If the same barcode comes in again within this window, treat it as an
+// accidental double-scan (jittery scanner, trigger held too long) instead
+// of a genuine second sale.
+const DUPLICATE_SCAN_COOLDOWN_MS = 3000;
+
 export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; isAdmin: boolean }) {
   const [barcode, setBarcode] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("TUNAI");
@@ -22,6 +27,12 @@ export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; 
   const [pending, setPending] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Refs, not state — a scanner can fire two Enter keystrokes faster than
+  // React re-renders (and re-disables the input), so the guard against a
+  // simultaneous double-submit has to be synchronous, not dependent on the
+  // next render.
+  const submittingRef = useRef(false);
+  const lastScanRef = useRef<{ barcode: string; time: number } | null>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -32,6 +43,21 @@ export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; 
     const code = barcode.trim();
     if (!code) return;
 
+    // Guard 1: a second scan landing while the first is still in flight.
+    if (submittingRef.current) return;
+
+    // Guard 2: the exact same barcode scanned again shortly after a
+    // previous scan (successful or not) of it.
+    const last = lastScanRef.current;
+    if (last && last.barcode === code && Date.now() - last.time < DUPLICATE_SCAN_COOLDOWN_MS) {
+      setFeedback({ type: "error", text: "Barcode ini baru saja di-scan — diabaikan supaya tidak tercatat dobel." });
+      setBarcode("");
+      inputRef.current?.focus();
+      return;
+    }
+
+    submittingRef.current = true;
+    lastScanRef.current = { barcode: code, time: Date.now() };
     setPending(true);
     setFeedback(null);
     try {
@@ -58,6 +84,7 @@ export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; 
     } finally {
       setBarcode("");
       setPending(false);
+      submittingRef.current = false;
       inputRef.current?.focus();
     }
   }
