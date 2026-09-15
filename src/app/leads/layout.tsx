@@ -8,6 +8,7 @@ const ADMIN_LINKS = [
   { href: "/leads/payments", label: "Pembayaran" },
   { href: "/leads/expenses", label: "Pengeluaran" },
   { href: "/leads/kasir", label: "Kasir" },
+  { href: "/leads/products", label: "Produk" },
   { href: "/leads/history", label: "Riwayat" },
   { href: "/leads/account", label: "Akun Saya" },
 ];
@@ -20,7 +21,6 @@ const OWNER_LINKS = [
   { href: "/leads/kasir", label: "Kasir" },
   { href: "/leads/history", label: "Riwayat" },
   { href: "/leads/packages", label: "Daftar Harga" },
-  { href: "/leads/products", label: "Produk" },
   { href: "/leads/account", label: "Akun Saya" },
 ];
 

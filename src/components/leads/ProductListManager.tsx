@@ -99,7 +99,7 @@ function AddProductForm() {
   );
 }
 
-function ProductRowItem({ product }: { product: ProductRow }) {
+function ProductRowItem({ product, canEdit }: { product: ProductRow; canEdit: boolean }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(product.name);
@@ -169,31 +169,35 @@ function ProductRowItem({ product }: { product: ProductRow }) {
       </div>
       <div className="flex items-center gap-2">
         <Badge tone={product.isActive ? "success" : "muted"}>{product.isActive ? "Aktif" : "Nonaktif"}</Badge>
-        <Button variant="secondary" className="px-3 py-1.5 text-xs" disabled={pending} onClick={() => setEditing(true)}>
-          Edit
-        </Button>
-        <Button
-          variant={product.isActive ? "danger" : "secondary"}
-          className="px-3 py-1.5 text-xs"
-          disabled={pending}
-          onClick={() => patch({ isActive: !product.isActive })}
-        >
-          {pending ? "..." : product.isActive ? "Nonaktifkan" : "Aktifkan"}
-        </Button>
+        {canEdit && (
+          <>
+            <Button variant="secondary" className="px-3 py-1.5 text-xs" disabled={pending} onClick={() => setEditing(true)}>
+              Edit
+            </Button>
+            <Button
+              variant={product.isActive ? "danger" : "secondary"}
+              className="px-3 py-1.5 text-xs"
+              disabled={pending}
+              onClick={() => patch({ isActive: !product.isActive })}
+            >
+              {pending ? "..." : product.isActive ? "Nonaktifkan" : "Aktifkan"}
+            </Button>
+          </>
+        )}
       </div>
       {error && <p className="w-full text-sm text-danger">{error}</p>}
     </Card>
   );
 }
 
-export function ProductListManager({ products }: { products: ProductRow[] }) {
+export function ProductListManager({ products, isAdmin }: { products: ProductRow[]; isAdmin: boolean }) {
   return (
     <div className="flex flex-col gap-4">
-      <AddProductForm />
+      {isAdmin && <AddProductForm />}
       <div className="flex flex-col gap-2">
         {products.length === 0 && <p className="text-sm text-muted">Belum ada produk.</p>}
         {products.map((product) => (
-          <ProductRowItem key={product.id} product={product} />
+          <ProductRowItem key={product.id} product={product} canEdit={isAdmin} />
         ))}
       </div>
     </div>

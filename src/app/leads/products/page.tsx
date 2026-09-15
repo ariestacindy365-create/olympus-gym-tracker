@@ -1,9 +1,11 @@
-import { requireRole } from "@/lib/auth";
+import { getCurrentUser, requireAnyRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ProductListManager } from "@/components/leads/ProductListManager";
 
 export default async function ProductsPage() {
-  await requireRole("OWNER");
+  await requireAnyRole(["ADMIN", "OWNER"]);
+  const user = await getCurrentUser();
+  const isAdmin = user?.role === "ADMIN";
 
   const products = await prisma.product.findMany({ orderBy: [{ isActive: "desc" }, { name: "asc" }] });
 
@@ -16,7 +18,7 @@ export default async function ProductsPage() {
           tetap tidak berubah.
         </p>
       </div>
-      <ProductListManager products={products} />
+      <ProductListManager products={products} isAdmin={isAdmin} />
     </div>
   );
 }

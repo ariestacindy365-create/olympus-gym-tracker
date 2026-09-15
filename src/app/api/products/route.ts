@@ -6,8 +6,8 @@ import { createProductSchema } from "@/lib/validation";
 import { Role } from "@/generated/prisma/client";
 
 export async function POST(request: NextRequest) {
-  const owner = await getCurrentUser();
-  if (!owner || owner.role !== Role.OWNER) {
+  const admin = await getCurrentUser();
+  if (!admin || admin.role !== Role.ADMIN) {
     return NextResponse.json({ error: "Not authorized." }, { status: 401 });
   }
 
