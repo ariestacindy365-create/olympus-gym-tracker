@@ -26,15 +26,15 @@ export function NavBar({ links, userName }: NavBarProps) {
 
   return (
     <header className="sticky top-0 z-10 border-b border-white/10 bg-nav-bg print:hidden">
-      <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3">
-        <div className="flex items-center gap-6">
-          <OlympusLogo height={28} variant="light" />
-          <nav className="hidden items-center gap-1 sm:flex">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+        <div className="flex min-w-0 items-center gap-6">
+          <OlympusLogo height={28} variant="light" className="shrink-0" />
+          <nav className="hidden min-w-0 items-center gap-1 overflow-x-auto sm:flex">
             {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                className={`shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition ${
                   isActive(link.href) ? "bg-white/10 text-accent" : "text-nav-muted hover:text-nav-foreground"
                 }`}
               >
@@ -43,8 +43,8 @@ export function NavBar({ links, userName }: NavBarProps) {
             ))}
           </nav>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="hidden text-sm text-nav-muted sm:inline">{userName}</span>
+        <div className="flex shrink-0 items-center gap-3">
+          <span className="hidden whitespace-nowrap text-sm text-nav-muted sm:inline">{userName}</span>
           <LogoutButton />
           <button
             type="button"
