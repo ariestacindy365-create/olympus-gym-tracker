@@ -157,7 +157,7 @@ const proofImageSchema = z
 export const createPaymentSchema = z.object({
   packageName: z.string().trim().min(1, { error: "Isi nama paket." }).max(80),
   amount: z.number().int().positive({ error: "Nominal harus lebih dari 0." }).max(100_000_000),
-  paymentMethod: z.enum(["QRIS", "TRANSFER", "KARTU_KREDIT", "DEBIT", "FITQUARTER"]),
+  paymentMethod: z.enum(["QRIS", "TRANSFER", "KARTU_KREDIT", "DEBIT", "FITQUARTER", "TUNAI"]),
   paidAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Tanggal tidak valid." }).optional(),
   durationDays: z.number().int().positive({ error: "Durasi harus lebih dari 0." }).max(3650).optional(),
   proofImage: proofImageSchema,
@@ -181,6 +181,26 @@ export const createPackageSchema = z.object({
   name: z.string().trim().min(1, { error: "Isi nama paket." }).max(80),
   price: z.number().int().positive({ error: "Harga harus lebih dari 0." }).max(100_000_000),
   durationDays: z.number().int().positive({ error: "Durasi harus lebih dari 0." }).max(3650).optional(),
+});
+
+export const createProductSchema = z.object({
+  name: z.string().trim().min(1, { error: "Isi nama produk." }).max(80),
+  barcode: z.string().trim().min(1, { error: "Isi barcode." }).max(80),
+  price: z.number().int().positive({ error: "Harga harus lebih dari 0." }).max(100_000_000),
+  stock: z.number().int().min(0).max(1_000_000).optional(),
+});
+
+export const updateProductSchema = z.object({
+  name: z.string().trim().min(1, { error: "Isi nama produk." }).max(80).optional(),
+  barcode: z.string().trim().min(1, { error: "Isi barcode." }).max(80).optional(),
+  price: z.number().int().positive({ error: "Harga harus lebih dari 0." }).max(100_000_000).optional(),
+  stock: z.number().int().min(0).max(1_000_000).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const scanSaleSchema = z.object({
+  barcode: z.string().trim().min(1, { error: "Barcode kosong." }).max(80),
+  paymentMethod: z.enum(["QRIS", "TRANSFER", "KARTU_KREDIT", "DEBIT", "FITQUARTER", "TUNAI"]),
 });
 
 export const updatePackageSchema = z.object({

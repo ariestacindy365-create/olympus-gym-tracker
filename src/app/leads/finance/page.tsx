@@ -13,18 +13,42 @@ export default async function FinancePage() {
   const today = todayDateKey();
   const monthStart = startOfMonth(today);
 
-  const [revenueThisMonth, revenueAllTime, paymentsThisMonth, expensesThisMonth, expensesAllTime, expensesThisMonthList] =
-    await Promise.all([
-      prisma.payment.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart }, deletedAt: null } }),
-      prisma.payment.aggregate({ _sum: { amount: true }, where: { deletedAt: null } }),
-      prisma.payment.findMany({
-        where: { paidAt: { gte: monthStart }, deletedAt: null },
-        select: { amount: true, packageName: true, paymentMethod: true },
-      }),
-      prisma.expense.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart } } }),
-      prisma.expense.aggregate({ _sum: { amount: true } }),
-      prisma.expense.findMany({ where: { paidAt: { gte: monthStart } }, select: { amount: true, category: true } }),
-    ]);
+  const [
+    membershipRevenueThisMonth,
+    membershipRevenueAllTime,
+    paymentsThisMonth,
+    salesRevenueThisMonth,
+    salesRevenueAllTime,
+    salesThisMonthList,
+    expensesThisMonth,
+    expensesAllTime,
+    expensesThisMonthList,
+  ] = await Promise.all([
+    prisma.payment.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart }, deletedAt: null } }),
+    prisma.payment.aggregate({ _sum: { amount: true }, where: { deletedAt: null } }),
+    prisma.payment.findMany({
+      where: { paidAt: { gte: monthStart }, deletedAt: null },
+      select: { amount: true, packageName: true, paymentMethod: true },
+    }),
+    prisma.sale.aggregate({ _sum: { price: true }, where: { createdAt: { gte: monthStart } } }),
+    prisma.sale.aggregate({ _sum: { price: true } }),
+    prisma.sale.findMany({ where: { createdAt: { gte: monthStart } }, select: { price: true, productName: true } }),
+    prisma.expense.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart } } }),
+    prisma.expense.aggregate({ _sum: { amount: true } }),
+    prisma.expense.findMany({ where: { paidAt: { gte: monthStart } }, select: { amount: true, category: true } }),
+  ]);
+
+  const revenueThisMonthTotal = (membershipRevenueThisMonth._sum.amount ?? 0) + (salesRevenueThisMonth._sum.price ?? 0);
+  const revenueAllTimeTotal = (membershipRevenueAllTime._sum.amount ?? 0) + (salesRevenueAllTime._sum.price ?? 0);
+
+  const salesByProduct = new Map<string, { count: number; total: number }>();
+  for (const s of salesThisMonthList) {
+    const p = salesByProduct.get(s.productName) ?? { count: 0, total: 0 };
+    p.count += 1;
+    p.total += s.price;
+    salesByProduct.set(s.productName, p);
+  }
+  const topProductsThisMonth = [...salesByProduct.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 5);
 
   const revenueByPackage = new Map<string, { count: number; total: number }>();
   const revenueByMethod = new Map<string, { count: number; total: number }>();
@@ -50,7 +74,7 @@ export default async function FinancePage() {
     expenseByCategory.set(e.category, cat);
   }
   const byCategoryThisMonth = [...expenseByCategory.entries()].sort((a, b) => b[1].total - a[1].total);
-  const netProfitThisMonth = (revenueThisMonth._sum.amount ?? 0) - (expensesThisMonth._sum.amount ?? 0);
+  const netProfitThisMonth = revenueThisMonthTotal - (expensesThisMonth._sum.amount ?? 0);
 
   return (
     <div className="flex flex-col gap-6">
@@ -60,8 +84,8 @@ export default async function FinancePage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <StatTile label="Pendapatan Bulan Ini" value={formatRupiah(revenueThisMonth._sum.amount ?? 0)} accent />
-        <StatTile label="Pendapatan Sepanjang Waktu" value={formatRupiah(revenueAllTime._sum.amount ?? 0)} />
+        <StatTile label="Pendapatan Bulan Ini" value={formatRupiah(revenueThisMonthTotal)} accent />
+        <StatTile label="Pendapatan Sepanjang Waktu" value={formatRupiah(revenueAllTimeTotal)} />
         <StatTile
           label="Laba Bersih Bulan Ini"
           value={formatRupiah(netProfitThisMonth)}
@@ -114,6 +138,29 @@ export default async function FinancePage() {
               </ul>
             </div>
           </div>
+        )}
+      </Card>
+
+      <Card className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-lg font-semibold">Rincian Penjualan Produk Bulan Ini</h2>
+          <Link href="/leads/kasir" className="text-xs font-medium text-accent hover:underline">
+            Buka Kasir →
+          </Link>
+        </div>
+        {topProductsThisMonth.length === 0 ? (
+          <p className="text-sm text-muted">Belum ada penjualan produk bulan ini.</p>
+        ) : (
+          <ul className="flex flex-col gap-1.5">
+            {topProductsThisMonth.map(([name, stat]) => (
+              <li key={name} className="flex items-center justify-between text-sm">
+                <span>
+                  {name} <span className="text-xs text-muted">×{stat.count}</span>
+                </span>
+                <span className="font-medium">{formatRupiah(stat.total)}</span>
+              </li>
+            ))}
+          </ul>
         )}
       </Card>
 

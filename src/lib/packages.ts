@@ -11,6 +11,7 @@ export const PAYMENT_METHOD_LABEL: Record<string, string> = {
   KARTU_KREDIT: "Kartu Kredit",
   DEBIT: "Debit",
   FITQUARTER: "Fitquarter",
+  TUNAI: "Tunai",
 };
 
 export const EXPENSE_CATEGORY_LABEL: Record<string, string> = {

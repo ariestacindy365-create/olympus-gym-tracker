@@ -62,11 +62,13 @@ export default async function LeadsOwnerPage() {
   // methods, expense categories) lives on /leads/finance, reached by
   // clicking the Keuangan card below.
   const monthStart = startOfMonth(today);
-  const [revenueThisMonth, expensesThisMonth] = await Promise.all([
+  const [membershipRevenueThisMonth, salesRevenueThisMonth, expensesThisMonth] = await Promise.all([
     prisma.payment.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart }, deletedAt: null } }),
+    prisma.sale.aggregate({ _sum: { price: true }, where: { createdAt: { gte: monthStart } } }),
     prisma.expense.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart } } }),
   ]);
-  const netProfitThisMonth = (revenueThisMonth._sum.amount ?? 0) - (expensesThisMonth._sum.amount ?? 0);
+  const revenueThisMonthTotal = (membershipRevenueThisMonth._sum.amount ?? 0) + (salesRevenueThisMonth._sum.price ?? 0);
+  const netProfitThisMonth = revenueThisMonthTotal - (expensesThisMonth._sum.amount ?? 0);
 
   const adminStats = await Promise.all(
     admins.map(async (admin) => {
@@ -130,7 +132,7 @@ export default async function LeadsOwnerPage() {
             <span className="text-xs font-medium text-accent">Lihat rincian →</span>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <StatTile label="Pendapatan Bulan Ini" value={formatRupiah(revenueThisMonth._sum.amount ?? 0)} accent />
+            <StatTile label="Pendapatan Bulan Ini" value={formatRupiah(revenueThisMonthTotal)} accent />
             <StatTile
               label="Pengeluaran Bulan Ini"
               value={formatRupiah(expensesThisMonth._sum.amount ?? 0)}

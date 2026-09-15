@@ -16,6 +16,7 @@ export async function buildDailyReportMessage(): Promise<string> {
     capturesYesterday,
     followUpsDoneYesterday,
     paymentsYesterday,
+    salesYesterday,
     expensesYesterday,
     followUpsDueToday,
     followUpsOverdue,
@@ -28,6 +29,7 @@ export async function buildDailyReportMessage(): Promise<string> {
       where: { paidAt: { gte: yesterday, lt: today }, deletedAt: null },
       select: { amount: true },
     }),
+    prisma.sale.findMany({ where: { createdAt: { gte: yesterday, lt: today } }, select: { price: true } }),
     prisma.expense.findMany({ where: { paidAt: { gte: yesterday, lt: today } }, select: { amount: true } }),
     prisma.followUp.count({
       where: { status: "PENDING", dueDate: { gte: today, lt: addDays(today, 1) }, lead: { deletedAt: null } },
@@ -45,6 +47,7 @@ export async function buildDailyReportMessage(): Promise<string> {
   ]);
 
   const revenueYesterday = paymentsYesterday.reduce((sum, p) => sum + p.amount, 0);
+  const salesTotalYesterday = salesYesterday.reduce((sum, s) => sum + s.price, 0);
   const expensesTotalYesterday = expensesYesterday.reduce((sum, e) => sum + e.amount, 0);
 
   const overdueRenewals = activeMembers.filter((l) => {
@@ -70,6 +73,7 @@ export async function buildDailyReportMessage(): Promise<string> {
     `• Lead baru: ${capturesYesterday}`,
     `• Follow up selesai: ${followUpsDoneYesterday}`,
     `• Pembayaran: ${paymentsYesterday.length} transaksi, ${formatRupiah(revenueYesterday)}`,
+    `• Penjualan produk: ${salesYesterday.length} transaksi, ${formatRupiah(salesTotalYesterday)}`,
     `• Pengeluaran: ${expensesYesterday.length} transaksi, ${formatRupiah(expensesTotalYesterday)}`,
     ``,
     `<b>Perlu Perhatian Hari Ini</b>`,

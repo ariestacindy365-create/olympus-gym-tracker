@@ -49,6 +49,7 @@ model User {
   paymentsRecorded   Payment[]  @relation("PaymentsRecorded")
   paymentsDeleted    Payment[]  @relation("PaymentsDeleted")
   expensesRecorded   Expense[]  @relation("ExpensesRecorded")
+  salesRecorded      Sale[]     @relation("SalesRecorded")
 }
 
 // Achievement definitions live in code (src/lib/achievements.ts), not the
@@ -446,4 +447,40 @@ model Package {
   updatedAt    DateTime @updatedAt
 
   @@index([isActive])
+}
+
+// Food & drink catalog for the front-desk "Kasir" — separate from Package
+// (memberships) since this has its own barcode + stock, managed by OWNER at
+// /leads/products.
+model Product {
+  id        String   @id @default(cuid())
+  name      String
+  barcode   String   @unique
+  price     Int
+  stock     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sales Sale[]
+
+  @@index([isActive])
+}
+
+// One scanned sale (quantity always 1 — scan again to sell another unit).
+// productName/price are snapshots, like Payment.packageName/amount, so
+// renaming or repricing a Product later doesn't change past sales.
+model Sale {
+  id            String        @id @default(cuid())
+  productId     String
+  product       Product       @relation(fields: [productId], references: [id])
+  productName   String
+  price         Int
+  paymentMethod PaymentMethod @default(TUNAI)
+  createdById   String
+  createdBy     User          @relation("SalesRecorded", fields: [createdById], references: [id])
+  createdAt     DateTime      @default(now())
+
+  @@index([productId])
+  @@index([createdAt])
 }
