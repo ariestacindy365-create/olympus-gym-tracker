@@ -15,10 +15,10 @@ export default async function FinancePage() {
 
   const [revenueThisMonth, revenueAllTime, paymentsThisMonth, expensesThisMonth, expensesAllTime, expensesThisMonthList] =
     await Promise.all([
-      prisma.payment.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart } } }),
-      prisma.payment.aggregate({ _sum: { amount: true } }),
+      prisma.payment.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart }, deletedAt: null } }),
+      prisma.payment.aggregate({ _sum: { amount: true }, where: { deletedAt: null } }),
       prisma.payment.findMany({
-        where: { paidAt: { gte: monthStart } },
+        where: { paidAt: { gte: monthStart }, deletedAt: null },
         select: { amount: true, packageName: true, paymentMethod: true },
       }),
       prisma.expense.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart } } }),

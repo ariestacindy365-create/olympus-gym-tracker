@@ -47,6 +47,7 @@ model User {
   deletedLeads       Lead[]     @relation("DeletedLeads")
   target             Target?    @relation("AdminTarget")
   paymentsRecorded   Payment[]  @relation("PaymentsRecorded")
+  paymentsDeleted    Payment[]  @relation("PaymentsDeleted")
   expensesRecorded   Expense[]  @relation("ExpensesRecorded")
 }
 
@@ -355,6 +356,7 @@ enum PaymentMethod {
   KARTU_KREDIT
   DEBIT
   FITQUARTER
+  TUNAI
 }
 
 // A payment an admin records for a member — initial or renewal — printable
@@ -388,6 +390,12 @@ model Payment {
   createdById      String
   createdBy        User          @relation("PaymentsRecorded", fields: [createdById], references: [id])
   createdAt        DateTime      @default(now())
+  // Soft delete, same reasoning as Lead — keeps the row (and its receipt)
+  // so a correction shows up as an audit trail on Riwayat for OWNER to see,
+  // instead of the payment silently vanishing from the numbers.
+  deletedAt        DateTime?
+  deletedById      String?
+  deletedBy        User?         @relation("PaymentsDeleted", fields: [deletedById], references: [id])
 
   @@index([leadId])
 }

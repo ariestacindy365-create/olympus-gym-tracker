@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { RecordPaymentForm } from "@/components/leads/RecordPaymentForm";
 import { ThermalPrinterSettings } from "@/components/leads/ThermalPrinterSettings";
+import { DeletePaymentButton } from "@/components/leads/DeletePaymentButton";
 import { formatRupiah, PAYMENT_METHOD_LABEL } from "@/lib/packages";
 
 export default async function PaymentsPage({
@@ -25,6 +26,7 @@ export default async function PaymentsPage({
     }),
     prisma.package.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
     prisma.payment.findMany({
+      where: { deletedAt: null },
       orderBy: { paidAt: "desc" },
       take: 30,
       include: { lead: { select: { name: true, waNumber: true } }, createdBy: { select: { name: true } } },
@@ -82,6 +84,7 @@ export default async function PaymentsPage({
                       Cetak Struk
                     </Button>
                   </Link>
+                  {isAdmin && <DeletePaymentButton paymentId={payment.id} />}
                 </div>
               </li>
             ))}

@@ -24,7 +24,10 @@ export async function buildDailyReportMessage(): Promise<string> {
   ] = await Promise.all([
     prisma.lead.count({ where: { capturedAt: { gte: yesterday, lt: today }, deletedAt: null } }),
     prisma.followUp.count({ where: { completedAt: { gte: yesterday, lt: today } } }),
-    prisma.payment.findMany({ where: { paidAt: { gte: yesterday, lt: today } }, select: { amount: true } }),
+    prisma.payment.findMany({
+      where: { paidAt: { gte: yesterday, lt: today }, deletedAt: null },
+      select: { amount: true },
+    }),
     prisma.expense.findMany({ where: { paidAt: { gte: yesterday, lt: today } }, select: { amount: true } }),
     prisma.followUp.count({
       where: { status: "PENDING", dueDate: { gte: today, lt: addDays(today, 1) }, lead: { deletedAt: null } },
@@ -34,7 +37,9 @@ export async function buildDailyReportMessage(): Promise<string> {
     }),
     prisma.lead.findMany({
       where: { status: { in: ["MEMBER", "RETENSI"] }, deletedAt: null },
-      select: { payments: { orderBy: { paidAt: "desc" }, take: 1, select: { expiresAt: true } } },
+      select: {
+        payments: { where: { deletedAt: null }, orderBy: { paidAt: "desc" }, take: 1, select: { expiresAt: true } },
+      },
     }),
     prisma.lead.count({ where: { status: "LOST", convertedAt: { not: null }, deletedAt: null } }),
   ]);

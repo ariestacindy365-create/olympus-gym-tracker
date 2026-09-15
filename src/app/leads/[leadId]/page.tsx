@@ -11,6 +11,7 @@ import { FollowUpActions } from "@/components/leads/FollowUpActions";
 import { ScheduleFollowUpForm } from "@/components/leads/ScheduleFollowUpForm";
 import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
 import { LeadTimeline, type TimelineEvent } from "@/components/leads/LeadTimeline";
+import { DeletePaymentButton } from "@/components/leads/DeletePaymentButton";
 import { formatRupiah, PAYMENT_METHOD_LABEL } from "@/lib/packages";
 import {
   STATUS_LABEL,
@@ -37,6 +38,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
         include: { completedBy: { select: { name: true } } },
       },
       payments: {
+        where: { deletedAt: null },
         orderBy: { paidAt: "desc" },
         include: { createdBy: { select: { name: true } } },
       },
@@ -166,6 +168,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
                         Cetak Struk
                       </Button>
                     </Link>
+                    {isAdmin && !isDeleted && <DeletePaymentButton paymentId={payment.id} />}
                   </div>
                 </li>
               ))}

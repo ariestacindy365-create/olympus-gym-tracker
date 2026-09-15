@@ -109,3 +109,18 @@ export async function getDeletedLeads(adminId?: string) {
     orderBy: { deletedAt: "desc" },
   });
 }
+
+// Payments an admin has soft-deleted (e.g. correcting a wrong amount/package)
+// — same audit-trail reasoning as getDeletedLeads, so OWNER always sees what
+// changed even though the payment itself was recorded by an admin.
+export async function getDeletedPayments(adminId?: string) {
+  return prisma.payment.findMany({
+    where: { deletedAt: { not: null }, ...(adminId ? { createdById: adminId } : {}) },
+    include: {
+      lead: { select: { name: true, waNumber: true } },
+      createdBy: { select: { name: true } },
+      deletedBy: { select: { name: true } },
+    },
+    orderBy: { deletedAt: "desc" },
+  });
+}

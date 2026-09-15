@@ -37,6 +37,11 @@ export default async function ReceiptPage({
 
   return (
     <div className="mx-auto flex max-w-md flex-col gap-4 py-4 print:max-w-none print:gap-2 print:py-0">
+      {payment.deletedAt && (
+        <div className="rounded-md border border-danger/40 bg-danger/5 p-3 text-sm text-danger print:hidden">
+          Pembayaran ini sudah dihapus pada {payment.deletedAt.toLocaleDateString("id-ID")}.
+        </div>
+      )}
       <div className="rounded-lg border border-border bg-surface p-6 print:border-0 print:p-2">
         <div className="mb-6 flex flex-col items-center text-center print:mb-3">
           <OlympusLogo height={40} className="print:!h-8 print:!w-auto" />

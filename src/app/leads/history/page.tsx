@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { differenceInCalendarDays } from "date-fns";
 import { getCurrentUser } from "@/lib/auth";
-import { getFollowUpHistory, getDeletedLeads } from "@/lib/leads";
+import { getFollowUpHistory, getDeletedLeads, getDeletedPayments } from "@/lib/leads";
 import { todayDateKey } from "@/lib/workout";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
 import { STATUS_LABEL, STATUS_TONE, FOLLOWUP_TYPE_LABEL, FOLLOWUP_TYPE_TONE } from "@/lib/leadStatusLabels";
 import { waFollowUpMessage } from "@/lib/waScripts";
+import { formatRupiah, PAYMENT_METHOD_LABEL } from "@/lib/packages";
 
 function FollowUpTypeBadge({ type }: { type: string }) {
   return <Badge tone={FOLLOWUP_TYPE_TONE[type] ?? "default"}>{FOLLOWUP_TYPE_LABEL[type] ?? type}</Badge>;
@@ -21,9 +22,10 @@ export default async function LeadsHistoryPage() {
   const user = await getCurrentUser();
   const adminId = user?.role === "ADMIN" ? user.id : undefined;
 
-  const [{ done, dueNow, upcoming }, deletedLeads] = await Promise.all([
+  const [{ done, dueNow, upcoming }, deletedLeads, deletedPayments] = await Promise.all([
     getFollowUpHistory(adminId),
     getDeletedLeads(adminId),
+    getDeletedPayments(adminId),
   ]);
 
   const today = todayDateKey();
@@ -138,6 +140,34 @@ export default async function LeadsHistoryPage() {
                   </span>
                 </div>
                 <LeadStatusBadge status={lead.status} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <Card>
+        <h2 className="mb-3 font-display text-lg font-semibold">Pembayaran Dihapus ({deletedPayments.length})</h2>
+        {deletedPayments.length === 0 ? (
+          <p className="text-sm text-muted">Belum ada pembayaran yang dihapus.</p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {deletedPayments.map((payment) => (
+              <li
+                key={payment.id}
+                className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3 last:border-0 last:pb-0"
+              >
+                <div>
+                  <Link href={`/leads/${payment.leadId}`} className="font-medium hover:text-accent">
+                    {payment.lead.name}
+                  </Link>{" "}
+                  <span className="text-xs text-muted">
+                    {payment.packageName} · {formatRupiah(payment.amount)} ·{" "}
+                    {PAYMENT_METHOD_LABEL[payment.paymentMethod] ?? payment.paymentMethod} · dicatat oleh{" "}
+                    {payment.createdBy.name} · dihapus {payment.deletedAt?.toLocaleDateString("id-ID")} oleh{" "}
+                    {payment.deletedBy?.name}
+                  </span>
+                </div>
               </li>
             ))}
           </ul>

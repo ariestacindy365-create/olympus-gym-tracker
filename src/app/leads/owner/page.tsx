@@ -30,7 +30,7 @@ export default async function LeadsOwnerPage() {
     where: { status: "LOST", convertedAt: { not: null }, deletedAt: null },
     orderBy: { updatedAt: "desc" },
     include: {
-      payments: { orderBy: { paidAt: "desc" }, take: 1 },
+      payments: { where: { deletedAt: null }, orderBy: { paidAt: "desc" }, take: 1 },
       capturedBy: { select: { name: true } },
     },
     take: 30,
@@ -63,7 +63,7 @@ export default async function LeadsOwnerPage() {
   // clicking the Keuangan card below.
   const monthStart = startOfMonth(today);
   const [revenueThisMonth, expensesThisMonth] = await Promise.all([
-    prisma.payment.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart } } }),
+    prisma.payment.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart }, deletedAt: null } }),
     prisma.expense.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart } } }),
   ]);
   const netProfitThisMonth = (revenueThisMonth._sum.amount ?? 0) - (expensesThisMonth._sum.amount ?? 0);

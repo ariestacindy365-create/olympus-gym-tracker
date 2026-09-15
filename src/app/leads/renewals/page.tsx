@@ -18,7 +18,7 @@ export default async function RenewalsPage() {
   const activeMembers = await prisma.lead.findMany({
     where: { status: { in: ["MEMBER", "RETENSI"] }, deletedAt: null },
     include: {
-      payments: { orderBy: { paidAt: "desc" }, take: 1 },
+      payments: { where: { deletedAt: null }, orderBy: { paidAt: "desc" }, take: 1 },
       capturedBy: { select: { name: true } },
     },
   });
