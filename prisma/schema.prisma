@@ -47,6 +47,7 @@ model User {
   deletedLeads       Lead[]     @relation("DeletedLeads")
   target             Target?    @relation("AdminTarget")
   paymentsRecorded   Payment[]  @relation("PaymentsRecorded")
+  expensesRecorded   Expense[]  @relation("ExpensesRecorded")
 }
 
 // Achievement definitions live in code (src/lib/achievements.ts), not the
@@ -380,8 +381,8 @@ model Payment {
   // client-side then uploaded server-side to a Google Drive folder (see
   // lib/googleDrive.ts) — this is that file's Drive file ID, not the image
   // itself. Null when skipped. Viewed via /api/payments/[paymentId]/proof,
-  // which proxies it through the service account so the Drive file itself
-  // never has to be made public.
+  // which proxies it through the app's own Drive access so the Drive file
+  // itself never has to be made public.
   proofImageFileId String?
   note             String?
   createdById      String
@@ -389,6 +390,35 @@ model Payment {
   createdAt        DateTime      @default(now())
 
   @@index([leadId])
+}
+
+enum ExpenseCategory {
+  SEWA
+  GAJI
+  LISTRIK_AIR
+  ALAT
+  MARKETING
+  MAINTENANCE
+  LAINNYA
+}
+
+// A business expense — rent, salaries, equipment, etc. — logged by OWNER
+// only (unlike Payment, which admins record daily) so revenue reporting
+// can net against real cash outflow, not just show incoming payments.
+model Expense {
+  id               String          @id @default(cuid())
+  category         ExpenseCategory
+  amount           Int
+  description      String?
+  paidAt           DateTime        @default(now())
+  // Same Drive-upload scheme as Payment.proofImageFileId — a receipt/nota
+  // photo, optional.
+  proofImageFileId String?
+  createdById      String
+  createdBy        User            @relation("ExpensesRecorded", fields: [createdById], references: [id])
+  createdAt        DateTime        @default(now())
+
+  @@index([paidAt])
 }
 
 // Master price list, managed by OWNER at /leads/packages. Payment.packageName

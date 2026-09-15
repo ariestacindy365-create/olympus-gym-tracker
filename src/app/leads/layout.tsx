@@ -15,6 +15,7 @@ const OWNER_LINKS = [
   { href: "/leads", label: "Semua Lead" },
   { href: "/leads/renewals", label: "Perpanjangan" },
   { href: "/leads/payments", label: "Pembayaran" },
+  { href: "/leads/expenses", label: "Pengeluaran" },
   { href: "/leads/history", label: "Riwayat" },
   { href: "/leads/packages", label: "Daftar Harga" },
   { href: "/leads/account", label: "Akun Saya" },

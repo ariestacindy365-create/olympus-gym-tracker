@@ -22,15 +22,14 @@ function getDriveClient() {
 }
 
 // Uploads a compressed photo (client sends a "data:image/...;base64,..."
-// string) into the owner's Drive folder, returning the Drive file ID to
-// store on the Payment row. The folder is created once by
+// string) into the given Drive folder, returning the Drive file ID to
+// store on the row (Payment or Expense). Callers pass which subfolder —
+// GOOGLE_DRIVE_PAYMENTS_FOLDER_ID or GOOGLE_DRIVE_EXPENSES_FOLDER_ID —
+// both live inside the "Olympus Lifting Club" parent folder created by
 // scripts/google-drive-setup.ts, in the same Drive the OAuth token
 // authenticates as.
-export async function uploadProofImage(params: { dataUrl: string; filename: string }): Promise<string> {
-  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-  if (!folderId) {
-    throw new Error("GOOGLE_DRIVE_FOLDER_ID belum diatur.");
-  }
+export async function uploadProofImage(params: { dataUrl: string; filename: string; folderId: string }): Promise<string> {
+  const { folderId } = params;
 
   const match = params.dataUrl.match(/^data:(image\/[\w+.-]+);base64,(.+)$/);
   if (!match) {

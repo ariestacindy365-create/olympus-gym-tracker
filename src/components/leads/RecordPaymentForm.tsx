@@ -1,13 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { PAYMENT_METHOD_LABEL } from "@/lib/packages";
-import { compressImageFile } from "@/lib/imageCompression";
+import { ProofImageUpload } from "@/components/leads/ProofImageUpload";
 
 const CUSTOM_PACKAGE = "__CUSTOM__";
 const NEW_MEMBER = "__NEW__";
@@ -50,27 +50,8 @@ export function RecordPaymentForm({
   const [paidAt, setPaidAt] = useState(todayInputValue());
   const [note, setNote] = useState("");
   const [proofImage, setProofImage] = useState<string | null>(null);
-  const [proofPending, setProofPending] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const galleryInputRef = useRef<HTMLInputElement>(null);
-
-  async function handleProofFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    setProofPending(true);
-    setError(null);
-    try {
-      const dataUrl = await compressImageFile(file);
-      setProofImage(dataUrl);
-    } catch {
-      setError("Gagal memproses foto bukti pembayaran. Coba lagi.");
-    } finally {
-      setProofPending(false);
-    }
-  }
 
   function handlePresetChange(value: string) {
     setPreset(value);
@@ -260,52 +241,7 @@ export function RecordPaymentForm({
             ))}
           </Select>
         </div>
-        <div>
-          <label className="mb-1 block text-xs text-muted">Bukti Pembayaran (opsional)</label>
-          <input
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={handleProofFile}
-          />
-          <input ref={galleryInputRef} type="file" accept="image/*" className="hidden" onChange={handleProofFile} />
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              className="px-3 py-1.5 text-xs"
-              disabled={proofPending}
-              onClick={() => cameraInputRef.current?.click()}
-            >
-              📷 Ambil Foto
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              className="px-3 py-1.5 text-xs"
-              disabled={proofPending}
-              onClick={() => galleryInputRef.current?.click()}
-            >
-              🖼️ Pilih dari Galeri
-            </Button>
-            {proofPending && <span className="text-xs text-muted">Memproses foto...</span>}
-            {proofImage && (
-              <div className="flex items-center gap-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={proofImage} alt="Preview bukti pembayaran" className="h-12 w-12 rounded-md border border-border object-cover" />
-                <button
-                  type="button"
-                  className="text-xs text-danger underline"
-                  onClick={() => setProofImage(null)}
-                >
-                  Hapus
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+        <ProofImageUpload value={proofImage} onChange={setProofImage} label="Bukti Pembayaran (opsional)" />
         <Input placeholder="Catatan (opsional, mis. diskon promo)" value={note} onChange={(e) => setNote(e.target.value)} />
         {error && <p className="text-sm text-danger">{error}</p>}
         <Button type="submit" disabled={pending} className="w-full sm:w-auto">

@@ -11,7 +11,7 @@ import { AdminInviteCodeCard } from "@/components/leads/AdminInviteCodeCard";
 import { SendDailyReportButton } from "@/components/leads/SendDailyReportButton";
 import { toWhatsAppLink } from "@/lib/whatsapp";
 import { waWinBackMessage } from "@/lib/waScripts";
-import { formatRupiah, PAYMENT_METHOD_LABEL } from "@/lib/packages";
+import { formatRupiah, PAYMENT_METHOD_LABEL, EXPENSE_CATEGORY_LABEL } from "@/lib/packages";
 import { Role } from "@/generated/prisma/client";
 
 export default async function LeadsOwnerPage() {
@@ -84,6 +84,23 @@ export default async function LeadsOwnerPage() {
   const topPackagesThisMonth = [...revenueByPackage.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 5);
   const byMethodThisMonth = [...revenueByMethod.entries()].sort((a, b) => b[1].total - a[1].total);
 
+  // Expense reporting, same shape as revenue above, so net profit is just
+  // revenue minus this.
+  const [expensesThisMonth, expensesAllTime, expensesThisMonthList] = await Promise.all([
+    prisma.expense.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart } } }),
+    prisma.expense.aggregate({ _sum: { amount: true } }),
+    prisma.expense.findMany({ where: { paidAt: { gte: monthStart } }, select: { amount: true, category: true } }),
+  ]);
+  const expenseByCategory = new Map<string, { count: number; total: number }>();
+  for (const e of expensesThisMonthList) {
+    const cat = expenseByCategory.get(e.category) ?? { count: 0, total: 0 };
+    cat.count += 1;
+    cat.total += e.amount;
+    expenseByCategory.set(e.category, cat);
+  }
+  const byCategoryThisMonth = [...expenseByCategory.entries()].sort((a, b) => b[1].total - a[1].total);
+  const netProfitThisMonth = (revenueThisMonth._sum.amount ?? 0) - (expensesThisMonth._sum.amount ?? 0);
+
   const adminStats = await Promise.all(
     admins.map(async (admin) => {
       const [target, capturesToday, followUpsDoneToday, totalTrial, totalConversion, trialConversionCount, missedFollowUps] =
@@ -140,42 +157,71 @@ export default async function LeadsOwnerPage() {
       />
 
       <Card className="flex flex-col gap-4">
-        <h2 className="font-display text-lg font-semibold">Pendapatan</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <StatTile label="Bulan Ini" value={formatRupiah(revenueThisMonth._sum.amount ?? 0)} accent />
-          <StatTile label="Sepanjang Waktu" value={formatRupiah(revenueAllTime._sum.amount ?? 0)} />
+        <h2 className="font-display text-lg font-semibold">Keuangan</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatTile label="Pendapatan Bulan Ini" value={formatRupiah(revenueThisMonth._sum.amount ?? 0)} accent />
+          <StatTile label="Pengeluaran Bulan Ini" value={formatRupiah(expensesThisMonth._sum.amount ?? 0)} danger={expensesThisMonth._sum.amount != null && expensesThisMonth._sum.amount > 0} />
+          <StatTile
+            label="Laba Bersih Bulan Ini"
+            value={formatRupiah(netProfitThisMonth)}
+            danger={netProfitThisMonth < 0}
+            accent={netProfitThisMonth >= 0}
+          />
           <StatTile label="Retention Rate" value={retentionRate != null ? `${retentionRate}%` : "-"} accent />
         </div>
-        {paymentsThisMonth.length === 0 ? (
-          <p className="text-sm text-muted">Belum ada pembayaran bulan ini.</p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
+          <StatTile label="Pendapatan Sepanjang Waktu" value={formatRupiah(revenueAllTime._sum.amount ?? 0)} />
+          <StatTile label="Pengeluaran Sepanjang Waktu" value={formatRupiah(expensesAllTime._sum.amount ?? 0)} />
+        </div>
+        {paymentsThisMonth.length === 0 && expensesThisMonthList.length === 0 ? (
+          <p className="text-sm text-muted">Belum ada pembayaran atau pengeluaran bulan ini.</p>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Paket Terlaris Bulan Ini</p>
-              <ul className="flex flex-col gap-1.5">
-                {topPackagesThisMonth.map(([name, stat]) => (
-                  <li key={name} className="flex items-center justify-between text-sm">
-                    <span>
-                      {name} <span className="text-xs text-muted">×{stat.count}</span>
-                    </span>
-                    <span className="font-medium">{formatRupiah(stat.total)}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Metode Bayar Bulan Ini</p>
-              <ul className="flex flex-col gap-1.5">
-                {byMethodThisMonth.map(([method, stat]) => (
-                  <li key={method} className="flex items-center justify-between text-sm">
-                    <span>
-                      {PAYMENT_METHOD_LABEL[method] ?? method} <span className="text-xs text-muted">×{stat.count}</span>
-                    </span>
-                    <span className="font-medium">{formatRupiah(stat.total)}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {topPackagesThisMonth.length > 0 && (
+              <div>
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Paket Terlaris Bulan Ini</p>
+                <ul className="flex flex-col gap-1.5">
+                  {topPackagesThisMonth.map(([name, stat]) => (
+                    <li key={name} className="flex items-center justify-between text-sm">
+                      <span>
+                        {name} <span className="text-xs text-muted">×{stat.count}</span>
+                      </span>
+                      <span className="font-medium">{formatRupiah(stat.total)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {byMethodThisMonth.length > 0 && (
+              <div>
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Metode Bayar Bulan Ini</p>
+                <ul className="flex flex-col gap-1.5">
+                  {byMethodThisMonth.map(([method, stat]) => (
+                    <li key={method} className="flex items-center justify-between text-sm">
+                      <span>
+                        {PAYMENT_METHOD_LABEL[method] ?? method} <span className="text-xs text-muted">×{stat.count}</span>
+                      </span>
+                      <span className="font-medium">{formatRupiah(stat.total)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {byCategoryThisMonth.length > 0 && (
+              <div>
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Pengeluaran per Kategori</p>
+                <ul className="flex flex-col gap-1.5">
+                  {byCategoryThisMonth.map(([category, stat]) => (
+                    <li key={category} className="flex items-center justify-between text-sm">
+                      <span>
+                        {EXPENSE_CATEGORY_LABEL[category] ?? category} <span className="text-xs text-muted">×{stat.count}</span>
+                      </span>
+                      <span className="font-medium">{formatRupiah(stat.total)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
       </Card>

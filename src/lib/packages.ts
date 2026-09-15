@@ -12,3 +12,13 @@ export const PAYMENT_METHOD_LABEL: Record<string, string> = {
   DEBIT: "Debit",
   FITQUARTER: "Fitquarter",
 };
+
+export const EXPENSE_CATEGORY_LABEL: Record<string, string> = {
+  SEWA: "Sewa",
+  GAJI: "Gaji",
+  LISTRIK_AIR: "Listrik & Air",
+  ALAT: "Alat/Perlengkapan",
+  MARKETING: "Marketing",
+  MAINTENANCE: "Maintenance",
+  LAINNYA: "Lainnya",
+};

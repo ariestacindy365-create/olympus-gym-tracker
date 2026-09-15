@@ -145,21 +145,31 @@ export const createFollowUpSchema = z.object({
   note: z.string().trim().max(280).optional(),
 });
 
+// A "data:image/...;base64,..." string, resized/compressed client-side
+// before upload — cap generous enough for a compressed photo, small
+// enough to keep a rogue payload out of the request.
+const proofImageSchema = z
+  .string()
+  .startsWith("data:image/", { error: "Format bukti tidak valid." })
+  .max(3_000_000, { error: "Ukuran bukti terlalu besar." })
+  .optional();
+
 export const createPaymentSchema = z.object({
   packageName: z.string().trim().min(1, { error: "Isi nama paket." }).max(80),
   amount: z.number().int().positive({ error: "Nominal harus lebih dari 0." }).max(100_000_000),
   paymentMethod: z.enum(["QRIS", "TRANSFER", "KARTU_KREDIT", "DEBIT", "FITQUARTER"]),
   paidAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Tanggal tidak valid." }).optional(),
   durationDays: z.number().int().positive({ error: "Durasi harus lebih dari 0." }).max(3650).optional(),
-  // A "data:image/...;base64,..." string, resized/compressed client-side
-  // before upload — cap generous enough for a compressed photo, small
-  // enough to keep a rogue payload out of the database.
-  proofImage: z
-    .string()
-    .startsWith("data:image/", { error: "Format bukti pembayaran tidak valid." })
-    .max(3_000_000, { error: "Ukuran bukti pembayaran terlalu besar." })
-    .optional(),
+  proofImage: proofImageSchema,
   note: z.string().trim().max(280).optional(),
+});
+
+export const createExpenseSchema = z.object({
+  category: z.enum(["SEWA", "GAJI", "LISTRIK_AIR", "ALAT", "MARKETING", "MAINTENANCE", "LAINNYA"]),
+  amount: z.number().int().positive({ error: "Nominal harus lebih dari 0." }).max(1_000_000_000),
+  paidAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Tanggal tidak valid." }).optional(),
+  proofImage: proofImageSchema,
+  description: z.string().trim().max(280).optional(),
 });
 
 export const updateTargetSchema = z.object({

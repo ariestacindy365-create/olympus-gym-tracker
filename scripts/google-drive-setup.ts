@@ -3,11 +3,13 @@
 // ("Desktop app" type) in Google Cloud Console.
 //
 // It opens a Google login/consent page in your browser, catches the
-// redirect on a local port, exchanges it for a refresh token, creates a
-// "Bukti Pembayaran Olympus" folder in your Drive, and prints the three
-// values to put in .env / Vercel:
+// redirect on a local port, exchanges it for a refresh token, creates an
+// "Olympus Lifting Club" folder with "Bukti Pembayaran" / "Bukti
+// Pengeluaran" subfolders in your Drive, and prints the values to put in
+// .env / Vercel:
 //   GOOGLE_OAUTH_REFRESH_TOKEN
-//   GOOGLE_DRIVE_FOLDER_ID
+//   GOOGLE_DRIVE_PAYMENTS_FOLDER_ID
+//   GOOGLE_DRIVE_EXPENSES_FOLDER_ID
 // (GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET must already be in
 // .env before running this — that's how this script authenticates.)
 
@@ -48,14 +50,25 @@ async function main() {
   oauth2Client.setCredentials(tokens);
 
   const drive = google.drive({ version: "v3", auth: oauth2Client });
-  const folder = await drive.files.create({
-    requestBody: { name: "Bukti Pembayaran Olympus", mimeType: "application/vnd.google-apps.folder" },
+  const parent = await drive.files.create({
+    requestBody: { name: "Olympus Lifting Club", mimeType: "application/vnd.google-apps.folder" },
     fields: "id",
   });
+  const [paymentsFolder, expensesFolder] = await Promise.all([
+    drive.files.create({
+      requestBody: { name: "Bukti Pembayaran", mimeType: "application/vnd.google-apps.folder", parents: [parent.data.id!] },
+      fields: "id",
+    }),
+    drive.files.create({
+      requestBody: { name: "Bukti Pengeluaran", mimeType: "application/vnd.google-apps.folder", parents: [parent.data.id!] },
+      fields: "id",
+    }),
+  ]);
 
   console.log("\nBerhasil! Tambahkan ini ke .env (dan ke Environment Variables Vercel):\n");
   console.log(`GOOGLE_OAUTH_REFRESH_TOKEN=${tokens.refresh_token}`);
-  console.log(`GOOGLE_DRIVE_FOLDER_ID=${folder.data.id}\n`);
+  console.log(`GOOGLE_DRIVE_PAYMENTS_FOLDER_ID=${paymentsFolder.data.id}`);
+  console.log(`GOOGLE_DRIVE_EXPENSES_FOLDER_ID=${expensesFolder.data.id}\n`);
 }
 
 function waitForAuthCode(): Promise<string> {

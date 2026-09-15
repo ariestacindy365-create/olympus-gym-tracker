@@ -35,10 +35,15 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/leads/[
 
   let proofImageFileId: string | undefined;
   if (parsed.data.proofImage) {
+    const folderId = process.env.GOOGLE_DRIVE_PAYMENTS_FOLDER_ID;
+    if (!folderId) {
+      return NextResponse.json({ error: "GOOGLE_DRIVE_PAYMENTS_FOLDER_ID belum diatur." }, { status: 500 });
+    }
     try {
       proofImageFileId = await uploadProofImage({
         dataUrl: parsed.data.proofImage,
         filename: `${leadId}-${Date.now()}.jpg`,
+        folderId,
       });
     } catch (error) {
       return NextResponse.json(
