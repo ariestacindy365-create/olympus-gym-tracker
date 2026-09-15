@@ -15,7 +15,7 @@ export interface SaleRow {
   createdAt: string;
 }
 
-export function KasirScan({ initialSales }: { initialSales: SaleRow[] }) {
+export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; isAdmin: boolean }) {
   const [barcode, setBarcode] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("TUNAI");
   const [sales, setSales] = useState(initialSales);
@@ -66,38 +66,40 @@ export function KasirScan({ initialSales }: { initialSales: SaleRow[] }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <Card className="flex flex-col gap-3">
-        <h2 className="font-display text-lg font-semibold">Scan Barcode</h2>
-        <div>
-          <label className="mb-1 block text-xs text-muted">Metode Pembayaran</label>
-          <Select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
-            {Object.entries(PAYMENT_METHOD_LABEL).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <Input
-            ref={inputRef}
-            autoFocus
-            placeholder="Scan barcode di sini..."
-            value={barcode}
-            onChange={(e) => setBarcode(e.target.value)}
-            disabled={pending}
-            className="flex-1"
-          />
-          <Button type="submit" disabled={pending}>
-            {pending ? "..." : "Jual"}
-          </Button>
-        </form>
-        {feedback && (
-          <p className={`text-sm font-medium ${feedback.type === "success" ? "text-success" : "text-danger"}`}>
-            {feedback.text}
-          </p>
-        )}
-      </Card>
+      {isAdmin && (
+        <Card className="flex flex-col gap-3">
+          <h2 className="font-display text-lg font-semibold">Scan Barcode</h2>
+          <div>
+            <label className="mb-1 block text-xs text-muted">Metode Pembayaran</label>
+            <Select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+              {Object.entries(PAYMENT_METHOD_LABEL).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <form onSubmit={handleSubmit} className="flex gap-2">
+            <Input
+              ref={inputRef}
+              autoFocus
+              placeholder="Scan barcode di sini..."
+              value={barcode}
+              onChange={(e) => setBarcode(e.target.value)}
+              disabled={pending}
+              className="flex-1"
+            />
+            <Button type="submit" disabled={pending}>
+              {pending ? "..." : "Jual"}
+            </Button>
+          </form>
+          {feedback && (
+            <p className={`text-sm font-medium ${feedback.type === "success" ? "text-success" : "text-danger"}`}>
+              {feedback.text}
+            </p>
+          )}
+        </Card>
+      )}
 
       <Card>
         <div className="mb-3 flex items-center justify-between">
