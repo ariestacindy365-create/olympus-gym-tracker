@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/auth";
+import { getCurrentUser, requireAnyRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -6,7 +6,9 @@ import { ExpenseForm } from "@/components/leads/ExpenseForm";
 import { formatRupiah, EXPENSE_CATEGORY_LABEL } from "@/lib/packages";
 
 export default async function ExpensesPage() {
-  await requireRole("OWNER");
+  await requireAnyRole(["ADMIN", "OWNER"]);
+  const user = await getCurrentUser();
+  const isAdmin = user?.role === "ADMIN";
 
   const recentExpenses = await prisma.expense.findMany({
     orderBy: { paidAt: "desc" },
@@ -21,7 +23,7 @@ export default async function ExpensesPage() {
         <p className="text-sm text-muted">Catat biaya operasional bisnis — sewa, gaji, alat, dan lainnya.</p>
       </div>
 
-      <ExpenseForm />
+      {isAdmin && <ExpenseForm />}
 
       <Card>
         <h2 className="mb-3 font-display text-lg font-semibold">Riwayat Pengeluaran</h2>

@@ -7,10 +7,11 @@ import { dateKeyFromString } from "@/lib/workout";
 import { uploadProofImage } from "@/lib/googleDrive";
 import { Role } from "@/generated/prisma/client";
 
-// Business expenses — OWNER only, unlike Payment which admins also record.
+// Business expenses — recorded by ADMIN day-to-day, same as Payment; OWNER
+// sees the aggregated reporting on the dashboard instead.
 export async function POST(request: NextRequest) {
-  const owner = await getCurrentUser();
-  if (!owner || owner.role !== Role.OWNER) {
+  const admin = await getCurrentUser();
+  if (!admin || admin.role !== Role.ADMIN) {
     return NextResponse.json({ error: "Not authorized." }, { status: 401 });
   }
 
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
       paidAt: parsed.data.paidAt ? dateKeyFromString(parsed.data.paidAt) : new Date(),
       description: parsed.data.description,
       proofImageFileId,
-      createdById: owner.id,
+      createdById: admin.id,
     },
   });
 

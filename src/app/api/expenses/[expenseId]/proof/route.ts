@@ -7,7 +7,7 @@ import { Role } from "@/generated/prisma/client";
 
 export async function GET(_request: NextRequest, ctx: RouteContext<"/api/expenses/[expenseId]/proof">) {
   const user = await getCurrentUser();
-  if (!user || user.role !== Role.OWNER) {
+  if (!user || (user.role !== Role.ADMIN && user.role !== Role.OWNER)) {
     return NextResponse.json({ error: "Not authorized." }, { status: 401 });
   }
 

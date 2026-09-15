@@ -402,9 +402,9 @@ enum ExpenseCategory {
   LAINNYA
 }
 
-// A business expense — rent, salaries, equipment, etc. — logged by OWNER
-// only (unlike Payment, which admins record daily) so revenue reporting
-// can net against real cash outflow, not just show incoming payments.
+// A business expense — rent, salaries, equipment, etc. — logged by ADMIN
+// day-to-day (same as Payment); OWNER sees the aggregated reporting on
+// the dashboard instead of recording expenses directly.
 model Expense {
   id               String          @id @default(cuid())
   category         ExpenseCategory

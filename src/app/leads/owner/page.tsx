@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { addDays, subMonths, startOfMonth } from "date-fns";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -11,7 +12,7 @@ import { AdminInviteCodeCard } from "@/components/leads/AdminInviteCodeCard";
 import { SendDailyReportButton } from "@/components/leads/SendDailyReportButton";
 import { toWhatsAppLink } from "@/lib/whatsapp";
 import { waWinBackMessage } from "@/lib/waScripts";
-import { formatRupiah, PAYMENT_METHOD_LABEL, EXPENSE_CATEGORY_LABEL } from "@/lib/packages";
+import { formatRupiah } from "@/lib/packages";
 import { Role } from "@/generated/prisma/client";
 
 export default async function LeadsOwnerPage() {
@@ -57,48 +58,14 @@ export default async function LeadsOwnerPage() {
       ? Math.round((activeMemberCount / (activeMemberCount + churnedCount)) * 100)
       : null;
 
-  // Revenue reporting — all from Payment, no new tracking needed.
+  // Just the headline sums here — full breakdown (top packages, payment
+  // methods, expense categories) lives on /leads/finance, reached by
+  // clicking the Keuangan card below.
   const monthStart = startOfMonth(today);
-  const [revenueThisMonth, revenueAllTime, paymentsThisMonth] = await Promise.all([
+  const [revenueThisMonth, expensesThisMonth] = await Promise.all([
     prisma.payment.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart } } }),
-    prisma.payment.aggregate({ _sum: { amount: true } }),
-    prisma.payment.findMany({
-      where: { paidAt: { gte: monthStart } },
-      select: { amount: true, packageName: true, paymentMethod: true },
-    }),
-  ]);
-
-  const revenueByPackage = new Map<string, { count: number; total: number }>();
-  const revenueByMethod = new Map<string, { count: number; total: number }>();
-  for (const p of paymentsThisMonth) {
-    const pkg = revenueByPackage.get(p.packageName) ?? { count: 0, total: 0 };
-    pkg.count += 1;
-    pkg.total += p.amount;
-    revenueByPackage.set(p.packageName, pkg);
-
-    const method = revenueByMethod.get(p.paymentMethod) ?? { count: 0, total: 0 };
-    method.count += 1;
-    method.total += p.amount;
-    revenueByMethod.set(p.paymentMethod, method);
-  }
-  const topPackagesThisMonth = [...revenueByPackage.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 5);
-  const byMethodThisMonth = [...revenueByMethod.entries()].sort((a, b) => b[1].total - a[1].total);
-
-  // Expense reporting, same shape as revenue above, so net profit is just
-  // revenue minus this.
-  const [expensesThisMonth, expensesAllTime, expensesThisMonthList] = await Promise.all([
     prisma.expense.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart } } }),
-    prisma.expense.aggregate({ _sum: { amount: true } }),
-    prisma.expense.findMany({ where: { paidAt: { gte: monthStart } }, select: { amount: true, category: true } }),
   ]);
-  const expenseByCategory = new Map<string, { count: number; total: number }>();
-  for (const e of expensesThisMonthList) {
-    const cat = expenseByCategory.get(e.category) ?? { count: 0, total: 0 };
-    cat.count += 1;
-    cat.total += e.amount;
-    expenseByCategory.set(e.category, cat);
-  }
-  const byCategoryThisMonth = [...expenseByCategory.entries()].sort((a, b) => b[1].total - a[1].total);
   const netProfitThisMonth = (revenueThisMonth._sum.amount ?? 0) - (expensesThisMonth._sum.amount ?? 0);
 
   const adminStats = await Promise.all(
@@ -156,80 +123,36 @@ export default async function LeadsOwnerPage() {
         }))}
       />
 
-      <Card className="flex flex-col gap-4">
-        <h2 className="font-display text-lg font-semibold">Keuangan</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatTile label="Pendapatan Bulan Ini" value={formatRupiah(revenueThisMonth._sum.amount ?? 0)} accent />
-          <StatTile label="Pengeluaran Bulan Ini" value={formatRupiah(expensesThisMonth._sum.amount ?? 0)} danger={expensesThisMonth._sum.amount != null && expensesThisMonth._sum.amount > 0} />
-          <StatTile
-            label="Laba Bersih Bulan Ini"
-            value={formatRupiah(netProfitThisMonth)}
-            danger={netProfitThisMonth < 0}
-            accent={netProfitThisMonth >= 0}
-          />
-          <StatTile label="Retention Rate" value={retentionRate != null ? `${retentionRate}%` : "-"} accent />
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
-          <StatTile label="Pendapatan Sepanjang Waktu" value={formatRupiah(revenueAllTime._sum.amount ?? 0)} />
-          <StatTile label="Pengeluaran Sepanjang Waktu" value={formatRupiah(expensesAllTime._sum.amount ?? 0)} />
-        </div>
-        {paymentsThisMonth.length === 0 && expensesThisMonthList.length === 0 ? (
-          <p className="text-sm text-muted">Belum ada pembayaran atau pengeluaran bulan ini.</p>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-3">
-            {topPackagesThisMonth.length > 0 && (
-              <div>
-                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Paket Terlaris Bulan Ini</p>
-                <ul className="flex flex-col gap-1.5">
-                  {topPackagesThisMonth.map(([name, stat]) => (
-                    <li key={name} className="flex items-center justify-between text-sm">
-                      <span>
-                        {name} <span className="text-xs text-muted">×{stat.count}</span>
-                      </span>
-                      <span className="font-medium">{formatRupiah(stat.total)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {byMethodThisMonth.length > 0 && (
-              <div>
-                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Metode Bayar Bulan Ini</p>
-                <ul className="flex flex-col gap-1.5">
-                  {byMethodThisMonth.map(([method, stat]) => (
-                    <li key={method} className="flex items-center justify-between text-sm">
-                      <span>
-                        {PAYMENT_METHOD_LABEL[method] ?? method} <span className="text-xs text-muted">×{stat.count}</span>
-                      </span>
-                      <span className="font-medium">{formatRupiah(stat.total)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {byCategoryThisMonth.length > 0 && (
-              <div>
-                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Pengeluaran per Kategori</p>
-                <ul className="flex flex-col gap-1.5">
-                  {byCategoryThisMonth.map(([category, stat]) => (
-                    <li key={category} className="flex items-center justify-between text-sm">
-                      <span>
-                        {EXPENSE_CATEGORY_LABEL[category] ?? category} <span className="text-xs text-muted">×{stat.count}</span>
-                      </span>
-                      <span className="font-medium">{formatRupiah(stat.total)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+      <Link href="/leads/finance" className="block">
+        <Card className="flex flex-col gap-4 transition hover:border-accent">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-lg font-semibold">Keuangan</h2>
+            <span className="text-xs font-medium text-accent">Lihat rincian →</span>
           </div>
-        )}
-      </Card>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <StatTile label="Pendapatan Bulan Ini" value={formatRupiah(revenueThisMonth._sum.amount ?? 0)} accent />
+            <StatTile
+              label="Pengeluaran Bulan Ini"
+              value={formatRupiah(expensesThisMonth._sum.amount ?? 0)}
+              danger={(expensesThisMonth._sum.amount ?? 0) > 0}
+            />
+            <StatTile
+              label="Laba Bersih Bulan Ini"
+              value={formatRupiah(netProfitThisMonth)}
+              danger={netProfitThisMonth < 0}
+              accent={netProfitThisMonth >= 0}
+            />
+          </div>
+        </Card>
+      </Link>
 
       <Card className="flex flex-col gap-3">
-        <div>
-          <h2 className="font-display text-lg font-semibold">Member Tidak Perpanjang</h2>
-          <p className="text-xs text-muted">Dari hasil follow up H+21 yang ditandai &quot;Tidak Perpanjang&quot;.</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="font-display text-lg font-semibold">Member Tidak Perpanjang</h2>
+            <p className="text-xs text-muted">Dari hasil follow up H+21 yang ditandai &quot;Tidak Perpanjang&quot;.</p>
+          </div>
+          <StatTile label="Retention Rate" value={retentionRate != null ? `${retentionRate}%` : "-"} accent />
         </div>
         {churnedMembers.length === 0 ? (
           <p className="text-sm text-muted">Belum ada member yang tidak perpanjang.</p>
