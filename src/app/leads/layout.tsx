@@ -3,24 +3,24 @@ import { NavBar } from "@/components/ui/NavBar";
 
 const ADMIN_LINKS = [
   { href: "/leads/dashboard", label: "Dashboard" },
-  { href: "/leads", label: "Semua Lead" },
+  { href: "/leads", label: "Lead" },
   { href: "/leads/renewals", label: "Perpanjangan" },
-  { href: "/leads/payments", label: "Pembayaran" },
-  { href: "/leads/expenses", label: "Pengeluaran" },
+  { href: "/leads/payments", label: "Bayar" },
+  { href: "/leads/expenses", label: "Biaya" },
   { href: "/leads/kasir", label: "Kasir" },
   { href: "/leads/history", label: "Riwayat" },
-  { href: "/leads/account", label: "Akun Saya" },
+  { href: "/leads/account", label: "Akun" },
 ];
 
 const OWNER_LINKS = [
   { href: "/leads/owner", label: "Overview" },
-  { href: "/leads", label: "Semua Lead" },
+  { href: "/leads", label: "Lead" },
   { href: "/leads/renewals", label: "Perpanjangan" },
-  { href: "/leads/payments", label: "Pembayaran" },
+  { href: "/leads/payments", label: "Bayar" },
   { href: "/leads/kasir", label: "Kasir" },
   { href: "/leads/history", label: "Riwayat" },
-  { href: "/leads/packages", label: "Daftar Harga" },
-  { href: "/leads/account", label: "Akun Saya" },
+  { href: "/leads/packages", label: "Harga" },
+  { href: "/leads/account", label: "Akun" },
 ];
 
 export default async function LeadsLayout({ children }: { children: React.ReactNode }) {
