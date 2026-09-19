@@ -124,3 +124,16 @@ export async function getDeletedPayments(adminId?: string) {
     orderBy: { deletedAt: "desc" },
   });
 }
+
+// Sales (Kasir) an admin has soft-deleted — e.g. correcting a double scan.
+// Same audit-trail reasoning as getDeletedPayments.
+export async function getDeletedSales(adminId?: string) {
+  return prisma.sale.findMany({
+    where: { deletedAt: { not: null }, ...(adminId ? { createdById: adminId } : {}) },
+    include: {
+      createdBy: { select: { name: true } },
+      deletedBy: { select: { name: true } },
+    },
+    orderBy: { deletedAt: "desc" },
+  });
+}

@@ -10,7 +10,7 @@ export default async function KasirRoute() {
 
   const today = todayDateKey();
   const [salesToday, products] = await Promise.all([
-    prisma.sale.findMany({ where: { createdAt: { gte: today } }, orderBy: { createdAt: "desc" } }),
+    prisma.sale.findMany({ where: { createdAt: { gte: today }, deletedAt: null }, orderBy: { createdAt: "desc" } }),
     prisma.product.findMany({ orderBy: [{ isActive: "desc" }, { name: "asc" }] }),
   ]);
 

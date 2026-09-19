@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { differenceInCalendarDays } from "date-fns";
 import { getCurrentUser } from "@/lib/auth";
-import { getFollowUpHistory, getDeletedLeads, getDeletedPayments } from "@/lib/leads";
+import { getFollowUpHistory, getDeletedLeads, getDeletedPayments, getDeletedSales } from "@/lib/leads";
 import { todayDateKey } from "@/lib/workout";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -22,10 +22,11 @@ export default async function LeadsHistoryPage() {
   const user = await getCurrentUser();
   const adminId = user?.role === "ADMIN" ? user.id : undefined;
 
-  const [{ done, dueNow, upcoming }, deletedLeads, deletedPayments] = await Promise.all([
+  const [{ done, dueNow, upcoming }, deletedLeads, deletedPayments, deletedSales] = await Promise.all([
     getFollowUpHistory(adminId),
     getDeletedLeads(adminId),
     getDeletedPayments(adminId),
+    getDeletedSales(adminId),
   ]);
 
   const today = todayDateKey();
@@ -166,6 +167,31 @@ export default async function LeadsHistoryPage() {
                     {PAYMENT_METHOD_LABEL[payment.paymentMethod] ?? payment.paymentMethod} · dicatat oleh{" "}
                     {payment.createdBy.name} · dihapus {payment.deletedAt?.toLocaleDateString("id-ID")} oleh{" "}
                     {payment.deletedBy?.name}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <Card>
+        <h2 className="mb-3 font-display text-lg font-semibold">Penjualan Dihapus ({deletedSales.length})</h2>
+        {deletedSales.length === 0 ? (
+          <p className="text-sm text-muted">Belum ada penjualan yang dihapus.</p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {deletedSales.map((sale) => (
+              <li
+                key={sale.id}
+                className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3 last:border-0 last:pb-0"
+              >
+                <div>
+                  <p className="font-medium">{sale.productName}</p>
+                  <span className="text-xs text-muted">
+                    {formatRupiah(sale.price)} · {PAYMENT_METHOD_LABEL[sale.paymentMethod] ?? sale.paymentMethod} ·
+                    dicatat oleh {sale.createdBy.name} · dihapus {sale.deletedAt?.toLocaleDateString("id-ID")} oleh{" "}
+                    {sale.deletedBy?.name}
                   </span>
                 </div>
               </li>

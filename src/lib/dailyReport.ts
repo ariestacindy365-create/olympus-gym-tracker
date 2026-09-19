@@ -29,7 +29,10 @@ export async function buildDailyReportMessage(): Promise<string> {
       where: { paidAt: { gte: yesterday, lt: today }, deletedAt: null },
       select: { amount: true },
     }),
-    prisma.sale.findMany({ where: { createdAt: { gte: yesterday, lt: today } }, select: { price: true } }),
+    prisma.sale.findMany({
+      where: { createdAt: { gte: yesterday, lt: today }, deletedAt: null },
+      select: { price: true },
+    }),
     prisma.expense.findMany({ where: { paidAt: { gte: yesterday, lt: today } }, select: { amount: true } }),
     prisma.followUp.count({
       where: { status: "PENDING", dueDate: { gte: today, lt: addDays(today, 1) }, lead: { deletedAt: null } },

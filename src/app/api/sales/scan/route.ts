@@ -7,8 +7,10 @@ import { Role } from "@/generated/prisma/client";
 
 // A jittery scanner (or a trigger held too long) can fire the same barcode
 // twice within a moment — the client already guards against this, but that's
-// just one browser tab; this is the backstop that holds regardless of what
-// sent the request.
+// just one browser tab. This is the backstop that holds regardless of what
+// sent the request, and deliberately isn't scoped to one admin: two shift
+// admins both scanning the same physical item within the window (e.g.
+// handing it off at the counter) is exactly the same mistake.
 const DUPLICATE_SCAN_COOLDOWN_MS = 3000;
 
 // Each scan = one unit sold. Stock decrement uses a conditional updateMany
@@ -38,7 +40,7 @@ export async function POST(request: NextRequest) {
   const recentDuplicate = await prisma.sale.findFirst({
     where: {
       productId: product.id,
-      createdById: admin.id,
+      deletedAt: null,
       createdAt: { gte: new Date(Date.now() - DUPLICATE_SCAN_COOLDOWN_MS) },
     },
     orderBy: { createdAt: "desc" },

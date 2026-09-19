@@ -50,6 +50,7 @@ model User {
   paymentsDeleted    Payment[]  @relation("PaymentsDeleted")
   expensesRecorded   Expense[]  @relation("ExpensesRecorded")
   salesRecorded      Sale[]     @relation("SalesRecorded")
+  salesDeleted       Sale[]     @relation("SalesDeleted")
 }
 
 // Achievement definitions live in code (src/lib/achievements.ts), not the
@@ -480,6 +481,12 @@ model Sale {
   createdById   String
   createdBy     User          @relation("SalesRecorded", fields: [createdById], references: [id])
   createdAt     DateTime      @default(now())
+  // Soft delete, same reasoning as Payment — corrects a mistake (e.g. a
+  // double scan) without erasing the record, and restores the product's
+  // stock by 1 when deleted. Shows up as an audit trail on Riwayat.
+  deletedAt     DateTime?
+  deletedById   String?
+  deletedBy     User?         @relation("SalesDeleted", fields: [deletedById], references: [id])
 
   @@index([productId])
   @@index([createdAt])

@@ -64,7 +64,7 @@ export default async function LeadsOwnerPage() {
   const monthStart = startOfMonth(today);
   const [membershipRevenueThisMonth, salesRevenueThisMonth, expensesThisMonth] = await Promise.all([
     prisma.payment.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart }, deletedAt: null } }),
-    prisma.sale.aggregate({ _sum: { price: true }, where: { createdAt: { gte: monthStart } } }),
+    prisma.sale.aggregate({ _sum: { price: true }, where: { createdAt: { gte: monthStart }, deletedAt: null } }),
     prisma.expense.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart } } }),
   ]);
   const revenueThisMonthTotal = (membershipRevenueThisMonth._sum.amount ?? 0) + (salesRevenueThisMonth._sum.price ?? 0);
