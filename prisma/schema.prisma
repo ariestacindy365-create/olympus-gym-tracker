@@ -51,6 +51,7 @@ model User {
   expensesRecorded   Expense[]  @relation("ExpensesRecorded")
   salesRecorded      Sale[]     @relation("SalesRecorded")
   salesDeleted       Sale[]     @relation("SalesDeleted")
+  restocksRecorded   Restock[]  @relation("RestocksRecorded")
 }
 
 // Achievement definitions live in code (src/lib/achievements.ts), not the
@@ -454,18 +455,38 @@ model Package {
 // (memberships) since this has its own barcode + stock, managed by OWNER at
 // /leads/products.
 model Product {
-  id        String   @id @default(cuid())
-  name      String
-  barcode   String   @unique
-  price     Int
-  stock     Int      @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String   @id @default(cuid())
+  name              String
+  barcode           String   @unique
+  price             Int
+  stock             Int      @default(0)
+  // Below this, the product shows up in the "Stok Menipis" warning (Kasir
+  // dashboard + daily report). Per-product since sales pace varies a lot
+  // between items.
+  lowStockThreshold Int      @default(5)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  sales Sale[]
+  sales    Sale[]
+  restocks Restock[]
 
   @@index([isActive])
+}
+
+// A manual stock top-up, logged separately from just editing the stock
+// number directly — keeps a "who added how much, when" trail instead of an
+// opaque overwrite.
+model Restock {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  quantity    Int
+  createdById String
+  createdBy   User     @relation("RestocksRecorded", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([productId])
 }
 
 // One scanned sale (quantity always 1 — scan again to sell another unit).

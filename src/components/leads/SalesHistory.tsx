@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -118,6 +119,11 @@ export function SalesHistory({ isAdmin }: { isAdmin: boolean }) {
               </span>
               <div className="flex items-center gap-2">
                 <span className="font-medium">{formatRupiah(sale.price)}</span>
+                <Link href={`/leads/sales/${sale.id}/receipt`}>
+                  <Button variant="secondary" className="px-2 py-1 text-xs">
+                    Cetak Struk
+                  </Button>
+                </Link>
                 {isAdmin && (
                   <Button
                     variant="danger"

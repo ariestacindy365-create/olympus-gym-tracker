@@ -49,6 +49,15 @@ export async function buildDailyReportMessage(): Promise<string> {
     prisma.lead.count({ where: { status: "LOST", convertedAt: { not: null }, deletedAt: null } }),
   ]);
 
+  // Comparing stock to its own per-row threshold isn't a plain Prisma filter
+  // (two-column comparison), so pull active products and filter in JS — fine
+  // at this scale (a small snack counter's catalog).
+  const activeProducts = await prisma.product.findMany({
+    where: { isActive: true },
+    select: { name: true, stock: true, lowStockThreshold: true },
+  });
+  const lowStockProducts = activeProducts.filter((p) => p.stock <= p.lowStockThreshold);
+
   const revenueYesterday = paymentsYesterday.reduce((sum, p) => sum + p.amount, 0);
   const salesTotalYesterday = salesYesterday.reduce((sum, s) => sum + s.price, 0);
   const expensesTotalYesterday = expensesYesterday.reduce((sum, e) => sum + e.amount, 0);
@@ -84,6 +93,11 @@ export async function buildDailyReportMessage(): Promise<string> {
     `• Follow up terlambat (belum ditindak): ${followUpsOverdue}`,
     `• Member lewat masa aktif: ${overdueRenewals}`,
     `• Member akan expired 7 hari lagi: ${soonRenewals}`,
+    `• Stok menipis: ${lowStockProducts.length} produk${
+      lowStockProducts.length > 0
+        ? ` (${lowStockProducts.map((p) => `${p.name}: ${p.stock}`).join(", ")})`
+        : ""
+    }`,
     ``,
     `<b>Ringkasan Keseluruhan</b>`,
     `• Total member aktif: ${totalActive}`,

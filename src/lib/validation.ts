@@ -195,12 +195,17 @@ export const updateProductSchema = z.object({
   barcode: z.string().trim().min(1, { error: "Isi barcode." }).max(80).optional(),
   price: z.number().int().positive({ error: "Harga harus lebih dari 0." }).max(100_000_000).optional(),
   stock: z.number().int().min(0).max(1_000_000).optional(),
+  lowStockThreshold: z.number().int().min(0).max(100_000).optional(),
   isActive: z.boolean().optional(),
 });
 
 export const scanSaleSchema = z.object({
   barcode: z.string().trim().min(1, { error: "Barcode kosong." }).max(80),
   paymentMethod: z.enum(["QRIS", "TRANSFER", "KARTU_KREDIT", "DEBIT", "FITQUARTER", "TUNAI"]),
+});
+
+export const restockSchema = z.object({
+  quantity: z.number().int().positive({ error: "Jumlah harus lebih dari 0." }).max(100_000),
 });
 
 export const updatePackageSchema = z.object({

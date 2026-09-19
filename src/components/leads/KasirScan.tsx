@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -138,7 +139,7 @@ export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; 
         ) : (
           <ul className="flex flex-col gap-2">
             {sales.map((sale) => (
-              <li key={sale.id} className="flex items-center justify-between border-b border-border pb-2 text-sm last:border-0 last:pb-0">
+              <li key={sale.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 text-sm last:border-0 last:pb-0">
                 <span>
                   {sale.productName}{" "}
                   <span className="text-xs text-muted">
@@ -146,7 +147,14 @@ export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; 
                     {new Date(sale.createdAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </span>
-                <span className="font-medium">{formatRupiah(sale.price)}</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{formatRupiah(sale.price)}</span>
+                  <Link href={`/leads/sales/${sale.id}/receipt`}>
+                    <Button variant="secondary" className="px-2 py-1 text-xs">
+                      Cetak Struk
+                    </Button>
+                  </Link>
+                </div>
               </li>
             ))}
           </ul>
