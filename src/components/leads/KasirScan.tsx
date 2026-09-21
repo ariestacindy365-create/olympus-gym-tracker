@@ -16,11 +16,6 @@ export interface SaleRow {
   createdAt: string;
 }
 
-// If the same barcode comes in again within this window, treat it as an
-// accidental double-scan (jittery scanner, trigger held too long) instead
-// of a genuine second sale.
-const DUPLICATE_SCAN_COOLDOWN_MS = 3000;
-
 export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; isAdmin: boolean }) {
   const [barcode, setBarcode] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("TUNAI");
@@ -28,47 +23,33 @@ export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; 
   const [pending, setPending] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  // Refs, not state — a scanner can fire two Enter keystrokes faster than
+  // Ref, not state — a scanner can fire two Enter keystrokes faster than
   // React re-renders (and re-disables the input), so the guard against a
   // simultaneous double-submit has to be synchronous, not dependent on the
-  // next render.
+  // next render. (Whether the *scan itself* is a duplicate of a recent sale
+  // is decided server-side, with a confirmable warning instead of a hard
+  // block — see submitScan below.)
   const submittingRef = useRef(false);
-  const lastScanRef = useRef<{ barcode: string; time: number } | null>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const code = barcode.trim();
-    if (!code) return;
-
-    // Guard 1: a second scan landing while the first is still in flight.
-    if (submittingRef.current) return;
-
-    // Guard 2: the exact same barcode scanned again shortly after a
-    // previous scan (successful or not) of it.
-    const last = lastScanRef.current;
-    if (last && last.barcode === code && Date.now() - last.time < DUPLICATE_SCAN_COOLDOWN_MS) {
-      setFeedback({ type: "error", text: "Barcode ini baru saja di-scan — diabaikan supaya tidak tercatat dobel." });
-      setBarcode("");
-      inputRef.current?.focus();
-      return;
-    }
-
-    submittingRef.current = true;
-    lastScanRef.current = { barcode: code, time: Date.now() };
+  async function submitScan(code: string, confirmDuplicate: boolean) {
     setPending(true);
     setFeedback(null);
     try {
       const res = await fetch("/api/sales/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ barcode: code, paymentMethod }),
+        body: JSON.stringify({ barcode: code, paymentMethod, confirmDuplicate }),
       });
       const data = await res.json();
       if (!res.ok) {
+        if (data.duplicateWarning && confirm(`${data.error}`)) {
+          await submitScan(code, true);
+          return;
+        }
         setFeedback({ type: "error", text: data.error ?? "Gagal memproses scan." });
         return;
       }
@@ -88,6 +69,18 @@ export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; 
       submittingRef.current = false;
       inputRef.current?.focus();
     }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const code = barcode.trim();
+    if (!code) return;
+
+    // Guard against a second scan landing while the first is still in flight.
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+
+    await submitScan(code, false);
   }
 
   const totalToday = sales.reduce((sum, s) => sum + s.price, 0);

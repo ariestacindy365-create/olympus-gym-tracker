@@ -19,12 +19,7 @@ function formatDateId(iso: string): string {
 export function buildOlympusSaleReceipt(data: OlympusSaleReceiptData): Uint8Array {
   const b = new EscPosBuilder();
   b.init();
-
-  b.align("center");
-  b.bold(true).line("OLYMPUS LIFTING CLUB").bold(false);
-  b.line("STRUK PENJUALAN");
-
-  b.align("left");
+  b.header("STRUK PENJUALAN");
   b.divider();
   b.row("No. Struk", data.receiptNumber);
   b.row("Tanggal", formatDateId(data.createdAt));
@@ -39,11 +34,6 @@ export function buildOlympusSaleReceipt(data: OlympusSaleReceiptData): Uint8Arra
   b.row("TOTAL", formatRupiah(data.price));
   b.bold(false);
 
-  b.divider();
-  b.align("center");
-  b.line(`Diproses oleh ${data.createdByName}`);
-  b.paragraph("Terima kasih!");
-
-  b.cut();
+  b.footer(data.createdByName, "Terima kasih!");
   return b.build();
 }

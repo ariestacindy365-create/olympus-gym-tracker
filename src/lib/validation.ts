@@ -202,6 +202,10 @@ export const updateProductSchema = z.object({
 export const scanSaleSchema = z.object({
   barcode: z.string().trim().min(1, { error: "Barcode kosong." }).max(80),
   paymentMethod: z.enum(["QRIS", "TRANSFER", "KARTU_KREDIT", "DEBIT", "FITQUARTER", "TUNAI"]),
+  // Set when the admin already saw the "recently scanned" warning and chose
+  // to record it as a sale anyway (e.g. a second, genuinely separate unit
+  // of the same product) — skips the duplicate check for this one request.
+  confirmDuplicate: z.boolean().optional(),
 });
 
 export const restockSchema = z.object({

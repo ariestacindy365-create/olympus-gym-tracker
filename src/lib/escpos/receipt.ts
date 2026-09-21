@@ -24,12 +24,7 @@ function formatDateId(iso: string): string {
 export function buildOlympusReceipt(data: OlympusReceiptData): Uint8Array {
   const b = new EscPosBuilder();
   b.init();
-
-  b.align("center");
-  b.bold(true).line("OLYMPUS LIFTING CLUB").bold(false);
-  b.line("STRUK PEMBAYARAN");
-
-  b.align("left");
+  b.header("STRUK PEMBAYARAN");
   b.divider();
   b.row("No. Struk", data.receiptNumber);
   b.row("Tanggal", formatDateId(data.paidAt));
@@ -57,11 +52,6 @@ export function buildOlympusReceipt(data: OlympusReceiptData): Uint8Array {
     b.paragraph(`Catatan: ${data.note}`);
   }
 
-  b.divider();
-  b.align("center");
-  b.line(`Diproses oleh ${data.createdByName}`);
-  b.paragraph("Terima kasih telah bergabung bersama Olympus!");
-
-  b.cut();
+  b.footer(data.createdByName, "Terima kasih telah bergabung bersama Olympus!");
   return b.build();
 }

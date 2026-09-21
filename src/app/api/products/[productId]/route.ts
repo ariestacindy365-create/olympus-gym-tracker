@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { updateProductSchema } from "@/lib/validation";
-import { Role } from "@/generated/prisma/client";
+import { Prisma, Role } from "@/generated/prisma/client";
 
 export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/products/[productId]">) {
   const admin = await getCurrentUser();
@@ -30,10 +30,16 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/produc
     }
   }
 
-  const updated = await prisma.product.update({
-    where: { id: productId },
-    data: parsed.data,
-  });
-
-  return NextResponse.json({ product: updated });
+  try {
+    const updated = await prisma.product.update({
+      where: { id: productId },
+      data: parsed.data,
+    });
+    return NextResponse.json({ product: updated });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json({ error: `Barcode ini sudah dipakai produk lain.` }, { status: 409 });
+    }
+    throw error;
+  }
 }

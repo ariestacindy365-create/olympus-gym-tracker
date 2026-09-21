@@ -94,6 +94,25 @@ export class EscPosBuilder {
     return this;
   }
 
+  /** Shared "OLYMPUS LIFTING CLUB" / subtitle block every receipt opens with. */
+  header(subtitle: string): this {
+    this.align("center");
+    this.bold(true).line("OLYMPUS LIFTING CLUB").bold(false);
+    this.line(subtitle);
+    this.align("left");
+    return this;
+  }
+
+  /** Shared "processed by / thank you" block every receipt closes with, then cuts the paper. */
+  footer(processedByName: string, thanksMessage: string): this {
+    this.divider();
+    this.align("center");
+    this.line(`Diproses oleh ${processedByName}`);
+    this.paragraph(thanksMessage);
+    this.cut();
+    return this;
+  }
+
   /** Feeds a few blank lines and cuts the paper (no-op on printers without a cutter). */
   cut(): this {
     this.newline(3);
