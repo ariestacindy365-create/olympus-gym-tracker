@@ -4,11 +4,11 @@ type Variant = "primary" | "secondary" | "ghost" | "danger";
 
 const variantClasses: Record<Variant, string> = {
   primary:
-    "bg-accent text-background hover:brightness-110 disabled:opacity-50 disabled:hover:brightness-100",
+    "bg-accent text-white shadow-sm shadow-accent/25 hover:bg-accent-2 disabled:opacity-50 disabled:shadow-none disabled:hover:bg-accent",
   secondary:
-    "bg-surface-2 text-foreground border border-border hover:border-accent disabled:opacity-50",
-  ghost: "bg-transparent text-muted hover:text-foreground disabled:opacity-50",
-  danger: "bg-danger text-white hover:brightness-110 disabled:opacity-50",
+    "bg-surface text-foreground border border-border shadow-card hover:border-border-strong hover:bg-surface-2 disabled:opacity-50 disabled:hover:bg-surface",
+  ghost: "bg-transparent text-muted hover:bg-surface-2 hover:text-foreground disabled:opacity-50",
+  danger: "bg-danger text-white shadow-sm shadow-danger/25 hover:brightness-110 disabled:opacity-50",
 };
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -20,7 +20,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         ref={ref}
-        className={`inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold transition cursor-pointer disabled:cursor-not-allowed ${variantClasses[variant]} ${className}`}
+        className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition duration-150 cursor-pointer select-none active:scale-[0.98] disabled:cursor-not-allowed disabled:active:scale-100 ${variantClasses[variant]} ${className}`}
         {...props}
       />
     );

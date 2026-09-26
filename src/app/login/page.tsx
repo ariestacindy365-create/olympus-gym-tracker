@@ -49,14 +49,18 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center px-4">
-      <div className="w-full max-w-sm">
+    <main className="relative flex flex-1 items-center justify-center overflow-hidden px-4 py-10">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-[45vh] min-h-[18rem] rounded-b-[2.5rem] bg-nav-bg [background-image:radial-gradient(60rem_22rem_at_50%_-4rem,rgb(37_99_235/0.5),transparent)]"
+      />
+      <div className="relative w-full max-w-sm animate-pop-in">
         <div className="mb-8 flex flex-col items-center text-center">
-          <OlympusLogo height={64} />
-          <p className="mt-2 text-sm text-muted">Lifting Club Gym Tracker</p>
+          <OlympusLogo height={64} variant="light" />
+          <p className="mt-3 text-sm font-medium uppercase tracking-[0.2em] text-nav-muted">Lifting Club Gym Tracker</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5 rounded-lg border border-border bg-surface p-6">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5 rounded-2xl border border-border bg-surface p-6 shadow-raised">
           <div>
             <label htmlFor="email" className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
               Email
@@ -79,7 +83,11 @@ export default function LoginPage() {
             <PinInput value={pin} onChange={setPin} disabled={pending} />
           </div>
 
-          {error && <p className="text-sm text-danger">{error}</p>}
+          {error && (
+            <p role="alert" className="rounded-lg border border-danger/25 bg-danger/5 px-3 py-2 text-sm text-danger">
+              {error}
+            </p>
+          )}
 
           <Button type="submit" disabled={pending} className="mt-1 w-full">
             {pending ? "Signing in..." : "Sign In"}
@@ -87,13 +95,13 @@ export default function LoginPage() {
 
           <p className="text-center text-sm text-muted">
             New here?{" "}
-            <Link href="/register" className="text-accent hover:underline">
+            <Link href="/register" className="font-medium text-accent hover:underline">
               Create a member account
             </Link>
           </p>
           <p className="text-center text-xs text-muted">
             Admin baru?{" "}
-            <Link href="/register-admin" className="text-accent hover:underline">
+            <Link href="/register-admin" className="font-medium text-accent hover:underline">
               Daftar akun admin
             </Link>
           </p>
