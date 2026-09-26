@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { StatTile } from "@/components/ui/StatTile";
 import { Badge } from "@/components/ui/Badge";
 import { parseWeightInput } from "@/lib/parseWeight";
+import { EditIcon, TrashIcon } from "@/components/ui/Icons";
 
 export interface ProgressSession {
   id: string;
@@ -321,9 +322,9 @@ export function ProgressView({
                               onClick={() => startEdit(s)}
                               disabled={pendingId === s.id}
                               aria-label="Edit sesi"
-                              className="text-muted hover:text-foreground disabled:opacity-50"
+                              className="rounded-md p-1.5 text-base text-muted transition hover:bg-surface-2 hover:text-foreground disabled:opacity-50"
                             >
-                              ✏️
+                              <EditIcon />
                             </button>
                           )}
                           {canDelete && (
@@ -332,9 +333,9 @@ export function ProgressView({
                               onClick={() => handleDelete(s.id, current.exerciseId)}
                               disabled={pendingId === s.id}
                               aria-label="Hapus sesi"
-                              className="text-muted hover:text-danger disabled:opacity-50"
+                              className="rounded-md p-1.5 text-base text-muted transition hover:bg-surface-2 hover:text-danger disabled:opacity-50"
                             >
-                              🗑️
+                              <TrashIcon />
                             </button>
                           )}
                         </div>

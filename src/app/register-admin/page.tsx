@@ -56,14 +56,18 @@ export default function RegisterAdminPage() {
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center px-4 py-10">
-      <div className="w-full max-w-sm">
+    <main className="relative flex flex-1 items-center justify-center overflow-hidden px-4 py-10">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-[45vh] min-h-[18rem] rounded-b-[2.5rem] bg-nav-bg [background-image:radial-gradient(60rem_22rem_at_50%_-4rem,rgb(37_99_235/0.5),transparent)]"
+      />
+      <div className="relative w-full max-w-sm animate-pop-in">
         <div className="mb-8 flex flex-col items-center text-center">
-          <OlympusLogo height={64} />
-          <p className="mt-2 text-sm text-muted">Daftar Akun Admin</p>
+          <OlympusLogo height={64} variant="light" />
+          <p className="mt-3 text-sm font-medium uppercase tracking-[0.2em] text-nav-muted">Daftar Akun Admin</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5 rounded-lg border border-border bg-surface p-6">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5 rounded-2xl border border-border bg-surface p-6 shadow-raised">
           <div>
             <label htmlFor="name" className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
               Nama
@@ -121,7 +125,11 @@ export default function RegisterAdminPage() {
             <PinInput value={confirmPin} onChange={setConfirmPin} disabled={pending} />
           </div>
 
-          {error && <p className="text-sm text-danger">{error}</p>}
+          {error && (
+            <p role="alert" className="rounded-lg border border-danger/25 bg-danger/5 px-3 py-2 text-sm text-danger">
+              {error}
+            </p>
+          )}
 
           <Button type="submit" disabled={pending} className="mt-1 w-full">
             {pending ? "Membuat akun..." : "Buat Akun Admin"}
@@ -129,7 +137,7 @@ export default function RegisterAdminPage() {
 
           <p className="text-center text-sm text-muted">
             Sudah punya akun?{" "}
-            <Link href="/login" className="text-accent hover:underline">
+            <Link href="/login" className="font-medium text-accent hover:underline">
               Masuk
             </Link>
           </p>

@@ -26,10 +26,19 @@ capture/follow-up targets, and can delete a lead (ADMIN can only edit).
   - Admin: `esti@olympus.gym` / PIN `2020`
   - Owner: `owner@olympus.gym` / PIN `9999`
 
-  Anyone can change their own email/PIN from **Akun Saya** once logged in
-  (`/leads/account`).
-- New admins (e.g. replacing Sekar or Esti after they leave) can self-register
-  at `/register-admin` using the shared `ADMIN_INVITE_CODE` env var (see
+  Anyone can change their own PIN from **Akun Saya** once logged in
+  (`/leads/account`); staff can only change their email to another
+  allowlisted one (below).
+- Staff logins are restricted to an email allowlist (`src/lib/staffAccess.ts`):
+  coach = Cindy & Ari (`cindy@`, `ari@olympus.gym`), admin = Sekar & Esti,
+  owner = `owner@olympus.gym`. Everyone else logs in as a regular member —
+  including any other COACH/ADMIN/OWNER account (its stored role is kept, so
+  fixing the list restores access; such accounts don't show up in the
+  coach's member list since that still filters on the stored role). Override per deployment with
+  comma-separated `COACH_EMAILS`, `ADMIN_EMAILS`, `OWNER_EMAILS` env vars
+  (e.g. to replace an admin who leaves).
+- New admins can self-register at `/register-admin` (only for emails on the
+  admin allowlist) using the shared `ADMIN_INVITE_CODE` env var (see
   `.env`) — give that code only to people who should get admin access to
   lead/customer data. Rotate it (edit `.env` locally and the env var on
   Vercel) if it's ever shared too widely. The code is also shown on the

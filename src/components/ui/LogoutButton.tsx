@@ -20,9 +20,13 @@ export function LogoutButton() {
       variant="ghost"
       onClick={handleLogout}
       disabled={pending}
-      className="px-2 py-1.5 text-xs !text-nav-muted hover:!text-nav-foreground"
+      aria-label="Log out"
+      className="px-2 py-1.5 text-xs !text-nav-muted hover:!bg-white/10 hover:!text-nav-foreground"
     >
-      {pending ? "..." : "Log out"}
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+        <path d="M8 4H5a1 1 0 00-1 1v10a1 1 0 001 1h3M13 14l4-4-4-4M17 10H8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <span className="hidden sm:inline">{pending ? "..." : "Log out"}</span>
     </Button>
   );
 }

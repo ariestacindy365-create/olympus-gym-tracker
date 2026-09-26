@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/ui/LogoutButton";
@@ -9,80 +9,117 @@ import { OlympusLogo } from "@/components/ui/OlympusLogo";
 interface NavLink {
   href: string;
   label: string;
+  // Sub-paths under href that belong to another section, so e.g. "/leads"
+  // isn't highlighted on "/leads/finance".
+  exclude?: string[];
 }
+
+function matches(pathname: string, path: string) {
+  return pathname === path || pathname.startsWith(`${path}/`);
+}
+
+type NavRole = "MEMBER" | "COACH" | "ADMIN" | "OWNER";
+
+// Each account type gets its own chip so a shared device (e.g. the front-desk
+// tablet) makes it obvious whose view is open.
+const ROLE_CHIP: Record<NavRole, { label: string; className: string }> = {
+  MEMBER: { label: "Member", className: "bg-sky-400/15 text-sky-200 ring-sky-400/30" },
+  COACH: { label: "Coach", className: "bg-emerald-400/15 text-emerald-200 ring-emerald-400/30" },
+  ADMIN: { label: "Admin", className: "bg-amber-400/15 text-amber-200 ring-amber-400/30" },
+  OWNER: { label: "Owner", className: "bg-fuchsia-400/15 text-fuchsia-200 ring-fuchsia-400/30" },
+};
 
 interface NavBarProps {
   links: NavLink[];
   userName: string;
+  role: NavRole;
 }
 
-export function NavBar({ links, userName }: NavBarProps) {
-  const pathname = usePathname();
-  const [menuOpen, setMenuOpen] = useState(false);
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase() || "?";
+}
 
-  function isActive(href: string) {
-    return pathname === href || pathname.startsWith(`${href}/`);
-  }
+export function NavBar({ links, userName, role }: NavBarProps) {
+  const pathname = usePathname();
+  const mobileNavRef = useRef<HTMLElement>(null);
+
+  // Prefer the most specific match so "/leads" isn't also highlighted while
+  // on "/leads/renewals".
+  const activeHref = links
+    .filter((link) => matches(pathname, link.href) && !link.exclude?.some((path) => matches(pathname, path)))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+
+  // Keep the active tab visible in the horizontally scrolling mobile strip.
+  useEffect(() => {
+    const active = mobileNavRef.current?.querySelector<HTMLElement>('[aria-current="page"]');
+    active?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [activeHref]);
 
   return (
-    <header className="sticky top-0 z-10 border-b border-white/10 bg-nav-bg print:hidden">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+    <header className="sticky top-0 z-20 border-b border-white/10 bg-nav-bg print:hidden">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-2.5">
         <div className="flex min-w-0 items-center gap-6">
           <OlympusLogo height={28} variant="light" className="shrink-0" />
-          <nav className="hidden min-w-0 items-center gap-1 overflow-x-auto sm:flex">
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                  isActive(link.href) ? "bg-white/10 text-accent" : "text-nav-muted hover:text-nav-foreground"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+          <nav className="no-scrollbar hidden min-w-0 items-center gap-1 overflow-x-auto sm:flex">
+            {links.map((link) => {
+              const active = link.href === activeHref;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  aria-current={active ? "page" : undefined}
+                  className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                    active
+                      ? "bg-white/10 text-white shadow-[inset_0_-2px_0_var(--accent)]"
+                      : "text-nav-muted hover:bg-white/5 hover:text-nav-foreground"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
           </nav>
         </div>
-        <div className="flex shrink-0 items-center gap-3">
-          <span className="hidden whitespace-nowrap text-sm text-nav-muted sm:inline">{userName}</span>
-          <LogoutButton />
-          <button
-            type="button"
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-label="Menu"
-            aria-expanded={menuOpen}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-nav-foreground sm:hidden"
+        <div className="flex shrink-0 items-center gap-2">
+          <span
+            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ring-1 ${ROLE_CHIP[role].className}`}
           >
-            {menuOpen ? (
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M4 4l12 12M16 4L4 16" strokeLinecap="round" />
-              </svg>
-            ) : (
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 5h14M3 10h14M3 15h14" strokeLinecap="round" />
-              </svg>
-            )}
-          </button>
+            {ROLE_CHIP[role].label}
+          </span>
+          <div className="flex items-center gap-2" title={userName}>
+            <span
+              aria-hidden
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20 text-xs font-bold text-blue-200 ring-1 ring-accent/40"
+            >
+              {initials(userName)}
+            </span>
+            <span className="hidden max-w-[10rem] truncate text-sm text-nav-foreground/90 md:inline">{userName}</span>
+          </div>
+          <LogoutButton />
         </div>
       </div>
 
-      {menuOpen && (
-        <nav className="flex flex-col gap-1 border-t border-white/10 px-4 py-3 sm:hidden">
-          {links.map((link) => (
+      <nav
+        ref={mobileNavRef}
+        className="no-scrollbar flex gap-1 overflow-x-auto border-t border-white/5 px-3 pb-2 pt-1.5 sm:hidden"
+      >
+        {links.map((link) => {
+          const active = link.href === activeHref;
+          return (
             <Link
               key={link.href}
               href={link.href}
-              onClick={() => setMenuOpen(false)}
-              className={`rounded-md px-3 py-2 text-sm font-medium transition ${
-                isActive(link.href) ? "bg-white/10 text-accent" : "text-nav-muted hover:text-nav-foreground"
+              aria-current={active ? "page" : undefined}
+              className={`shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+                active ? "bg-accent text-white" : "text-nav-muted active:bg-white/10"
               }`}
             >
               {link.label}
             </Link>
-          ))}
-          <span className="mt-1 border-t border-white/10 px-3 pt-2 text-xs text-nav-muted">{userName}</span>
-        </nav>
-      )}
+          );
+        })}
+      </nav>
     </header>
   );
 }

@@ -14,6 +14,9 @@ import { toWhatsAppLink } from "@/lib/whatsapp";
 import { waWinBackMessage } from "@/lib/waScripts";
 import { formatRupiah } from "@/lib/packages";
 import { Role } from "@/generated/prisma/client";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { isStaffEmailAllowed } from "@/lib/staffAccess";
+import { todayLabel } from "@/lib/dateLabel";
 
 export default async function LeadsOwnerPage() {
   await requireRole("OWNER");
@@ -21,7 +24,9 @@ export default async function LeadsOwnerPage() {
   const today = todayDateKey();
   const tomorrow = addDays(today, 1);
 
-  const admins = await prisma.user.findMany({ where: { role: Role.ADMIN }, orderBy: { name: "asc" } });
+  const admins = (await prisma.user.findMany({ where: { role: Role.ADMIN }, orderBy: { name: "asc" } })).filter((a) =>
+    isStaffEmailAllowed(a.role, a.email)
+  );
 
   // Former members who reached MEMBER at some point (convertedAt set) and
   // are now LOST — i.e. flagged "Tidak Perpanjang" on their H21 follow up,
@@ -111,10 +116,12 @@ export default async function LeadsOwnerPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-2xl font-bold">Overview Admin</h1>
-        <SendDailyReportButton />
-      </div>
+      <PageHeader
+        eyebrow={todayLabel()}
+        title="Overview"
+        subtitle="Ringkasan keuangan, retensi member, dan performa tim admin."
+        actions={<SendDailyReportButton />}
+      />
 
       {process.env.ADMIN_INVITE_CODE && <AdminInviteCodeCard code={process.env.ADMIN_INVITE_CODE} />}
 
@@ -197,11 +204,13 @@ export default async function LeadsOwnerPage() {
               label="Capture Hari Ini"
               value={`${capturesToday}/${target?.targetCapture ?? 0}`}
               accent={capturesToday >= (target?.targetCapture ?? 0)}
+              progress={{ current: capturesToday, target: target?.targetCapture ?? 0 }}
             />
             <StatTile
               label="Follow Up Hari Ini"
               value={`${followUpsDoneToday}/${target?.targetFollowup ?? 0}`}
               accent={followUpsDoneToday >= (target?.targetFollowup ?? 0)}
+              progress={{ current: followUpsDoneToday, target: target?.targetFollowup ?? 0 }}
             />
             <StatTile label="Total Trial" value={totalTrial} />
             <StatTile label="Total Conversion" value={totalConversion} />

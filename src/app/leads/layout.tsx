@@ -1,9 +1,25 @@
 import { requireAnyRole } from "@/lib/auth";
 import { NavBar } from "@/components/ui/NavBar";
 
+// Static sections under /leads; everything else there (/leads/[leadId]) is a
+// lead detail page and should keep "Lead" highlighted.
+const LEAD_SECTION_PATHS = [
+  "account",
+  "dashboard",
+  "expenses",
+  "finance",
+  "history",
+  "kasir",
+  "owner",
+  "packages",
+  "payments",
+  "renewals",
+  "sales",
+].map((s) => `/leads/${s}`);
+
 const ADMIN_LINKS = [
   { href: "/leads/dashboard", label: "Dashboard" },
-  { href: "/leads", label: "Lead" },
+  { href: "/leads", label: "Lead", exclude: LEAD_SECTION_PATHS },
   { href: "/leads/renewals", label: "Perpanjangan" },
   { href: "/leads/payments", label: "Bayar" },
   { href: "/leads/expenses", label: "Biaya" },
@@ -14,7 +30,7 @@ const ADMIN_LINKS = [
 
 const OWNER_LINKS = [
   { href: "/leads/owner", label: "Overview" },
-  { href: "/leads", label: "Lead" },
+  { href: "/leads", label: "Lead", exclude: LEAD_SECTION_PATHS },
   { href: "/leads/renewals", label: "Perpanjangan" },
   { href: "/leads/payments", label: "Bayar" },
   { href: "/leads/kasir", label: "Kasir" },
@@ -29,7 +45,7 @@ export default async function LeadsLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex flex-1 flex-col">
-      <NavBar links={links} userName={user.name} />
+      <NavBar links={links} userName={user.name} role={user.role} />
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 print:max-w-none print:p-0">{children}</main>
     </div>
   );

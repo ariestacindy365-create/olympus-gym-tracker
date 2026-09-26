@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { hashPin, createSessionCookie } from "@/lib/auth";
 import { registerAdminSchema } from "@/lib/validation";
 import { Role } from "@/generated/prisma/client";
+import { isStaffEmailAllowed } from "@/lib/staffAccess";
 
 export async function POST(request: NextRequest) {
   const inviteCode = process.env.ADMIN_INVITE_CODE;
@@ -23,6 +24,10 @@ export async function POST(request: NextRequest) {
 
   if (submittedCode !== inviteCode) {
     return NextResponse.json({ error: "Kode registrasi admin salah." }, { status: 403 });
+  }
+
+  if (!isStaffEmailAllowed(Role.ADMIN, email)) {
+    return NextResponse.json({ error: "Email ini tidak terdaftar sebagai admin. Silakan daftar sebagai member." }, { status: 403 });
   }
 
   const existing = await prisma.user.findUnique({ where: { email } });
