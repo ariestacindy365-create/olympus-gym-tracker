@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import { requireAnyRole } from "@/lib/auth";
 import { LeadListView, type LeadRow } from "@/components/leads/LeadListView";
 
 export default async function LeadsListPage() {
+  await requireAnyRole(["ADMIN", "OWNER"]);
   const leads = await prisma.lead.findMany({
     where: { deletedAt: null },
     include: { capturedBy: { select: { name: true } } },

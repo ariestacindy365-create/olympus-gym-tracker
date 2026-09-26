@@ -1,11 +1,10 @@
-import { getCurrentUser } from "@/lib/auth";
+import { requireAnyRole } from "@/lib/auth";
 import { Card } from "@/components/ui/Card";
 import { ChangeEmailForm } from "@/components/member/ChangeEmailForm";
 import { ChangePinForm } from "@/components/member/ChangePinForm";
 
 export default async function LeadsAccountPage() {
-  const user = await getCurrentUser();
-  if (!user) return null;
+  const user = await requireAnyRole(["ADMIN", "OWNER"]);
 
   return (
     <div className="flex flex-col gap-4">

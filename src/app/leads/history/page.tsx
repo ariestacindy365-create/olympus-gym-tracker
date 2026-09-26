@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { differenceInCalendarDays } from "date-fns";
-import { getCurrentUser } from "@/lib/auth";
+import { requireAnyRole } from "@/lib/auth";
 import { getFollowUpHistory, getDeletedLeads, getDeletedPayments, getDeletedSales } from "@/lib/leads";
 import { todayDateKey } from "@/lib/workout";
 import { Card } from "@/components/ui/Card";
@@ -19,7 +19,7 @@ function LeadStatusBadge({ status }: { status: string }) {
 }
 
 export default async function LeadsHistoryPage() {
-  const user = await getCurrentUser();
+  const user = await requireAnyRole(["ADMIN", "OWNER"]);
   const adminId = user?.role === "ADMIN" ? user.id : undefined;
 
   const [{ done, dueNow, upcoming }, deletedLeads, deletedPayments, deletedSales] = await Promise.all([

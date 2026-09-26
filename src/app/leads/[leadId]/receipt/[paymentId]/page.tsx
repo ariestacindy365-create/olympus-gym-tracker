@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { requireAnyRole } from "@/lib/auth";
 import { OlympusLogo } from "@/components/ui/OlympusLogo";
 import { PrintReceiptButton } from "@/components/leads/PrintReceiptButton";
 import { formatRupiah, PAYMENT_METHOD_LABEL } from "@/lib/packages";
@@ -9,6 +10,7 @@ export default async function ReceiptPage({
 }: {
   params: Promise<{ leadId: string; paymentId: string }>;
 }) {
+  await requireAnyRole(["ADMIN", "OWNER"]);
   const { leadId, paymentId } = await params;
 
   const payment = await prisma.payment.findUnique({
