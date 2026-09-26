@@ -11,9 +11,21 @@ interface NavLink {
   label: string;
 }
 
+type NavRole = "MEMBER" | "COACH" | "ADMIN" | "OWNER";
+
+// Each account type gets its own chip so a shared device (e.g. the front-desk
+// tablet) makes it obvious whose view is open.
+const ROLE_CHIP: Record<NavRole, { label: string; className: string }> = {
+  MEMBER: { label: "Member", className: "bg-sky-400/15 text-sky-200 ring-sky-400/30" },
+  COACH: { label: "Coach", className: "bg-emerald-400/15 text-emerald-200 ring-emerald-400/30" },
+  ADMIN: { label: "Admin", className: "bg-amber-400/15 text-amber-200 ring-amber-400/30" },
+  OWNER: { label: "Owner", className: "bg-fuchsia-400/15 text-fuchsia-200 ring-fuchsia-400/30" },
+};
+
 interface NavBarProps {
   links: NavLink[];
   userName: string;
+  role: NavRole;
 }
 
 function initials(name: string) {
@@ -21,7 +33,7 @@ function initials(name: string) {
   return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase() || "?";
 }
 
-export function NavBar({ links, userName }: NavBarProps) {
+export function NavBar({ links, userName, role }: NavBarProps) {
   const pathname = usePathname();
   const mobileNavRef = useRef<HTMLElement>(null);
 
@@ -63,6 +75,11 @@ export function NavBar({ links, userName }: NavBarProps) {
           </nav>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <span
+            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ring-1 ${ROLE_CHIP[role].className}`}
+          >
+            {ROLE_CHIP[role].label}
+          </span>
           <div className="flex items-center gap-2" title={userName}>
             <span
               aria-hidden

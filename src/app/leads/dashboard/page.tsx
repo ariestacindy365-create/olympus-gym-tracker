@@ -12,6 +12,8 @@ import { FollowUpActions } from "@/components/leads/FollowUpActions";
 import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
 import { waFollowUpMessage } from "@/lib/waScripts";
 import { FOLLOWUP_TYPE_LABEL, FOLLOWUP_TYPE_TONE } from "@/lib/leadStatusLabels";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { todayLabel } from "@/lib/dateLabel";
 
 export default async function LeadsDashboardPage() {
   const admin = await requireRole("ADMIN");
@@ -35,24 +37,39 @@ export default async function LeadsDashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-display text-2xl font-bold">Dashboard — {admin.name}</h1>
+      <PageHeader
+        eyebrow={todayLabel()}
+        title={`Halo, ${admin.name}`}
+        subtitle="Kejar target capture & follow up hari ini."
+      />
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatTile label="Capture Hari Ini" value={`${capturesToday}/${targetCapture}`} accent={capturesToday >= targetCapture} />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+        <StatTile
+          label="Capture Hari Ini"
+          value={`${capturesToday}/${targetCapture}`}
+          accent={capturesToday >= targetCapture}
+          progress={{ current: capturesToday, target: targetCapture }}
+        />
         <StatTile
           label="Follow Up Hari Ini"
           value={`${followUpsDoneToday}/${targetFollowup}`}
           accent={followUpsDoneToday >= targetFollowup}
+          progress={{ current: followUpsDoneToday, target: targetFollowup }}
         />
-        <StatTile label="Follow Up Menunggu" value={dueFollowUps.length} />
+        <StatTile label="Follow Up Menunggu" value={dueFollowUps.length} danger={dueFollowUps.length > 0} />
       </div>
 
       <CaptureLeadForm />
 
       <Card>
-        <h2 className="mb-3 font-display text-lg font-semibold">Follow Up Hari Ini</h2>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="font-display text-lg font-semibold">Follow Up Hari Ini</h2>
+          {dueFollowUps.length > 0 && <Badge tone="danger">{dueFollowUps.length} menunggu</Badge>}
+        </div>
         {dueFollowUps.length === 0 ? (
-          <p className="text-sm text-muted">Tidak ada follow up yang jatuh tempo hari ini.</p>
+          <p className="rounded-lg bg-success/5 px-3 py-4 text-center text-sm text-success">
+            Semua beres — tidak ada follow up yang jatuh tempo hari ini. 🎉
+          </p>
         ) : (
           <ul className="flex flex-col gap-4">
             {dueFollowUps.map((fu) => (

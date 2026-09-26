@@ -29,7 +29,7 @@ export default async function LeadsLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex flex-1 flex-col">
-      <NavBar links={links} userName={user.name} />
+      <NavBar links={links} userName={user.name} role={user.role} />
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 print:max-w-none print:p-0">{children}</main>
     </div>
   );

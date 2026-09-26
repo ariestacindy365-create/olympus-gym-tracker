@@ -15,7 +15,7 @@ export default async function CoachLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex flex-1 flex-col">
-      <NavBar links={LINKS} userName={user.name} />
+      <NavBar links={LINKS} userName={user.name} role={user.role} />
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">{children}</main>
     </div>
   );
