@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyPin, createSessionCookie } from "@/lib/auth";
 import { loginSchema } from "@/lib/validation";
-import { isStaffEmailAllowed } from "@/lib/staffAccess";
+import { effectiveRole } from "@/lib/staffAccess";
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
@@ -18,10 +18,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid email or PIN." }, { status: 401 });
   }
 
-  if (!isStaffEmailAllowed(user.role, user.email)) {
-    return NextResponse.json({ error: "Akun ini tidak punya akses login." }, { status: 403 });
-  }
-
-  await createSessionCookie(user);
-  return NextResponse.json({ role: user.role });
+  // Staff roles only count for allowlisted emails; everyone else is a member.
+  const role = effectiveRole(user);
+  await createSessionCookie({ ...user, role });
+  return NextResponse.json({ role });
 }

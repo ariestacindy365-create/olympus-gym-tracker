@@ -3,7 +3,8 @@ import { type Role } from "@/generated/prisma/client";
 
 // Only these people may use the staff (non-member) views. Anyone else holding
 // a COACH/ADMIN/OWNER role — e.g. an extra admin created with the invite
-// code — can't log in, and an existing session stops working.
+// code — logs in as a regular MEMBER instead. The stored role is left as is
+// (see effectiveRole), so fixing a misconfigured list restores access.
 //
 // Override per deployment with comma-separated env vars (COACH_EMAILS,
 // ADMIN_EMAILS, OWNER_EMAILS) if the real accounts use different emails.
@@ -28,4 +29,10 @@ function allowedEmails(role: Exclude<Role, "MEMBER">): string[] {
 export function isStaffEmailAllowed(role: Role, email: string): boolean {
   if (role === "MEMBER") return true;
   return allowedEmails(role).includes(email.trim().toLowerCase());
+}
+
+// The role the app actually grants: the stored staff role only for
+// allowlisted emails, MEMBER for everyone else.
+export function effectiveRole(user: { role: Role; email: string }): Role {
+  return isStaffEmailAllowed(user.role, user.email) ? user.role : "MEMBER";
 }

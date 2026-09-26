@@ -31,8 +31,10 @@ capture/follow-up targets, and can delete a lead (ADMIN can only edit).
   allowlisted one (below).
 - Staff logins are restricted to an email allowlist (`src/lib/staffAccess.ts`):
   coach = Cindy & Ari (`cindy@`, `ari@olympus.gym`), admin = Sekar & Esti,
-  owner = `owner@olympus.gym`. Any other COACH/ADMIN/OWNER account can't log in
-  and its existing session is signed out. Override per deployment with
+  owner = `owner@olympus.gym`. Everyone else logs in as a regular member —
+  including any other COACH/ADMIN/OWNER account (its stored role is kept, so
+  fixing the list restores access; such accounts don't show up in the
+  coach's member list since that still filters on the stored role). Override per deployment with
   comma-separated `COACH_EMAILS`, `ADMIN_EMAILS`, `OWNER_EMAILS` env vars
   (e.g. to replace an admin who leaves).
 - New admins can self-register at `/register-admin` (only for emails on the

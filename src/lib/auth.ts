@@ -9,7 +9,7 @@ import { type Role, type User } from "@/generated/prisma/client";
 import { getCurrentClassSession } from "@/lib/classSessions";
 import { todayDateKey } from "@/lib/workout";
 import { roleHomePath } from "@/lib/roles";
-import { isStaffEmailAllowed } from "@/lib/staffAccess";
+import { effectiveRole } from "@/lib/staffAccess";
 
 const SESSION_COOKIE = "olympus_session";
 const SESSION_DURATION_DAYS = 30;
@@ -99,16 +99,24 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
       data: { lastActiveAt: now, ...(presentDate ? { presentDate } : {}) },
     })
     .catch(() => null);
-  if (!user || !isStaffEmailAllowed(user.role, user.email)) return null;
-  return user;
+  if (!user) return null;
+  return { ...user, role: effectiveRole(user) };
 });
 
-// A still-valid cookie whose user no longer resolves (removed from the staff
-// allowlist, or deleted) must be cleared, otherwise the proxy — which only
-// reads the cookie — keeps bouncing /login back to the dashboard.
+// A still-valid cookie whose user no longer exists must be cleared,
+// otherwise the proxy — which only reads the cookie — keeps bouncing /login
+// back to the dashboard.
 export async function redirectToLogin(): Promise<never> {
   const session = await getSession();
   redirect(session ? "/api/auth/signout" : "/login");
+}
+
+// The proxy routes by the role baked into the cookie. If that no longer
+// matches the effective role (e.g. a non-allowlisted admin now counts as a
+// member), re-issue the cookie first so the two can't redirect in a loop.
+async function redirectHome(user: User): Promise<never> {
+  const session = await getSession();
+  redirect(session?.role !== user.role ? "/api/auth/refresh" : roleHomePath(user.role));
 }
 
 export async function requireRole(role: Role): Promise<User> {
@@ -117,7 +125,7 @@ export async function requireRole(role: Role): Promise<User> {
     return redirectToLogin();
   }
   if (user.role !== role) {
-    redirect(roleHomePath(user.role));
+    return redirectHome(user);
   }
   return user;
 }
@@ -128,7 +136,7 @@ export async function requireAnyRole(roles: Role[]): Promise<User> {
     return redirectToLogin();
   }
   if (!roles.includes(user.role)) {
-    redirect(roleHomePath(user.role));
+    return redirectHome(user);
   }
   return user;
 }

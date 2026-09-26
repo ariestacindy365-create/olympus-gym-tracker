@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!isStaffEmailAllowed(Role.ADMIN, email)) {
-    return NextResponse.json({ error: "Email ini tidak terdaftar sebagai admin." }, { status: 403 });
+    return NextResponse.json({ error: "Email ini tidak terdaftar sebagai admin. Silakan daftar sebagai member." }, { status: 403 });
   }
 
   const existing = await prisma.user.findUnique({ where: { email } });
