@@ -9,6 +9,13 @@ import { OlympusLogo } from "@/components/ui/OlympusLogo";
 interface NavLink {
   href: string;
   label: string;
+  // Sub-paths under href that belong to another section, so e.g. "/leads"
+  // isn't highlighted on "/leads/finance".
+  exclude?: string[];
+}
+
+function matches(pathname: string, path: string) {
+  return pathname === path || pathname.startsWith(`${path}/`);
 }
 
 type NavRole = "MEMBER" | "COACH" | "ADMIN" | "OWNER";
@@ -40,7 +47,7 @@ export function NavBar({ links, userName, role }: NavBarProps) {
   // Prefer the most specific match so "/leads" isn't also highlighted while
   // on "/leads/renewals".
   const activeHref = links
-    .filter((link) => pathname === link.href || pathname.startsWith(`${link.href}/`))
+    .filter((link) => matches(pathname, link.href) && !link.exclude?.some((path) => matches(pathname, path)))
     .sort((a, b) => b.href.length - a.href.length)[0]?.href;
 
   // Keep the active tab visible in the horizontally scrolling mobile strip.

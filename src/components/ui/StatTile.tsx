@@ -9,6 +9,9 @@ interface StatTileProps {
 
 export function StatTile({ label, value, accent, danger, progress }: StatTileProps) {
   const tone = danger ? "text-danger" : accent ? "text-accent" : "text-foreground";
+  // Long values (e.g. "Rp 10.600.000") overflow a half-width mobile tile at
+  // the default size.
+  const size = String(value).length > 9 ? "text-xl sm:text-2xl" : "text-3xl";
   const bar = danger ? "bg-danger" : accent ? "bg-accent" : "bg-border-strong";
   const pct = progress && progress.target > 0 ? Math.min(100, Math.round((progress.current / progress.target) * 100)) : null;
   const done = pct !== null && pct >= 100;
@@ -17,7 +20,7 @@ export function StatTile({ label, value, accent, danger, progress }: StatTilePro
     <div className="relative overflow-hidden rounded-xl border border-border bg-surface p-4 shadow-card">
       <span aria-hidden className={`absolute inset-y-0 left-0 w-1 ${bar}`} />
       <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
-      <p className={`tabular mt-1 font-display text-3xl font-bold ${tone}`}>{value}</p>
+      <p className={`tabular mt-1 break-words font-display font-bold leading-tight ${size} ${tone}`}>{value}</p>
       {pct !== null && (
         <div className="mt-2 flex items-center gap-2">
           <div
