@@ -34,7 +34,7 @@ export default async function CoachDashboardPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         eyebrow={todayLabel()}
-        title={coach ? `Halo, Coach ${coach.name}` : "Coach Dashboard"}
+        title={coach ? `Halo, ${/^coach\b/i.test(coach.name) ? coach.name : `Coach ${coach.name}`}` : "Coach Dashboard"}
         subtitle="Atur gerakan hari ini dan pantau member yang sedang latihan."
         actions={
           <Link
