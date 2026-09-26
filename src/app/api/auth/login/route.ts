@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyPin, createSessionCookie } from "@/lib/auth";
 import { loginSchema } from "@/lib/validation";
+import { isStaffEmailAllowed } from "@/lib/staffAccess";
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
@@ -15,6 +16,10 @@ export async function POST(request: NextRequest) {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !(await verifyPin(pin, user.pinHash))) {
     return NextResponse.json({ error: "Invalid email or PIN." }, { status: 401 });
+  }
+
+  if (!isStaffEmailAllowed(user.role, user.email)) {
+    return NextResponse.json({ error: "Akun ini tidak punya akses login." }, { status: 403 });
   }
 
   await createSessionCookie(user);

@@ -15,6 +15,7 @@ import { waWinBackMessage } from "@/lib/waScripts";
 import { formatRupiah } from "@/lib/packages";
 import { Role } from "@/generated/prisma/client";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { isStaffEmailAllowed } from "@/lib/staffAccess";
 import { todayLabel } from "@/lib/dateLabel";
 
 export default async function LeadsOwnerPage() {
@@ -23,7 +24,9 @@ export default async function LeadsOwnerPage() {
   const today = todayDateKey();
   const tomorrow = addDays(today, 1);
 
-  const admins = await prisma.user.findMany({ where: { role: Role.ADMIN }, orderBy: { name: "asc" } });
+  const admins = (await prisma.user.findMany({ where: { role: Role.ADMIN }, orderBy: { name: "asc" } })).filter((a) =>
+    isStaffEmailAllowed(a.role, a.email)
+  );
 
   // Former members who reached MEMBER at some point (convertedAt set) and
   // are now LOST — i.e. flagged "Tidak Perpanjang" on their H21 follow up,

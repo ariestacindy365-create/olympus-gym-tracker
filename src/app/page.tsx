@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, redirectToLogin } from "@/lib/auth";
 import { roleHomePath } from "@/lib/roles";
 
 export default async function RootPage() {
   const user = await getCurrentUser();
   if (!user) {
-    redirect("/login");
+    return redirectToLogin();
   }
   redirect(roleHomePath(user.role));
 }
