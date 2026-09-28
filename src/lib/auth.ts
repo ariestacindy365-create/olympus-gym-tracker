@@ -100,10 +100,20 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
     .catch(() => null);
 });
 
+// A session cookie can be cryptographically valid (unexpired, correctly
+// signed) while pointing at a user that no longer exists in the DB — e.g.
+// the row was deleted. The proxy (src/proxy.ts) can only check the JWT's
+// role claim, not the DB, so it still trusts the stale cookie and redirects
+// an auth-route visit straight back into the app; only here, after an actual
+// DB lookup, do we know the session is dead. Cookies can't be cleared during
+// a Server Component render (only in a Server Action or Route Handler), so
+// this redirects to a route handler that clears it and then sends the
+// browser on to /login for real — otherwise the proxy would trust the same
+// stale cookie on the very next /login request and bounce it right back.
 export async function requireRole(role: Role): Promise<User> {
   const user = await getCurrentUser();
   if (!user) {
-    redirect("/login");
+    redirect("/api/auth/invalidate-session");
   }
   if (user.role !== role) {
     redirect(roleHomePath(user.role));
@@ -114,7 +124,7 @@ export async function requireRole(role: Role): Promise<User> {
 export async function requireAnyRole(roles: Role[]): Promise<User> {
   const user = await getCurrentUser();
   if (!user) {
-    redirect("/login");
+    redirect("/api/auth/invalidate-session");
   }
   if (!roles.includes(user.role)) {
     redirect(roleHomePath(user.role));

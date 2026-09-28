@@ -34,7 +34,10 @@ export default async function LeadsHistoryPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-display text-2xl font-bold">Riwayat Follow Up</h1>
+      <div>
+        <h1 className="font-display text-2xl font-bold">Riwayat</h1>
+        <p className="text-sm text-muted">Follow up, dan lead/pembayaran/penjualan yang pernah dihapus.</p>
+      </div>
 
       <Card>
         <h2 className="mb-3 font-display text-lg font-semibold">Belum Follow Up ({dueNow.length})</h2>
