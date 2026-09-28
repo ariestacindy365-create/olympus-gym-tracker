@@ -64,11 +64,14 @@ html {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Follows the device's system setting — no in-app toggle. Only the surface
-   tokens shift; accent/danger/success stay put so status colors keep
-   meaning (and contrast) in both themes. */
+/* Follows the device's system setting by default. ThemeToggle can pin it
+   either way by setting data-theme on <html> — data-theme="light" opts out
+   of the media query below, data-theme="dark" applies the same overrides
+   regardless of the system setting. Only the surface tokens shift;
+   accent/danger/success stay put so status colors keep meaning (and
+   contrast) in both themes. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --background: #0b1220;
     --surface: #131c2c;
     --surface-2: #1b2638;
@@ -78,6 +81,17 @@ html {
     --muted: #93a1b8;
     --nav-bg: #060a12;
   }
+}
+
+:root[data-theme="dark"] {
+  --background: #0b1220;
+  --surface: #131c2c;
+  --surface-2: #1b2638;
+  --border: #263449;
+  --border-strong: #35455d;
+  --foreground: #e7ecf5;
+  --muted: #93a1b8;
+  --nav-bg: #060a12;
 }
 
 body {

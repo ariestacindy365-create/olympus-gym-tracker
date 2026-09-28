@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/ui/LogoutButton";
 import { OlympusLogo } from "@/components/ui/OlympusLogo";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 interface NavLink {
   href: string;
@@ -119,6 +120,7 @@ export function NavBar({ links, userName, role }: NavBarProps) {
             </span>
             <span className="hidden max-w-[10rem] truncate text-sm text-nav-foreground/90 md:inline">{userName}</span>
           </div>
+          <ThemeToggle />
           <LogoutButton />
         </div>
       </div>

@@ -46,3 +46,29 @@ export function AlertCircleIcon({ className = "" }: IconProps) {
     </svg>
   );
 }
+
+export function SunIcon({ className = "" }: IconProps) {
+  return (
+    <svg width="1em" height="1em" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden className={className}>
+      <circle cx="10" cy="10" r="3.5" />
+      <path d="M10 2.5v2M10 15.5v2M17.5 10h-2M4.5 10h-2M15.3 4.7l-1.4 1.4M6.1 13.9l-1.4 1.4M15.3 15.3l-1.4-1.4M6.1 6.1L4.7 4.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function MoonIcon({ className = "" }: IconProps) {
+  return (
+    <svg width="1em" height="1em" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden className={className}>
+      <path d="M16.5 12.3A6.7 6.7 0 017.7 3.5a6.7 6.7 0 108.8 8.8z" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function MonitorIcon({ className = "" }: IconProps) {
+  return (
+    <svg width="1em" height="1em" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden className={className}>
+      <rect x="2.5" y="3.5" width="15" height="10" rx="1.2" />
+      <path d="M7 16.5h6M10 13.5v3" strokeLinecap="round" />
+    </svg>
+  );
+}
