@@ -5,6 +5,7 @@ import { getFollowUpHistory, getDeletedLeads, getDeletedPayments, getDeletedSale
 import { todayDateKey } from "@/lib/workout";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
 import { STATUS_LABEL, STATUS_TONE, FOLLOWUP_TYPE_LABEL, FOLLOWUP_TYPE_TONE } from "@/lib/leadStatusLabels";
 import { waFollowUpMessage } from "@/lib/waScripts";
@@ -46,7 +47,7 @@ export default async function LeadsHistoryPage() {
           <p className="mb-3 text-sm font-medium text-danger">{missedCount} di antaranya sudah terlewat dari hari jatuh temponya.</p>
         )}
         {dueNow.length === 0 ? (
-          <p className="text-sm text-muted">Tidak ada yang menunggu.</p>
+          <EmptyState title="Semua sudah ditindak" description="Tidak ada yang menunggu." />
         ) : (
           <ul className="flex flex-col gap-3">
             {dueNow.map((fu) => {
@@ -78,7 +79,7 @@ export default async function LeadsHistoryPage() {
         <h2 className="mb-3 font-display text-lg font-semibold">Akan Follow Up ({upcoming.length})</h2>
         <p className="mb-3 text-xs text-muted">Terjadwal untuk beberapa hari ke depan.</p>
         {upcoming.length === 0 ? (
-          <p className="text-sm text-muted">Tidak ada jadwal follow up mendatang.</p>
+          <EmptyState title="Tidak ada jadwal" description="Tidak ada jadwal follow up mendatang." />
         ) : (
           <ul className="flex flex-col gap-3">
             {upcoming.map((fu) => (

@@ -3,6 +3,7 @@ import { getCurrentUser, requireAnyRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { RecordPaymentForm } from "@/components/leads/RecordPaymentForm";
 import { ThermalPrinterSettings } from "@/components/leads/ThermalPrinterSettings";
 import { DeletePaymentButton } from "@/components/leads/DeletePaymentButton";
@@ -53,7 +54,7 @@ export default async function PaymentsPage({
       <Card>
         <h2 className="mb-3 font-display text-lg font-semibold">Riwayat Pembayaran</h2>
         {recentPayments.length === 0 ? (
-          <p className="text-sm text-muted">Belum ada pembayaran tercatat.</p>
+          <EmptyState title="Belum ada pembayaran" description="Pembayaran yang dicatat akan muncul di sini." />
         ) : (
           <ul className="flex flex-col gap-3">
             {recentPayments.map((payment) => (

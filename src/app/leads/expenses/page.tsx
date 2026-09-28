@@ -2,6 +2,7 @@ import { getCurrentUser, requireAnyRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { ExpenseForm } from "@/components/leads/ExpenseForm";
 import { formatRupiah, EXPENSE_CATEGORY_LABEL } from "@/lib/packages";
 
@@ -28,7 +29,7 @@ export default async function ExpensesPage() {
       <Card>
         <h2 className="mb-3 font-display text-lg font-semibold">Riwayat Pengeluaran</h2>
         {recentExpenses.length === 0 ? (
-          <p className="text-sm text-muted">Belum ada pengeluaran tercatat.</p>
+          <EmptyState title="Belum ada pengeluaran" description="Pengeluaran yang dicatat akan muncul di sini." />
         ) : (
           <ul className="flex flex-col gap-3">
             {recentExpenses.map((expense) => (

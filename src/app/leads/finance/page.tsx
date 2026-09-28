@@ -1,17 +1,23 @@
 import Link from "next/link";
-import { startOfMonth } from "date-fns";
+import { startOfMonth, subMonths, addMonths, format } from "date-fns";
+import { id as idLocale } from "date-fns/locale";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { todayDateKey } from "@/lib/workout";
 import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { RevenueTrendChart, type RevenueTrendPoint } from "@/components/leads/RevenueTrendChart";
 import { formatRupiah, PAYMENT_METHOD_LABEL, EXPENSE_CATEGORY_LABEL } from "@/lib/packages";
+
+const TREND_MONTHS = 6;
 
 export default async function FinancePage() {
   await requireRole("OWNER");
 
   const today = todayDateKey();
   const monthStart = startOfMonth(today);
+  const trendRangeStart = startOfMonth(subMonths(monthStart, TREND_MONTHS - 1));
 
   const [
     membershipRevenueThisMonth,
@@ -23,6 +29,9 @@ export default async function FinancePage() {
     expensesThisMonth,
     expensesAllTime,
     expensesThisMonthList,
+    paymentsForTrend,
+    salesForTrend,
+    expensesForTrend,
   ] = await Promise.all([
     prisma.payment.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart }, deletedAt: null } }),
     prisma.payment.aggregate({ _sum: { amount: true }, where: { deletedAt: null } }),
@@ -39,7 +48,30 @@ export default async function FinancePage() {
     prisma.expense.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart } } }),
     prisma.expense.aggregate({ _sum: { amount: true } }),
     prisma.expense.findMany({ where: { paidAt: { gte: monthStart } }, select: { amount: true, category: true } }),
+    prisma.payment.findMany({
+      where: { paidAt: { gte: trendRangeStart }, deletedAt: null },
+      select: { amount: true, paidAt: true },
+    }),
+    prisma.sale.findMany({
+      where: { createdAt: { gte: trendRangeStart }, deletedAt: null },
+      select: { price: true, createdAt: true },
+    }),
+    prisma.expense.findMany({ where: { paidAt: { gte: trendRangeStart } }, select: { amount: true, paidAt: true } }),
   ]);
+
+  // Bucket the last TREND_MONTHS months in JS — small enough datasets (a
+  // single gym's payments/sales/expenses) that a per-month SQL group-by
+  // would be overkill, matching how dailyReport.ts aggregates elsewhere.
+  const trendData: RevenueTrendPoint[] = Array.from({ length: TREND_MONTHS }, (_, i) => {
+    const bucketStart = startOfMonth(subMonths(monthStart, TREND_MONTHS - 1 - i));
+    const bucketEnd = addMonths(bucketStart, 1);
+    const inBucket = (d: Date) => d >= bucketStart && d < bucketEnd;
+    const revenue =
+      paymentsForTrend.filter((p) => inBucket(p.paidAt)).reduce((sum, p) => sum + p.amount, 0) +
+      salesForTrend.filter((s) => inBucket(s.createdAt)).reduce((sum, s) => sum + s.price, 0);
+    const expense = expensesForTrend.filter((e) => inBucket(e.paidAt)).reduce((sum, e) => sum + e.amount, 0);
+    return { label: format(bucketStart, "MMM yy", { locale: idLocale }), revenue, expense };
+  });
 
   const revenueThisMonthTotal = (membershipRevenueThisMonth._sum.amount ?? 0) + (salesRevenueThisMonth._sum.price ?? 0);
   const revenueAllTimeTotal = (membershipRevenueAllTime._sum.amount ?? 0) + (salesRevenueAllTime._sum.price ?? 0);
@@ -103,6 +135,8 @@ export default async function FinancePage() {
         <StatTile label="Pengeluaran Sepanjang Waktu" value={formatRupiah(expensesAllTime._sum.amount ?? 0)} />
       </div>
 
+      <RevenueTrendChart data={trendData} />
+
       <Card className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold">Rincian Pemasukan Bulan Ini</h2>
@@ -111,7 +145,7 @@ export default async function FinancePage() {
           </Link>
         </div>
         {paymentsThisMonth.length === 0 ? (
-          <p className="text-sm text-muted">Belum ada pembayaran bulan ini.</p>
+          <EmptyState title="Belum ada pembayaran" description="Belum ada pembayaran bulan ini." />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -152,7 +186,7 @@ export default async function FinancePage() {
           </Link>
         </div>
         {topProductsThisMonth.length === 0 ? (
-          <p className="text-sm text-muted">Belum ada penjualan produk bulan ini.</p>
+          <EmptyState title="Belum ada penjualan" description="Belum ada penjualan produk bulan ini." />
         ) : (
           <ul className="flex flex-col gap-1.5">
             {topProductsThisMonth.map(([name, stat]) => (
@@ -175,7 +209,7 @@ export default async function FinancePage() {
           </Link>
         </div>
         {byCategoryThisMonth.length === 0 ? (
-          <p className="text-sm text-muted">Belum ada pengeluaran bulan ini.</p>
+          <EmptyState title="Belum ada pengeluaran" description="Belum ada pengeluaran bulan ini." />
         ) : (
           <ul className="flex flex-col gap-1.5">
             {byCategoryThisMonth.map(([category, stat]) => (

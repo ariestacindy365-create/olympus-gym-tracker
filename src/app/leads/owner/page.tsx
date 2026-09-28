@@ -6,6 +6,7 @@ import { todayDateKey } from "@/lib/workout";
 import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { TargetEditForm } from "@/components/leads/TargetEditForm";
 import { ConversionRateChart } from "@/components/leads/ConversionRateChart";
 import { AdminInviteCodeCard } from "@/components/leads/AdminInviteCodeCard";
@@ -164,7 +165,7 @@ export default async function LeadsOwnerPage() {
           <StatTile label="Retention Rate" value={retentionRate != null ? `${retentionRate}%` : "-"} accent />
         </div>
         {churnedMembers.length === 0 ? (
-          <p className="text-sm text-muted">Belum ada member yang tidak perpanjang.</p>
+          <EmptyState title="Belum ada yang berhenti" description="Belum ada member yang tidak perpanjang." />
         ) : (
           <div className="flex flex-col gap-2">
             {churnedMembers.map((lead) => {

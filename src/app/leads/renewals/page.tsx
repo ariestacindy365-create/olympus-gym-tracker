@@ -6,6 +6,7 @@ import { todayDateKey } from "@/lib/workout";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
 import { waFollowUpMessage } from "@/lib/waScripts";
 
@@ -44,7 +45,7 @@ export default async function RenewalsPage() {
 
       <Card>
         {pipeline.length === 0 ? (
-          <p className="text-sm text-muted">Tidak ada member yang perlu diperpanjang dalam waktu dekat.</p>
+          <EmptyState title="Aman, tidak ada yang mendesak" description="Tidak ada member yang perlu diperpanjang dalam waktu dekat." />
         ) : (
           <>
             {overdueCount > 0 && (

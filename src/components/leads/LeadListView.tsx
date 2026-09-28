@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { WhatsAppLink } from "@/components/leads/WhatsAppLink";
 import { STATUS_LABEL, STATUS_TONE } from "@/lib/leadStatusLabels";
 import { waOpeningMessage } from "@/lib/waScripts";
@@ -64,7 +65,7 @@ export function LeadListView({ leads }: { leads: LeadRow[] }) {
       </div>
 
       <div className="flex flex-col gap-2">
-        {filtered.length === 0 && <p className="text-sm text-muted">Tidak ada lead yang cocok.</p>}
+        {filtered.length === 0 && <EmptyState title="Tidak ada lead" description="Tidak ada lead yang cocok dengan pencarian/filter ini." />}
         {filtered.map((lead) => (
           <Card key={lead.id} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Link href={`/leads/${lead.id}`} className="flex-1 hover:text-accent">
