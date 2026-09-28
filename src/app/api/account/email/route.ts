@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { changeEmailSchema } from "@/lib/validation";
 import { Role } from "@/generated/prisma/client";
+import { isStaffEmailAllowed } from "@/lib/staffAccess";
 
 export async function PATCH(request: NextRequest) {
   const user = await getCurrentUser();
@@ -17,6 +18,15 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Masukkan email yang valid." }, { status: 400 });
   }
   const { email } = parsed.data;
+
+  // Staff logins are tied to an email allowlist; moving to an unlisted email
+  // would lock the account out.
+  if (!isStaffEmailAllowed(user.role, email)) {
+    return NextResponse.json(
+      { error: "Email akun staf tidak bisa diganti ke email yang tidak terdaftar." },
+      { status: 403 }
+    );
+  }
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing && existing.id !== user.id) {

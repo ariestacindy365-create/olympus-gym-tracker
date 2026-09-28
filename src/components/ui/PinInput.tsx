@@ -59,7 +59,10 @@ export function PinInput({ length = 4, value, onChange, disabled }: PinInputProp
           onChange={(e) => handleChange(i, e.target.value)}
           onKeyDown={(e) => handleKeyDown(i, e)}
           onPaste={handlePaste}
-          className="h-14 w-12 rounded-md border border-border bg-surface-2 text-center text-2xl font-semibold text-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+          aria-label={`Digit ${i + 1}`}
+          className={`h-14 w-12 rounded-xl border text-center text-2xl font-semibold text-foreground shadow-card transition focus:border-accent focus:outline-none focus:ring-3 focus:ring-accent/15 disabled:opacity-60 ${
+            digit ? "border-accent/50 bg-accent/5" : "border-border bg-surface"
+          }`}
         />
       ))}
     </div>

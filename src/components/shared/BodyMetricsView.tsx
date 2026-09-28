@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { StatTile } from "@/components/ui/StatTile";
 import { parseWeightInput } from "@/lib/parseWeight";
+import { EditIcon, TrashIcon } from "@/components/ui/Icons";
 
 export interface BodyMetricEntry {
   id: string;
@@ -280,9 +281,9 @@ export function BodyMetricsView({ entries, canEdit = false, canDelete = false, b
                               onClick={() => startEdit(e)}
                               disabled={pendingId === e.id}
                               aria-label="Edit catatan"
-                              className="text-muted hover:text-foreground disabled:opacity-50"
+                              className="rounded-md p-1.5 text-base text-muted transition hover:bg-surface-2 hover:text-foreground disabled:opacity-50"
                             >
-                              ✏️
+                              <EditIcon />
                             </button>
                           )}
                           {canDelete && (
@@ -291,9 +292,9 @@ export function BodyMetricsView({ entries, canEdit = false, canDelete = false, b
                               onClick={() => handleDelete(e.id)}
                               disabled={pendingId === e.id}
                               aria-label="Hapus catatan"
-                              className="text-muted hover:text-danger disabled:opacity-50"
+                              className="rounded-md p-1.5 text-base text-muted transition hover:bg-surface-2 hover:text-danger disabled:opacity-50"
                             >
-                              🗑️
+                              <TrashIcon />
                             </button>
                           )}
                         </div>

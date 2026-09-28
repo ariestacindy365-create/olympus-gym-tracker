@@ -13,7 +13,7 @@ export default async function MemberLayout({ children }: { children: React.React
 
   return (
     <div className="flex flex-1 flex-col">
-      <NavBar links={LINKS} userName={user.name} />
+      <NavBar links={LINKS} userName={user.name} role={user.role} />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6">{children}</main>
     </div>
   );

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { requireAnyRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -24,7 +24,7 @@ import { waOpeningMessage, waFollowUpMessage } from "@/lib/waScripts";
 
 export default async function LeadDetailPage({ params }: { params: Promise<{ leadId: string }> }) {
   const { leadId } = await params;
-  const user = await getCurrentUser();
+  const user = await requireAnyRole(["ADMIN", "OWNER"]);
   const isAdmin = user?.role === "ADMIN";
   const isOwner = user?.role === "OWNER";
 

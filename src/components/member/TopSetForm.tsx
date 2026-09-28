@@ -14,6 +14,7 @@ import {
   type UnlockedBadge,
 } from "@/components/shared/AchievementCelebrationModal";
 import { parseWeightInput } from "@/lib/parseWeight";
+import { EditIcon, TrashIcon } from "@/components/ui/Icons";
 
 interface ExerciseOption {
   id: string;
@@ -312,18 +313,18 @@ export function TopSetForm({
                       onClick={() => startEdit(s)}
                       disabled={rowPendingId === s.id}
                       aria-label="Edit set"
-                      className="text-muted hover:text-foreground disabled:opacity-50"
+                      className="rounded-md p-1.5 text-base text-muted transition hover:bg-surface-2 hover:text-foreground disabled:opacity-50"
                     >
-                      ✏️
+                      <EditIcon />
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDelete(s.id)}
                       disabled={rowPendingId === s.id}
                       aria-label="Hapus set"
-                      className="text-muted hover:text-danger disabled:opacity-50"
+                      className="rounded-md p-1.5 text-base text-muted transition hover:bg-surface-2 hover:text-danger disabled:opacity-50"
                     >
-                      🗑️
+                      <TrashIcon />
                     </button>
                   </div>
                 </div>

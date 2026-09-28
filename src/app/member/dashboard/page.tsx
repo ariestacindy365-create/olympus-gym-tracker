@@ -5,6 +5,8 @@ import { DashboardClient } from "@/components/member/DashboardClient";
 import { ProgressView, type ExerciseProgress } from "@/components/shared/ProgressView";
 import { UnseenAchievementNotifier } from "@/components/member/UnseenAchievementNotifier";
 import { syncMemberAchievements, getUnseenAchievements } from "@/lib/achievements";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { todayLabel } from "@/lib/dateLabel";
 
 export default async function MemberDashboardPage() {
   const user = await getCurrentUser();
@@ -112,23 +114,19 @@ export default async function MemberDashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="font-display text-2xl font-bold">Halo, {user.name}</h1>
-        <p className="text-sm text-muted">Berikut latihan hari ini.</p>
-      </div>
+      <PageHeader eyebrow={todayLabel()} title={`Halo, ${user.name}`} subtitle="Berikut latihan hari ini." />
 
       {dailyWorkout && (
-        <div className="flex items-start gap-3 rounded-lg border border-accent/30 bg-accent/10 p-4">
-          <span className="text-xl">🎯</span>
-          <p className="text-sm">
-            <span className="text-muted">Gerakan hari ini dari pelatih: </span>
-            <span className="font-semibold text-accent">{dailyWorkout.exercise.name}</span>
-          </p>
+        <div className="relative overflow-hidden rounded-xl bg-nav-bg p-5 text-nav-foreground shadow-raised [background-image:radial-gradient(28rem_10rem_at_100%_0%,rgb(37_99_235/0.45),transparent)]">
+          <p className="text-xs font-semibold uppercase tracking-wider text-nav-muted">🎯 Gerakan hari ini dari pelatih</p>
+          <p className="mt-1 font-display text-2xl font-bold tracking-wide text-white">{dailyWorkout.exercise.name}</p>
         </div>
       )}
 
       {exercises.length === 0 ? (
-        <p className="text-muted">Belum ada gerakan yang ditambahkan pelatih. Coba lagi nanti.</p>
+        <p className="rounded-xl border border-dashed border-border-strong bg-surface p-6 text-center text-sm text-muted">
+          Belum ada gerakan yang ditambahkan pelatih. Coba lagi nanti.
+        </p>
       ) : (
         <DashboardClient
           exercises={exercises}
