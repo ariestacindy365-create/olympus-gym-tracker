@@ -60,8 +60,24 @@
 }
 
 html {
-  color-scheme: light;
+  color-scheme: light dark;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Follows the device's system setting — no in-app toggle. Only the surface
+   tokens shift; accent/danger/success stay put so status colors keep
+   meaning (and contrast) in both themes. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0b1220;
+    --surface: #131c2c;
+    --surface-2: #1b2638;
+    --border: #263449;
+    --border-strong: #35455d;
+    --foreground: #e7ecf5;
+    --muted: #93a1b8;
+    --nav-bg: #060a12;
+  }
 }
 
 body {
