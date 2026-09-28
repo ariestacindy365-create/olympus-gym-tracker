@@ -70,8 +70,15 @@ export function MemberManager({ members: initialMembers }: { members: Member[] }
     if (!ok) return;
     setActionPendingId(id);
     try {
-      await fetch(`/api/coach/members/${id}/reset-pin`, { method: "POST" });
+      const res = await fetch(`/api/coach/members/${id}/reset-pin`, { method: "POST" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast.error(body.error ?? "Gagal me-reset PIN.");
+        return;
+      }
       toast.success("PIN berhasil direset ke 1111.");
+    } catch {
+      toast.error("Terjadi kesalahan. Coba lagi.");
     } finally {
       setActionPendingId(null);
     }
@@ -90,11 +97,15 @@ export function MemberManager({ members: initialMembers }: { members: Member[] }
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: editName }),
       });
-      const data = await res.json();
-      if (res.ok) {
-        setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, name: data.member.name } : m)));
-        setEditingId(null);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error ?? "Gagal menyimpan.");
+        return;
       }
+      setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, name: data.member.name } : m)));
+      setEditingId(null);
+    } catch {
+      toast.error("Terjadi kesalahan. Coba lagi.");
     } finally {
       setActionPendingId(null);
     }
@@ -110,9 +121,15 @@ export function MemberManager({ members: initialMembers }: { members: Member[] }
     setActionPendingId(id);
     try {
       const res = await fetch(`/api/coach/members/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setMembers((prev) => prev.filter((m) => m.id !== id));
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast.error(body.error ?? "Gagal menghapus member.");
+        return;
       }
+      setMembers((prev) => prev.filter((m) => m.id !== id));
+      toast.success(`${memberName} dihapus.`);
+    } catch {
+      toast.error("Terjadi kesalahan. Coba lagi.");
     } finally {
       setActionPendingId(null);
     }

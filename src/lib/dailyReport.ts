@@ -24,7 +24,9 @@ export async function buildDailyReportMessage(): Promise<string> {
     totalChurned,
   ] = await Promise.all([
     prisma.lead.count({ where: { capturedAt: { gte: yesterday, lt: today }, deletedAt: null } }),
-    prisma.followUp.count({ where: { completedAt: { gte: yesterday, lt: today } } }),
+    prisma.followUp.count({
+      where: { completedAt: { gte: yesterday, lt: today }, lead: { deletedAt: null } },
+    }),
     prisma.payment.findMany({
       where: { paidAt: { gte: yesterday, lt: today }, deletedAt: null },
       select: { amount: true },
