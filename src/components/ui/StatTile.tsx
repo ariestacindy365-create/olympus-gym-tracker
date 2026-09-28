@@ -10,7 +10,7 @@ export function StatTile({ label, value, accent, danger }: StatTileProps) {
     <div className="rounded-lg border border-border bg-surface p-4">
       <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
       <p
-        className={`mt-1 font-display text-3xl font-bold ${danger ? "text-danger" : accent ? "text-accent" : "text-foreground"}`}
+        className={`mt-1 break-words font-display text-xl font-bold leading-tight sm:text-2xl md:text-3xl ${danger ? "text-danger" : accent ? "text-accent" : "text-foreground"}`}
       >
         {value}
       </p>

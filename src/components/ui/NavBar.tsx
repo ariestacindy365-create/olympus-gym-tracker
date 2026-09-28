@@ -20,8 +20,16 @@ export function NavBar({ links, userName }: NavBarProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Every link under this section shares the "/leads" prefix (the Lead list
+  // page itself lives at exactly "/leads"), so a plain startsWith would mark
+  // "Lead" active on every other page too (e.g. /leads/kasir). Only the
+  // longest matching href — the most specific one — counts as active.
+  const activeHref = links
+    .filter((l) => pathname === l.href || pathname.startsWith(`${l.href}/`))
+    .reduce<string | null>((best, l) => (best === null || l.href.length > best.length ? l.href : best), null);
+
   function isActive(href: string) {
-    return pathname === href || pathname.startsWith(`${href}/`);
+    return href === activeHref;
   }
 
   return (
