@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { MemberStatusBadge } from "@/components/coach/MemberStatusBadge";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { useToast } from "@/components/ui/ToastProvider";
 
 interface Member {
   id: string;
@@ -16,6 +18,8 @@ interface Member {
 }
 
 export function MemberManager({ members: initialMembers }: { members: Member[] }) {
+  const confirmDialog = useConfirm();
+  const toast = useToast();
   const [members, setMembers] = useState(initialMembers);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -62,11 +66,12 @@ export function MemberManager({ members: initialMembers }: { members: Member[] }
   }
 
   async function handleResetPin(id: string) {
-    if (!confirm("Reset PIN member ini ke 1111?")) return;
+    const ok = await confirmDialog({ description: "Reset PIN member ini ke 1111?", confirmLabel: "Reset" });
+    if (!ok) return;
     setActionPendingId(id);
     try {
       await fetch(`/api/coach/members/${id}/reset-pin`, { method: "POST" });
-      alert("PIN berhasil direset ke 1111.");
+      toast.success("PIN berhasil direset ke 1111.");
     } finally {
       setActionPendingId(null);
     }
@@ -96,7 +101,12 @@ export function MemberManager({ members: initialMembers }: { members: Member[] }
   }
 
   async function handleDelete(id: string, memberName: string) {
-    if (!confirm(`Hapus ${memberName}? Semua topset & rekor member ini akan hilang permanen.`)) return;
+    const ok = await confirmDialog({
+      description: `Hapus ${memberName}? Semua topset & rekor member ini akan hilang permanen.`,
+      confirmLabel: "Hapus",
+      danger: true,
+    });
+    if (!ok) return;
     setActionPendingId(id);
     try {
       const res = await fetch(`/api/coach/members/${id}`, { method: "DELETE" });

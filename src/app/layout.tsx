@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Oswald } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/ui/ServiceWorkerRegister";
+import { ConfirmProvider } from "@/components/ui/ConfirmProvider";
+import { ToastProvider } from "@/components/ui/ToastProvider";
 import "./globals.css";
 
 const inter = Inter({
@@ -45,7 +47,9 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${oswald.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ServiceWorkerRegister />
-        {children}
+        <ToastProvider>
+          <ConfirmProvider>{children}</ConfirmProvider>
+        </ToastProvider>
       </body>
     </html>
   );

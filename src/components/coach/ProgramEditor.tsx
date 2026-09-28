@@ -10,6 +10,7 @@ import { type MovementOption } from "@/components/coach/MovementCombobox";
 import { type SlotState } from "@/components/coach/SortableSlotRow";
 import { SortableDayBlock, type DayState } from "@/components/coach/SortableDayBlock";
 import { ProgramWeekPreview } from "@/components/coach/ProgramWeekPreview";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 export type { DayState };
 
@@ -83,6 +84,7 @@ function withDayIds(weeks: Record<number, Omit<DayState, "id">[]>): Record<numbe
 }
 
 export function ProgramEditor({ movements: initialMovements, initialWeeks }: ProgramEditorProps) {
+  const confirmDialog = useConfirm();
   const [weeks, setWeeks] = useState(() => withDayIds(initialWeeks));
   const [movements, setMovements] = useState(initialMovements);
   const [activeWeek, setActiveWeek] = useState(1);
@@ -145,8 +147,9 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
     updateDays([...days, emptyDay()]);
   }
 
-  function removeDay(dayIndex: number) {
-    if (!confirm("Hapus hari ini beserta semua gerakannya?")) return;
+  async function removeDay(dayIndex: number) {
+    const ok = await confirmDialog({ description: "Hapus hari ini beserta semua gerakannya?", confirmLabel: "Hapus", danger: true });
+    if (!ok) return;
     updateDays(days.filter((_, i) => i !== dayIndex));
   }
 

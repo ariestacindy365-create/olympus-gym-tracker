@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { useToast } from "@/components/ui/ToastProvider";
 
 interface Exercise {
   id: string;
@@ -11,6 +13,8 @@ interface Exercise {
 }
 
 export function ExerciseManager({ exercises: initialExercises }: { exercises: Exercise[] }) {
+  const confirmDialog = useConfirm();
+  const toast = useToast();
   const [exercises, setExercises] = useState(initialExercises);
   const [newName, setNewName] = useState("");
   const [search, setSearch] = useState("");
@@ -75,7 +79,7 @@ export function ExerciseManager({ exercises: initialExercises }: { exercises: Ex
         );
         setEditingId(null);
       } else {
-        alert(data.error ?? "Gagal mengubah gerakan.");
+        toast.error(data.error ?? "Gagal mengubah gerakan.");
       }
     } finally {
       setActionPendingId(null);
@@ -83,7 +87,8 @@ export function ExerciseManager({ exercises: initialExercises }: { exercises: Ex
   }
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`Hapus gerakan "${name}"?`)) return;
+    const ok = await confirmDialog({ description: `Hapus gerakan "${name}"?`, confirmLabel: "Hapus", danger: true });
+    if (!ok) return;
     setActionPendingId(id);
     try {
       const res = await fetch(`/api/coach/exercises/${id}`, { method: "DELETE" });
@@ -91,7 +96,7 @@ export function ExerciseManager({ exercises: initialExercises }: { exercises: Ex
       if (res.ok) {
         setExercises((prev) => prev.filter((ex) => ex.id !== id));
       } else {
-        alert(data.error ?? "Gagal menghapus gerakan.");
+        toast.error(data.error ?? "Gagal menghapus gerakan.");
       }
     } finally {
       setActionPendingId(null);

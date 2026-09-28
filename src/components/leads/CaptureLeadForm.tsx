@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { useToast } from "@/components/ui/ToastProvider";
 
 export function CaptureLeadForm() {
   const router = useRouter();
+  const toast = useToast();
   const [waNumber, setWaNumber] = useState("");
   const [name, setName] = useState("");
   const [pending, setPending] = useState(false);
@@ -26,7 +28,7 @@ export function CaptureLeadForm() {
       const data = await res.json();
       if (!res.ok) {
         if (data.existingLeadId) {
-          alert(`Nomor ini sudah tercatat sebagai "${data.existingLeadName}". Kamu akan diarahkan ke lead itu untuk follow up ulang.`);
+          toast.error(`Nomor ini sudah tercatat sebagai "${data.existingLeadName}". Kamu akan diarahkan ke lead itu untuk follow up ulang.`);
           router.push(`/leads/${data.existingLeadId}`);
           return;
         }
@@ -35,6 +37,7 @@ export function CaptureLeadForm() {
       }
       setWaNumber("");
       setName("");
+      toast.success("Lead baru dicatat.");
       router.refresh();
     } catch {
       setError("Terjadi kesalahan. Coba lagi.");

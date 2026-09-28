@@ -6,7 +6,10 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { formatRupiah, PAYMENT_METHOD_LABEL } from "@/lib/packages";
+import { scanSuccessFeedback, scanErrorFeedback } from "@/lib/scanFeedback";
 
 export interface SaleRow {
   id: string;
@@ -17,6 +20,7 @@ export interface SaleRow {
 }
 
 export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; isAdmin: boolean }) {
+  const confirmDialog = useConfirm();
   const [barcode, setBarcode] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("TUNAI");
   const [sales, setSales] = useState(initialSales);
@@ -46,13 +50,22 @@ export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; 
       });
       const data = await res.json();
       if (!res.ok) {
-        if (data.duplicateWarning && confirm(`${data.error}`)) {
-          await submitScan(code, true);
-          return;
+        if (data.duplicateWarning) {
+          const proceed = await confirmDialog({
+            title: "Sudah dicatat baru-baru ini",
+            description: data.error,
+            confirmLabel: "Catat lagi",
+          });
+          if (proceed) {
+            await submitScan(code, true);
+            return;
+          }
         }
+        scanErrorFeedback();
         setFeedback({ type: "error", text: data.error ?? "Gagal memproses scan." });
         return;
       }
+      scanSuccessFeedback();
       setFeedback({
         type: "success",
         text: `${data.sale.productName} — ${formatRupiah(data.sale.price)} (stok tersisa: ${data.stock})`,
@@ -62,6 +75,7 @@ export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; 
         ...prev,
       ]);
     } catch {
+      scanErrorFeedback();
       setFeedback({ type: "error", text: "Terjadi kesalahan. Coba lagi." });
     } finally {
       setBarcode("");
@@ -128,7 +142,7 @@ export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; 
           <span className="text-sm font-semibold">{formatRupiah(totalToday)}</span>
         </div>
         {sales.length === 0 ? (
-          <p className="text-sm text-muted">Belum ada penjualan hari ini.</p>
+          <EmptyState title="Belum ada penjualan" description="Transaksi hari ini akan muncul di sini." />
         ) : (
           <ul className="flex flex-col gap-2">
             {sales.map((sale) => (

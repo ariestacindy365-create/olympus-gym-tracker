@@ -10,6 +10,7 @@ import { StatTile } from "@/components/ui/StatTile";
 import { Badge } from "@/components/ui/Badge";
 import { parseWeightInput } from "@/lib/parseWeight";
 import { EditIcon, TrashIcon } from "@/components/ui/Icons";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 export interface ProgressSession {
   id: string;
@@ -50,6 +51,7 @@ export function ProgressView({
   canEdit = false,
   basePath = "/api/member/sets",
 }: ProgressViewProps) {
+  const confirmDialog = useConfirm();
   const [data, setData] = useState(exercises);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editWeight, setEditWeight] = useState("");
@@ -87,7 +89,8 @@ export function ProgressView({
   }
 
   async function handleDelete(setId: string, exerciseId: string) {
-    if (!confirm("Hapus sesi ini? Rekor akan dihitung ulang.")) return;
+    const ok = await confirmDialog({ description: "Hapus sesi ini? Rekor akan dihitung ulang.", confirmLabel: "Hapus", danger: true });
+    if (!ok) return;
     setPendingId(setId);
     setDeleteError(null);
     try {

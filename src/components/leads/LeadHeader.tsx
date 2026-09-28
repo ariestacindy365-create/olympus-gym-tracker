@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { useToast } from "@/components/ui/ToastProvider";
 
 export function LeadHeader({
   leadId,
@@ -19,6 +20,7 @@ export function LeadHeader({
   canDelete?: boolean;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(name);
   const [editWaNumber, setEditWaNumber] = useState(waNumber);
@@ -38,7 +40,7 @@ export function LeadHeader({
       const data = await res.json();
       if (!res.ok) {
         if (data.existingLeadId) {
-          alert(`Nomor ini sudah tercatat sebagai "${data.existingLeadName}". Kamu akan diarahkan ke lead itu.`);
+          toast.error(`Nomor ini sudah tercatat sebagai "${data.existingLeadName}". Kamu akan diarahkan ke lead itu.`);
           router.push(`/leads/${data.existingLeadId}`);
           return;
         }

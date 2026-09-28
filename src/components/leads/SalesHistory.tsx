@@ -5,6 +5,9 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { useToast } from "@/components/ui/ToastProvider";
 import { formatRupiah, PAYMENT_METHOD_LABEL } from "@/lib/packages";
 
 interface SaleHistoryRow {
@@ -22,6 +25,8 @@ function todayInputValue(): string {
 }
 
 export function SalesHistory({ isAdmin }: { isAdmin: boolean }) {
+  const confirmDialog = useConfirm();
+  const toast = useToast();
   const [from, setFrom] = useState(todayInputValue());
   const [to, setTo] = useState(todayInputValue());
   const [sales, setSales] = useState<SaleHistoryRow[]>([]);
@@ -53,18 +58,25 @@ export function SalesHistory({ isAdmin }: { isAdmin: boolean }) {
   }, [from, to]);
 
   async function handleDelete(saleId: string) {
-    if (!confirm("Hapus transaksi ini? Stok produk akan otomatis dikembalikan.")) return;
+    const ok = await confirmDialog({
+      title: "Hapus transaksi?",
+      description: "Stok produk akan otomatis dikembalikan.",
+      confirmLabel: "Hapus",
+      danger: true,
+    });
+    if (!ok) return;
     setDeletingId(saleId);
     try {
       const res = await fetch(`/api/sales/${saleId}`, { method: "DELETE" });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        alert(body.error ?? "Gagal menghapus transaksi.");
+        toast.error(body.error ?? "Gagal menghapus transaksi.");
         return;
       }
       setSales((prev) => prev.filter((s) => s.id !== saleId));
+      toast.success("Transaksi dihapus, stok dikembalikan.");
     } catch {
-      alert("Terjadi kesalahan. Coba lagi.");
+      toast.error("Terjadi kesalahan. Coba lagi.");
     } finally {
       setDeletingId(null);
     }
@@ -97,7 +109,7 @@ export function SalesHistory({ isAdmin }: { isAdmin: boolean }) {
       </div>
 
       {!loading && sales.length === 0 ? (
-        <p className="text-sm text-muted">Tidak ada transaksi pada rentang tanggal ini.</p>
+        <EmptyState title="Tidak ada transaksi" description="Tidak ada transaksi pada rentang tanggal ini." />
       ) : (
         <ul className="flex flex-col gap-2">
           {sales.map((sale) => (

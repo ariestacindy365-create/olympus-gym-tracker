@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { StatTile } from "@/components/ui/StatTile";
 import { parseWeightInput } from "@/lib/parseWeight";
 import { EditIcon, TrashIcon } from "@/components/ui/Icons";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 export interface BodyMetricEntry {
   id: string;
@@ -53,6 +54,7 @@ function MiniChart({ data, dataKey, unit, color }: { data: { date: string; value
 }
 
 export function BodyMetricsView({ entries, canEdit = false, canDelete = false, basePath = "/api/member/body-metrics" }: BodyMetricsViewProps) {
+  const confirmDialog = useConfirm();
   const [data, setData] = useState(entries);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editWeight, setEditWeight] = useState("");
@@ -126,7 +128,8 @@ export function BodyMetricsView({ entries, canEdit = false, canDelete = false, b
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Hapus catatan ini?")) return;
+    const ok = await confirmDialog({ description: "Hapus catatan ini?", confirmLabel: "Hapus", danger: true });
+    if (!ok) return;
     setPendingId(id);
     setError(null);
     try {

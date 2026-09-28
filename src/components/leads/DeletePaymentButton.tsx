@@ -3,24 +3,35 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { useToast } from "@/components/ui/ToastProvider";
 
 export function DeletePaymentButton({ paymentId }: { paymentId: string }) {
   const router = useRouter();
+  const confirmDialog = useConfirm();
+  const toast = useToast();
   const [pending, setPending] = useState(false);
 
   async function handleDelete() {
-    if (!confirm("Yakin ingin menghapus pembayaran ini? Aksi ini akan tercatat dan terlihat oleh owner.")) return;
+    const ok = await confirmDialog({
+      title: "Hapus pembayaran?",
+      description: "Aksi ini akan tercatat dan terlihat oleh owner.",
+      confirmLabel: "Hapus",
+      danger: true,
+    });
+    if (!ok) return;
     setPending(true);
     try {
       const res = await fetch(`/api/payments/${paymentId}`, { method: "DELETE" });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        alert(body.error ?? "Gagal menghapus pembayaran.");
+        toast.error(body.error ?? "Gagal menghapus pembayaran.");
         return;
       }
+      toast.success("Pembayaran dihapus.");
       router.refresh();
     } catch {
-      alert("Terjadi kesalahan. Coba lagi.");
+      toast.error("Terjadi kesalahan. Coba lagi.");
     } finally {
       setPending(false);
     }

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { LastPerformancePanel } from "@/components/member/LastPerformancePanel";
 import { PRCelebrationModal, type PRCelebrationData } from "@/components/member/PRCelebrationModal";
 import {
@@ -54,6 +55,7 @@ export function TopSetForm({
   memberName,
   onExerciseChange,
 }: TopSetFormProps) {
+  const confirmDialog = useConfirm();
   const initialExerciseId = defaultExerciseId ?? exercises[0]?.id ?? "";
   const [exerciseId, setExerciseId] = useState(initialExerciseId);
   const [saved, setSaved] = useState(todaysSets);
@@ -201,7 +203,7 @@ export function TopSetForm({
   }
 
   async function handleDelete(setId: string) {
-    if (!confirm("Hapus set ini?")) return;
+    if (!(await confirmDialog({ description: "Hapus set ini?", confirmLabel: "Hapus", danger: true }))) return;
     setRowPendingId(setId);
     setRowError(null);
     try {
