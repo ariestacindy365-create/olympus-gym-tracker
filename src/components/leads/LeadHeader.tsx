@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useToast } from "@/components/ui/ToastProvider";
 
 export function LeadHeader({
@@ -20,6 +21,7 @@ export function LeadHeader({
   canDelete?: boolean;
 }) {
   const router = useRouter();
+  const confirmDialog = useConfirm();
   const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(name);
@@ -57,6 +59,13 @@ export function LeadHeader({
   }
 
   async function handleDelete() {
+    const ok = await confirmDialog({
+      title: "Hapus lead?",
+      description: `"${name}" akan dihapus dari daftar lead aktif. Tercatat di Riwayat sehingga masih bisa dilihat owner.`,
+      confirmLabel: "Hapus",
+      danger: true,
+    });
+    if (!ok) return;
     setPending(true);
     try {
       const res = await fetch(`/api/leads/${leadId}`, { method: "DELETE" });

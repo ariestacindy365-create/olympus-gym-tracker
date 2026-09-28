@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/ui/LogoutButton";
@@ -43,6 +43,12 @@ function initials(name: string) {
 export function NavBar({ links, userName, role }: NavBarProps) {
   const pathname = usePathname();
   const mobileNavRef = useRef<HTMLElement>(null);
+  // The mobile nav is a horizontally scrolling strip with more links than
+  // fit on screen (e.g. Kasir/Riwayat/Harga/Akun sit off the right edge) —
+  // with nothing to hint at that, it just looks like the full menu. These
+  // track scroll position so a fade can mark whichever edge has more to see.
+  const [showLeftFade, setShowLeftFade] = useState(false);
+  const [showRightFade, setShowRightFade] = useState(false);
 
   // Prefer the most specific match so "/leads" isn't also highlighted while
   // on "/leads/renewals".
@@ -55,6 +61,23 @@ export function NavBar({ links, userName, role }: NavBarProps) {
     const active = mobileNavRef.current?.querySelector<HTMLElement>('[aria-current="page"]');
     active?.scrollIntoView({ block: "nearest", inline: "center" });
   }, [activeHref]);
+
+  useEffect(() => {
+    const el = mobileNavRef.current;
+    if (!el) return;
+    function updateFades() {
+      if (!el) return;
+      setShowLeftFade(el.scrollLeft > 4);
+      setShowRightFade(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+    }
+    updateFades();
+    el.addEventListener("scroll", updateFades, { passive: true });
+    window.addEventListener("resize", updateFades);
+    return () => {
+      el.removeEventListener("scroll", updateFades);
+      window.removeEventListener("resize", updateFades);
+    };
+  }, [links]);
 
   return (
     <header className="sticky top-0 z-20 border-b border-white/10 bg-nav-bg print:hidden">
@@ -100,26 +123,39 @@ export function NavBar({ links, userName, role }: NavBarProps) {
         </div>
       </div>
 
-      <nav
-        ref={mobileNavRef}
-        className="no-scrollbar flex gap-1 overflow-x-auto border-t border-white/5 px-3 pb-2 pt-1.5 sm:hidden"
-      >
-        {links.map((link) => {
-          const active = link.href === activeHref;
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              aria-current={active ? "page" : undefined}
-              className={`shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
-                active ? "bg-accent text-white" : "text-nav-muted active:bg-white/10"
-              }`}
-            >
-              {link.label}
-            </Link>
-          );
-        })}
-      </nav>
+      <div className="relative border-t border-white/5 sm:hidden">
+        <nav ref={mobileNavRef} className="no-scrollbar flex gap-1 overflow-x-auto px-3 pb-2 pt-1.5">
+          {links.map((link) => {
+            const active = link.href === activeHref;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={active ? "page" : undefined}
+                className={`shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+                  active ? "bg-accent text-white" : "text-nav-muted active:bg-white/10"
+                }`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
+        </nav>
+        {/* Fade hints, not scroll affordances themselves — they only tell you
+            there's more this way, the strip underneath still does the work. */}
+        <div
+          aria-hidden
+          className={`pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-nav-bg to-transparent transition-opacity ${
+            showLeftFade ? "opacity-100" : "opacity-0"
+          }`}
+        />
+        <div
+          aria-hidden
+          className={`pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-nav-bg to-transparent transition-opacity ${
+            showRightFade ? "opacity-100" : "opacity-0"
+          }`}
+        />
+      </div>
     </header>
   );
 }

@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { formatRupiah } from "@/lib/packages";
 
 export interface PackageRow {
@@ -92,6 +93,7 @@ function AddPackageForm() {
 
 function PackageRowItem({ pkg }: { pkg: PackageRow }) {
   const router = useRouter();
+  const confirmDialog = useConfirm();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(pkg.name);
   const [price, setPrice] = useState(String(pkg.price));
@@ -123,6 +125,13 @@ function PackageRowItem({ pkg }: { pkg: PackageRow }) {
   }
 
   async function handleDelete() {
+    const ok = await confirmDialog({
+      title: "Hapus paket?",
+      description: `Paket "${pkg.name}" akan dihapus permanen. Struk yang sudah tercetak tidak berubah, tapi paket ini tidak akan bisa dipakai lagi.`,
+      confirmLabel: "Hapus",
+      danger: true,
+    });
+    if (!ok) return;
     setPending(true);
     setError(null);
     try {
