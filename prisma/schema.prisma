@@ -476,12 +476,17 @@ model Product {
 
 // A manual stock top-up, logged separately from just editing the stock
 // number directly — keeps a "who added how much, when" trail instead of an
-// opaque overwrite.
+// opaque overwrite. stockBefore/stockAfter are snapshotted at restock time
+// (not derived by subtracting quantity from the product's *current* stock),
+// so the trail stays accurate even after later sales/restocks move the
+// product's stock further.
 model Restock {
   id          String   @id @default(cuid())
   productId   String
   product     Product  @relation(fields: [productId], references: [id])
   quantity    Int
+  stockBefore Int
+  stockAfter  Int
   createdById String
   createdBy   User     @relation("RestocksRecorded", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())

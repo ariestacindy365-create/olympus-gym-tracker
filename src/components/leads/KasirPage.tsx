@@ -4,6 +4,7 @@ import { useState } from "react";
 import { KasirScan, type SaleRow } from "@/components/leads/KasirScan";
 import { ProductListManager, type ProductRow } from "@/components/leads/ProductListManager";
 import { SalesHistory } from "@/components/leads/SalesHistory";
+import { RestockHistory } from "@/components/leads/RestockHistory";
 
 export function KasirPage({
   isAdmin,
@@ -50,7 +51,12 @@ export function KasirPage({
 
       {tab === "scan" && <KasirScan initialSales={initialSales} isAdmin={isAdmin} />}
       {tab === "produk" && <ProductListManager products={products} isAdmin={isAdmin} />}
-      {tab === "riwayat" && <SalesHistory isAdmin={isAdmin} />}
+      {tab === "riwayat" && (
+        <div className="flex flex-col gap-4">
+          <SalesHistory isAdmin={isAdmin} />
+          <RestockHistory />
+        </div>
+      )}
     </div>
   );
 }
