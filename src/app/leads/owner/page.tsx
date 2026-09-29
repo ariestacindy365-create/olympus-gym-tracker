@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { TargetEditForm } from "@/components/leads/TargetEditForm";
 import { ConversionRateChart } from "@/components/leads/ConversionRateChart";
-import { AdminInviteCodeCard } from "@/components/leads/AdminInviteCodeCard";
 import { SendDailyReportButton } from "@/components/leads/SendDailyReportButton";
 import { toWhatsAppLink } from "@/lib/whatsapp";
 import { waWinBackMessage } from "@/lib/waScripts";
@@ -123,8 +122,6 @@ export default async function LeadsOwnerPage() {
         subtitle="Ringkasan keuangan, retensi member, dan performa tim admin."
         actions={<SendDailyReportButton />}
       />
-
-      {process.env.ADMIN_INVITE_CODE && <AdminInviteCodeCard code={process.env.ADMIN_INVITE_CODE} />}
 
       <ConversionRateChart
         events={conversionEvents.map((e) => ({

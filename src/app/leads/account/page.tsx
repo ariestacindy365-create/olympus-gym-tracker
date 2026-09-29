@@ -2,6 +2,8 @@ import { requireAnyRole } from "@/lib/auth";
 import { Card } from "@/components/ui/Card";
 import { ChangeEmailForm } from "@/components/member/ChangeEmailForm";
 import { ChangePinForm } from "@/components/member/ChangePinForm";
+import { AdminInviteCodeCard } from "@/components/leads/AdminInviteCodeCard";
+import { Role } from "@/generated/prisma/client";
 
 export default async function LeadsAccountPage() {
   const user = await requireAnyRole(["ADMIN", "OWNER"]);
@@ -12,6 +14,10 @@ export default async function LeadsAccountPage() {
         <h1 className="font-display text-2xl font-bold">Akun Saya</h1>
         <p className="text-sm text-muted">{user.name}</p>
       </div>
+
+      {user.role === Role.OWNER && process.env.ADMIN_INVITE_CODE && (
+        <AdminInviteCodeCard code={process.env.ADMIN_INVITE_CODE} />
+      )}
 
       <Card>
         <h2 className="mb-1 font-display text-lg font-semibold">Ubah Email</h2>
