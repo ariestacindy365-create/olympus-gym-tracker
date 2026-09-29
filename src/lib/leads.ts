@@ -137,3 +137,42 @@ export async function getDeletedSales(adminId?: string) {
     orderBy: { deletedAt: "desc" },
   });
 }
+
+// Trial/new-member/renewal counts for an arbitrary [start, end) window, for
+// the owner's "how are we doing today/this week/this month" summary.
+export async function getPeriodStats(start: Date, end: Date) {
+  const [trialCount, newMemberCount, allPayments] = await Promise.all([
+    prisma.lead.count({ where: { trialMarkedAt: { gte: start, lt: end }, deletedAt: null } }),
+    // convertedAt covers both trial->member and a direct DM->member signup —
+    // either way, this is the moment they became a paying member.
+    prisma.lead.count({ where: { convertedAt: { gte: start, lt: end }, deletedAt: null } }),
+    prisma.payment.findMany({
+      where: { deletedAt: null },
+      select: { leadId: true, paidAt: true },
+      orderBy: { paidAt: "asc" },
+    }),
+  ]);
+
+  // A "renewal" is any payment that isn't the first one ever recorded for
+  // its lead — the first payment is what converts them (counted above as a
+  // new member), everything after is them renewing. Needs every payment,
+  // not just ones in the window, to know which is actually first.
+  const seenLead = new Set<string>();
+  let renewalCount = 0;
+  for (const p of allPayments) {
+    const isFirst = !seenLead.has(p.leadId);
+    seenLead.add(p.leadId);
+    if (!isFirst && p.paidAt >= start && p.paidAt < end) {
+      renewalCount++;
+    }
+  }
+
+  // Simple ratio for the window, same "conversions / trials" shape as the
+  // per-admin all-time conversion rate on the Overview page — not
+  // cohort-matched (a trial from last week converting this week counts
+  // toward this window's newMemberCount but not its trialCount), which is
+  // fine for an at-a-glance "how's this period going" number.
+  const conversionRate = trialCount > 0 ? Math.round((newMemberCount / trialCount) * 100) : null;
+
+  return { trialCount, newMemberCount, renewalCount, conversionRate };
+}
