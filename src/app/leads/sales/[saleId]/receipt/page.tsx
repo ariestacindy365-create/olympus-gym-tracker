@@ -24,6 +24,7 @@ export default async function SaleReceiptPage({ params }: { params: Promise<{ sa
     price: sale.price,
     paymentMethod: sale.paymentMethod,
     createdByName: sale.createdBy.name,
+    note: sale.note,
   };
 
   return (
@@ -62,6 +63,12 @@ export default async function SaleReceiptPage({ params }: { params: Promise<{ sa
                   {PAYMENT_METHOD_LABEL[sale.paymentMethod] ?? sale.paymentMethod}
                 </td>
               </tr>
+              {sale.note && (
+                <tr>
+                  <td className="py-1 text-muted">Catatan</td>
+                  <td className="py-1 text-right font-medium">{sale.note}</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

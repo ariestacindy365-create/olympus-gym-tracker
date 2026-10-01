@@ -17,6 +17,7 @@ interface SaleHistoryRow {
   paymentMethod: string;
   createdAt: string;
   createdBy: { name: string };
+  note?: string | null;
 }
 
 function todayInputValue(): string {
@@ -52,9 +53,13 @@ export function SalesHistory({ isAdmin }: { isAdmin: boolean }) {
     }
   }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
+    // Syncs to the server on every from/to change — an external fetch, not
+    // state derived from a prop, so the usual set-state-in-effect concern
+    // doesn't apply the way it would for local state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [from, to]);
 
   async function handleDelete(saleId: string) {
@@ -127,6 +132,7 @@ export function SalesHistory({ isAdmin }: { isAdmin: boolean }) {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
+                  {sale.note && ` · "${sale.note}"`}
                 </span>
               </span>
               <div className="flex items-center gap-2">

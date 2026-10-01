@@ -206,6 +206,7 @@ export const scanSaleSchema = z.object({
   // to record it as a sale anyway (e.g. a second, genuinely separate unit
   // of the same product) — skips the duplicate check for this one request.
   confirmDuplicate: z.boolean().optional(),
+  note: z.string().trim().max(280).optional(),
 });
 
 export const restockSchema = z.object({

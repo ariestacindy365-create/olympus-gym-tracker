@@ -28,6 +28,7 @@ export default async function KasirRoute() {
           price: s.price,
           paymentMethod: s.paymentMethod,
           createdAt: s.createdAt.toISOString(),
+          note: s.note,
         }))}
         products={products}
       />

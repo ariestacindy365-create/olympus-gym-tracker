@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
           productName: product.name,
           price: product.price,
           paymentMethod: parsed.data.paymentMethod,
+          note: parsed.data.note || undefined,
           createdById: admin.id,
         },
       });

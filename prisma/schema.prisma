@@ -504,6 +504,9 @@ model Sale {
   productName   String
   price         Int
   paymentMethod PaymentMethod @default(TUNAI)
+  // Optional free-text note, e.g. who it's for ("bos", "tamu") — same idea
+  // as Payment.note.
+  note          String?
   createdById   String
   createdBy     User          @relation("SalesRecorded", fields: [createdById], references: [id])
   createdAt     DateTime      @default(now())

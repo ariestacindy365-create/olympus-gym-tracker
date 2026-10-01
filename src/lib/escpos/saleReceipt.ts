@@ -8,6 +8,7 @@ export interface OlympusSaleReceiptData {
   price: number;
   paymentMethod: string;
   createdByName: string;
+  note?: string | null;
 }
 
 function formatDateId(iso: string): string {
@@ -33,6 +34,11 @@ export function buildOlympusSaleReceipt(data: OlympusSaleReceiptData): Uint8Arra
   b.bold(true);
   b.row("TOTAL", formatRupiah(data.price));
   b.bold(false);
+
+  if (data.note) {
+    b.divider();
+    b.paragraph(`Catatan: ${data.note}`);
+  }
 
   b.footer(data.createdByName, "Terima kasih!");
   return b.build();

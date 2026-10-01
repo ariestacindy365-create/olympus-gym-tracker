@@ -17,12 +17,14 @@ export interface SaleRow {
   price: number;
   paymentMethod: string;
   createdAt: string;
+  note?: string | null;
 }
 
 export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; isAdmin: boolean }) {
   const confirmDialog = useConfirm();
   const [barcode, setBarcode] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("TUNAI");
+  const [note, setNote] = useState("");
   const [sales, setSales] = useState(initialSales);
   const [pending, setPending] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -46,7 +48,7 @@ export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; 
       const res = await fetch("/api/sales/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ barcode: code, paymentMethod, confirmDuplicate }),
+        body: JSON.stringify({ barcode: code, paymentMethod, confirmDuplicate, note: note.trim() || undefined }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -71,7 +73,14 @@ export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; 
         text: `${data.sale.productName} — ${formatRupiah(data.sale.price)} (stok tersisa: ${data.stock})`,
       });
       setSales((prev) => [
-        { id: data.sale.id, productName: data.sale.productName, price: data.sale.price, paymentMethod, createdAt: data.sale.createdAt },
+        {
+          id: data.sale.id,
+          productName: data.sale.productName,
+          price: data.sale.price,
+          paymentMethod,
+          createdAt: data.sale.createdAt,
+          note: data.sale.note,
+        },
         ...prev,
       ]);
     } catch {
@@ -79,6 +88,7 @@ export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; 
       setFeedback({ type: "error", text: "Terjadi kesalahan. Coba lagi." });
     } finally {
       setBarcode("");
+      setNote("");
       setPending(false);
       submittingRef.current = false;
       inputRef.current?.focus();
@@ -113,6 +123,15 @@ export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; 
                 </option>
               ))}
             </Select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-muted">Catatan (opsional, mis. &quot;buat bos&quot;)</label>
+            <Input
+              placeholder="Catatan..."
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              disabled={pending}
+            />
           </div>
           <form onSubmit={handleSubmit} className="flex gap-2">
             <Input
@@ -152,6 +171,7 @@ export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; 
                   <span className="text-xs text-muted">
                     · {PAYMENT_METHOD_LABEL[sale.paymentMethod] ?? sale.paymentMethod} ·{" "}
                     {new Date(sale.createdAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+                    {sale.note && ` · "${sale.note}"`}
                   </span>
                 </span>
                 <div className="flex items-center gap-2">
