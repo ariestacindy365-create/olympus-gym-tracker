@@ -9,6 +9,9 @@ export interface ConfirmOptions {
   confirmLabel?: string;
   cancelLabel?: string;
   danger?: boolean;
+  // Defaults to true. Turn off where a barcode scanner may still be firing —
+  // its trailing Enter would otherwise press the focused confirm button.
+  autoFocusConfirm?: boolean;
 }
 
 type ConfirmFn = (options: ConfirmOptions | string) => Promise<boolean>;
@@ -30,6 +33,7 @@ interface PendingConfirm {
   confirmLabel: string;
   cancelLabel: string;
   danger: boolean;
+  autoFocusConfirm: boolean;
   resolve: (result: boolean) => void;
 }
 
@@ -45,6 +49,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
         confirmLabel: o.confirmLabel ?? "Ya, lanjutkan",
         cancelLabel: o.cancelLabel ?? "Batal",
         danger: o.danger ?? false,
+        autoFocusConfirm: o.autoFocusConfirm ?? true,
         resolve,
       });
     });
@@ -82,7 +87,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                 variant={pending.danger ? "danger" : "primary"}
                 className="px-4 py-2 text-sm"
                 onClick={() => settle(true)}
-                autoFocus
+                autoFocus={pending.autoFocusConfirm}
               >
                 {pending.confirmLabel}
               </Button>

@@ -29,26 +29,32 @@ export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; 
   const [pending, setPending] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  // Ref, not state — a scanner can fire two Enter keystrokes faster than
-  // React re-renders (and re-disables the input), so the guard against a
-  // simultaneous double-submit has to be synchronous, not dependent on the
-  // next render. (Whether the *scan itself* is a duplicate of a recent sale
-  // is decided server-side, with a confirmable warning instead of a hard
-  // block — see submitScan below.)
-  const submittingRef = useRef(false);
+  // Scans are queued and sent one at a time instead of being dropped while a
+  // request is in flight. The input is never disabled and is emptied the
+  // moment Enter is pressed (not when the server replies): a scanner types a
+  // whole barcode in a few ms, so clearing it on the response of the
+  // *previous* scan used to wipe the first digits of the *next* one, leaving
+  // a truncated, wrong number. Whether a scan is a duplicate of a recent sale
+  // is decided server-side, with a confirmable warning (see submitScan).
+  const queueRef = useRef<{ code: string; paymentMethod: string; note: string | undefined }[]>([]);
+  const processingRef = useRef(false);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  async function submitScan(code: string, confirmDuplicate: boolean) {
-    setPending(true);
+  async function submitScan(item: { code: string; paymentMethod: string; note: string | undefined }, confirmDuplicate: boolean) {
     setFeedback(null);
     try {
       const res = await fetch("/api/sales/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ barcode: code, paymentMethod, confirmDuplicate, note: note.trim() || undefined }),
+        body: JSON.stringify({
+          barcode: item.code,
+          paymentMethod: item.paymentMethod,
+          confirmDuplicate,
+          note: item.note,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -57,9 +63,11 @@ export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; 
             title: "Sudah dicatat baru-baru ini",
             description: data.error,
             confirmLabel: "Catat lagi",
+            autoFocusConfirm: false,
           });
+          inputRef.current?.focus();
           if (proceed) {
-            await submitScan(code, true);
+            await submitScan(item, true);
             return;
           }
         }
@@ -77,7 +85,7 @@ export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; 
           id: data.sale.id,
           productName: data.sale.productName,
           price: data.sale.price,
-          paymentMethod,
+          paymentMethod: item.paymentMethod,
           createdAt: data.sale.createdAt,
           note: data.sale.note,
         },
@@ -86,25 +94,35 @@ export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; 
     } catch {
       scanErrorFeedback();
       setFeedback({ type: "error", text: "Terjadi kesalahan. Coba lagi." });
+    }
+  }
+
+  async function processQueue() {
+    if (processingRef.current) return;
+    processingRef.current = true;
+    setPending(true);
+    try {
+      let item = queueRef.current.shift();
+      while (item) {
+        await submitScan(item, false);
+        item = queueRef.current.shift();
+      }
     } finally {
-      setBarcode("");
-      setNote("");
+      processingRef.current = false;
       setPending(false);
-      submittingRef.current = false;
       inputRef.current?.focus();
     }
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const code = barcode.trim();
     if (!code) return;
 
-    // Guard against a second scan landing while the first is still in flight.
-    if (submittingRef.current) return;
-    submittingRef.current = true;
-
-    await submitScan(code, false);
+    queueRef.current.push({ code, paymentMethod, note: note.trim() || undefined });
+    setBarcode("");
+    setNote("");
+    void processQueue();
   }
 
   const totalToday = sales.reduce((sum, s) => sum + s.price, 0);
@@ -126,12 +144,7 @@ export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; 
           </div>
           <div>
             <label className="mb-1 block text-xs text-muted">Catatan (opsional, mis. &quot;buat bos&quot;)</label>
-            <Input
-              placeholder="Catatan..."
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              disabled={pending}
-            />
+            <Input placeholder="Catatan..." value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
           <form onSubmit={handleSubmit} className="flex gap-2">
             <Input
@@ -140,12 +153,9 @@ export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; 
               placeholder="Scan barcode di sini..."
               value={barcode}
               onChange={(e) => setBarcode(e.target.value)}
-              disabled={pending}
               className="flex-1"
             />
-            <Button type="submit" disabled={pending}>
-              {pending ? "..." : "Jual"}
-            </Button>
+            <Button type="submit">{pending ? "..." : "Jual"}</Button>
           </form>
           {feedback && (
             <p className={`text-sm font-medium ${feedback.type === "success" ? "text-success" : "text-danger"}`}>
