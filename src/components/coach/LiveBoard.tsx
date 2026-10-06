@@ -8,7 +8,9 @@ import { LiveBoardRow, type LiveRow } from "@/components/coach/LiveBoardRow";
 import { PRToast, type PREvent } from "@/components/coach/PRToast";
 import { CLASS_SESSIONS, getCurrentClassSession, isWithinSession } from "@/lib/classSessions";
 
-const POLL_INTERVAL_MS = 4000;
+// Each poll is a serverless function call plus DB queries; the board is often
+// left open all day, so keep this modest to stay within Vercel's CPU budget.
+const POLL_INTERVAL_MS = 15000;
 const ALL_EXERCISES = "__all__";
 
 interface Member {
@@ -61,11 +63,20 @@ export function LiveBoard({ exercises, defaultExerciseId }: LiveBoardProps) {
       }
     }
 
+    // Don't poll while the tab is hidden; catch up immediately when it's shown again.
+    function onVisibilityChange() {
+      if (!document.hidden) poll();
+    }
+
     poll();
-    const interval = setInterval(poll, POLL_INTERVAL_MS);
+    const interval = setInterval(() => {
+      if (!document.hidden) poll();
+    }, POLL_INTERVAL_MS);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
       cancelled = true;
       clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, []);
 
