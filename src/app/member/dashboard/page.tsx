@@ -138,7 +138,12 @@ export default async function MemberDashboardPage() {
         />
       )}
 
-      <ProgressView exercises={progressExercises} referenceDate={new Date().toISOString()} canDelete />
+      <ProgressView
+        exercises={progressExercises}
+        referenceDate={new Date().toISOString()}
+        canDelete
+        shareMemberName={user.name}
+      />
 
       <UnseenAchievementNotifier memberName={user.name} badges={unseenAchievements} />
     </div>

@@ -16,6 +16,8 @@ import {
 } from "@/components/shared/AchievementCelebrationModal";
 import { parseWeightInput } from "@/lib/parseWeight";
 import { EditIcon, TrashIcon } from "@/components/ui/Icons";
+import { PRShareButton } from "@/components/member/PRShareButton";
+import { epley1RM } from "@/lib/oneRepMax";
 
 interface ExerciseOption {
   id: string;
@@ -233,6 +235,20 @@ export function TopSetForm({
 
   const currentSets = saved[exerciseId] ?? [];
   const lastExerciseSets = lastSets[exerciseId] ?? [];
+
+  // Reopen the share card for one of today's PR sets (the celebration only
+  // shows once, right after saving).
+  function reopenCelebration(s: ExistingSet) {
+    const firstSetToday = Math.min(...currentSets.map((c) => c.setNumber));
+    setCelebration({
+      memberName,
+      exerciseName: exercises.find((ex) => ex.id === exerciseId)?.name ?? "",
+      weight: s.weight,
+      reps: s.reps,
+      estimated1RM: epley1RM(s.weight, s.reps),
+      isDebut: lastExerciseSets.length === 0 && s.setNumber === firstSetToday,
+    });
+  }
   const nextSetNumber = currentSets.length > 0 ? Math.max(...currentSets.map((s) => s.setNumber)) + 1 : 1;
 
   return (
@@ -309,7 +325,7 @@ export function TopSetForm({
                     <span>
                       {s.reps} x {s.weight}kg
                     </span>
-                    {s.isPR && <Badge tone="accent">PR</Badge>}
+                    {s.isPR && <PRShareButton onClick={() => reopenCelebration(s)} />}
                     <button
                       type="button"
                       onClick={() => startEdit(s)}

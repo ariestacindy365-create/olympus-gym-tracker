@@ -11,6 +11,9 @@ import { Badge } from "@/components/ui/Badge";
 import { parseWeightInput } from "@/lib/parseWeight";
 import { EditIcon, TrashIcon } from "@/components/ui/Icons";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { PRShareButton } from "@/components/member/PRShareButton";
+import { PRCelebrationModal, type PRCelebrationData } from "@/components/member/PRCelebrationModal";
+import { epley1RM } from "@/lib/oneRepMax";
 
 export interface ProgressSession {
   id: string;
@@ -42,6 +45,8 @@ interface ProgressViewProps {
   canEdit?: boolean;
   /** API base to hit for edit/delete, e.g. "/api/member/sets" or "/api/coach/members/{id}/sets". */
   basePath?: string;
+  /** Member's own dashboard only: PR badges reopen the shareable PR card under this name. */
+  shareMemberName?: string;
 }
 
 export function ProgressView({
@@ -50,6 +55,7 @@ export function ProgressView({
   canDelete = false,
   canEdit = false,
   basePath = "/api/member/sets",
+  shareMemberName,
 }: ProgressViewProps) {
   const confirmDialog = useConfirm();
   const [data, setData] = useState(exercises);
@@ -71,6 +77,7 @@ export function ProgressView({
   const [selectedId, setSelectedId] = useState(defaultExerciseId);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [shareCard, setShareCard] = useState<PRCelebrationData | null>(null);
   const current = data.find((e) => e.exerciseId === selectedId) ?? data[0] ?? null;
 
   function applySessions(exerciseId: string, rawSessions: unknown[]) {
@@ -306,11 +313,29 @@ export function ProgressView({
                     <td className="py-2 pr-3 text-muted">#{s.setNumber}</td>
                     <td className="py-2 pr-3">
                       {s.weight}kg{" "}
-                      {s.isPR && (
-                        <Badge tone="accent" className="ml-1">
-                          PR
-                        </Badge>
-                      )}
+                      {s.isPR &&
+                        (shareMemberName ? (
+                          <span className="ml-1 inline-block">
+                            <PRShareButton
+                              onClick={() =>
+                                setShareCard({
+                                  memberName: shareMemberName,
+                                  exerciseName: current.exerciseName,
+                                  weight: s.weight,
+                                  reps: s.reps,
+                                  estimated1RM: epley1RM(s.weight, s.reps),
+                                  // sessions are oldest-first; the very first one was the debut.
+                                  isDebut: sessions[0]?.id === s.id,
+                                  date: s.workoutDate,
+                                })
+                              }
+                            />
+                          </span>
+                        ) : (
+                          <Badge tone="accent" className="ml-1">
+                            PR
+                          </Badge>
+                        ))}
                     </td>
                     <td className="py-2 pr-3">
                       <Badge tone="muted">{s.reps} rep</Badge>
@@ -351,6 +376,7 @@ export function ProgressView({
           </table>
         </div>
       </Card>
+      {shareCard && <PRCelebrationModal data={shareCard} onClose={() => setShareCard(null)} />}
     </div>
   );
 }
