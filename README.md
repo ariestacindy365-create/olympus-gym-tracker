@@ -52,8 +52,14 @@ capture/follow-up targets, and can delete a lead (ADMIN can only edit).
   The field list lives in `src/lib/bodyMetricFields.ts`; older InBody
   readings (`skeletalMuscleMass`, kg) are kept and still shown in history.
 
-Schema changes were applied with `npx prisma db push` (this project doesn't
-use `prisma migrate`, see `prisma.config.ts`). Do **not** run `prisma/seed.ts`
+Schema changes are applied with `prisma db push` (this project doesn't
+use `prisma migrate`, see `prisma.config.ts`). Production deploys do this
+automatically: Vercel runs the `vercel-build` script, which runs
+`prisma db push` only when `VERCEL_ENV=production` (preview deploys never
+touch the database) and then `next build`. Without `--accept-data-loss`,
+`db push` refuses any change that would drop data, so such a schema change
+fails the deploy and the live version keeps running — apply it by hand
+instead. Do **not** run `prisma/seed.ts`
 against the real database — it wipes and reseeds all users, including real
 gym members; it's for local demo data only.
 
