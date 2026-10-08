@@ -113,8 +113,6 @@ export const bodyMetricSchema = z.object({
   visceralFat: flexibleNumber(60).optional(),
   // Omron Karada Scan
   skeletalMusclePercent: flexibleNumber(100).optional(),
-  restingMetabolism: flexibleNumber(10000).optional(),
-  bmi: flexibleNumber(100).optional(),
   bodyAge: flexibleNumber(150).optional(),
   // Legacy InBody reading; the current form no longer sends it.
   skeletalMuscleMass: flexibleWeight.optional(),

@@ -48,7 +48,7 @@ capture/follow-up targets, and can delete a lead (ADMIN can only edit).
   project settings too — `.env` is gitignored and doesn't deploy.
 
 - Body metrics follow the gym's **Omron Karada Scan** (weight, body fat %,
-  visceral fat level, skeletal muscle %, resting metabolism, BMI, body age).
+  visceral fat level, skeletal muscle %, body age).
   The field list lives in `src/lib/bodyMetricFields.ts`; older InBody
   readings (`skeletalMuscleMass`, kg) are kept and still shown in history.
 

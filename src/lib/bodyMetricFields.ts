@@ -7,8 +7,6 @@ export type BodyMetricKey =
   | "bodyFatPercent"
   | "visceralFat"
   | "skeletalMusclePercent"
-  | "restingMetabolism"
-  | "bmi"
   | "bodyAge"
   | "skeletalMuscleMass";
 
@@ -29,8 +27,6 @@ export const OMRON_FIELDS: BodyMetricField[] = [
   { key: "bodyFatPercent", label: "Body Fat", unit: "%", better: "lower", chartColor: "#f59e0b" },
   { key: "visceralFat", label: "Visceral Fat", unit: "", hint: "level 1–30", better: "lower", chartColor: "#f472b6" },
   { key: "skeletalMusclePercent", label: "Otot Rangka", unit: "%", better: "higher", chartColor: "#34d399" },
-  { key: "restingMetabolism", label: "Metabolisme Istirahat", unit: "kkal", chartColor: "#a78bfa" },
-  { key: "bmi", label: "BMI", unit: "", chartColor: "#38bdf8" },
   { key: "bodyAge", label: "Usia Tubuh", unit: "thn", better: "lower", chartColor: "#fb7185" },
 ];
 
@@ -58,8 +54,6 @@ export function bodyMetricWriteData(input: BodyMetricValues & { note?: string })
     bodyFatPercent: input.bodyFatPercent ?? null,
     visceralFat: input.visceralFat ?? null,
     skeletalMusclePercent: input.skeletalMusclePercent ?? null,
-    restingMetabolism: input.restingMetabolism ?? null,
-    bmi: input.bmi ?? null,
     bodyAge: input.bodyAge ?? null,
     skeletalMuscleMass: input.skeletalMuscleMass,
     note: input.note ?? null,
@@ -81,8 +75,6 @@ export function toBodyMetricEntry(e: {
   bodyFatPercent: number | null;
   visceralFat: number | null;
   skeletalMusclePercent: number | null;
-  restingMetabolism: number | null;
-  bmi: number | null;
   bodyAge: number | null;
   skeletalMuscleMass: number | null;
   note: string | null;
@@ -94,8 +86,6 @@ export function toBodyMetricEntry(e: {
     bodyFatPercent: e.bodyFatPercent,
     visceralFat: e.visceralFat,
     skeletalMusclePercent: e.skeletalMusclePercent,
-    restingMetabolism: e.restingMetabolism,
-    bmi: e.bmi,
     bodyAge: e.bodyAge,
     skeletalMuscleMass: e.skeletalMuscleMass,
     note: e.note,

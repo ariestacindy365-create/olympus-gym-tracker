@@ -134,8 +134,6 @@ model BodyMetric {
   visceralFat        Float?
   // Omron Karada Scan readings.
   skeletalMusclePercent Float?
-  restingMetabolism     Float?
-  bmi                   Float?
   bodyAge               Float?
   note               String?
   createdAt          DateTime @default(now())

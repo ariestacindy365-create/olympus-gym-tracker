@@ -20,7 +20,7 @@ export default async function MemberBodyPage() {
       <div>
         <h1 className="font-display text-2xl font-bold">Body Metrics</h1>
         <p className="text-sm text-muted">
-          Pantau hasil timbangan Omron Karada Scan kamu: berat, body fat, visceral fat, otot rangka, dan lainnya.
+          Pantau hasil timbangan Omron Karada Scan kamu: berat, body fat, visceral fat, otot rangka, dan usia tubuh.
         </p>
       </div>
 
