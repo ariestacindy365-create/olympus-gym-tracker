@@ -27,12 +27,18 @@ export async function POST(request: NextRequest) {
   // moment could both pass it, so the @unique constraint itself is the real
   // guard; catch its violation here instead of letting it surface as a raw 500.
   try {
+    const stock = parsed.data.stock ?? 0;
     const product = await prisma.product.create({
       data: {
         name: parsed.data.name,
         barcode: parsed.data.barcode,
         price: parsed.data.price,
-        stock: parsed.data.stock ?? 0,
+        stock,
+        ...(stock > 0 && {
+          stockAdjustments: {
+            create: { reason: "INITIAL", change: stock, stockBefore: 0, stockAfter: stock, createdById: admin.id },
+          },
+        }),
       },
     });
     return NextResponse.json({ product });

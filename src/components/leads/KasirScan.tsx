@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { formatRupiah, PAYMENT_METHOD_LABEL } from "@/lib/packages";
 import { scanSuccessFeedback, scanErrorFeedback } from "@/lib/scanFeedback";
+import { SALE_RECORDED_EVENT } from "@/components/leads/QuickSaleScanner";
 
 export interface SaleRow {
   id: string;
@@ -41,6 +42,17 @@ export function KasirScan({ initialSales, isAdmin }: { initialSales: SaleRow[]; 
 
   useEffect(() => {
     inputRef.current?.focus();
+  }, []);
+
+  // Sales recorded from the quick-sale popup (scanned while the cursor
+  // wasn't in the box below) should still show up in today's list.
+  useEffect(() => {
+    function onSale(e: Event) {
+      const sale = (e as CustomEvent<SaleRow>).detail;
+      setSales((prev) => (prev.some((s) => s.id === sale.id) ? prev : [sale, ...prev]));
+    }
+    window.addEventListener(SALE_RECORDED_EVENT, onSale);
+    return () => window.removeEventListener(SALE_RECORDED_EVENT, onSale);
   }, []);
 
   async function submitScan(item: { code: string; paymentMethod: string; note: string | undefined }, confirmDuplicate: boolean) {

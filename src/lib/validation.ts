@@ -110,8 +110,12 @@ export const saveProgramWeekSchema = z.object({
 export const bodyMetricSchema = z.object({
   weight: flexibleWeight,
   bodyFatPercent: flexibleNumber(100).optional(),
-  skeletalMuscleMass: flexibleWeight.optional(),
   visceralFat: flexibleNumber(60).optional(),
+  // Omron Karada Scan
+  skeletalMusclePercent: flexibleNumber(100).optional(),
+  bodyAge: flexibleNumber(150).optional(),
+  // Legacy InBody reading; the current form no longer sends it.
+  skeletalMuscleMass: flexibleWeight.optional(),
   note: z.string().trim().max(280).optional(),
   // Coach backfilling a weigh-in from a day the member didn't have their
   // phone — defaults to today when omitted (the member's own form never

@@ -72,3 +72,11 @@ export function MonitorIcon({ className = "" }: IconProps) {
     </svg>
   );
 }
+
+export function ShareIcon({ className = "" }: IconProps) {
+  return (
+    <svg width="1em" height="1em" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden className={className}>
+      <path d="M10 3v10M6 7l4-4 4 4M4 12v3a2 2 0 002 2h8a2 2 0 002-2v-3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}

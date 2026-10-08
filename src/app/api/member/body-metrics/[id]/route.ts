@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { bodyMetricSchema } from "@/lib/validation";
+import { bodyMetricWriteData } from "@/lib/bodyMetricFields";
 import { Role } from "@/generated/prisma/client";
 
 export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/member/body-metrics/[id]">) {
@@ -22,17 +23,11 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/member
   if (!parsed.success) {
     return NextResponse.json({ error: "Isi berat badan yang valid." }, { status: 400 });
   }
-  const { weight, bodyFatPercent, skeletalMuscleMass, visceralFat, note } = parsed.data;
+  const data = bodyMetricWriteData(parsed.data);
 
   await prisma.bodyMetric.update({
     where: { id },
-    data: {
-      weight,
-      bodyFatPercent: bodyFatPercent ?? null,
-      skeletalMuscleMass: skeletalMuscleMass ?? null,
-      visceralFat: visceralFat ?? null,
-      note: note ?? null,
-    },
+    data,
   });
 
   const entries = await prisma.bodyMetric.findMany({

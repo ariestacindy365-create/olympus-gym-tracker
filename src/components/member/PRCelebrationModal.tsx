@@ -14,6 +14,8 @@ export interface PRCelebrationData {
   reps: number;
   estimated1RM: number;
   isDebut: boolean;
+  /** ISO date of the PR when the card is reopened later; defaults to today. */
+  date?: string;
 }
 
 interface PRCelebrationModalProps {
@@ -38,7 +40,7 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
   const [videoReady, setVideoReady] = useState<File | null>(null);
   const [logoSrc, setLogoSrc] = useState<string | null>(null);
 
-  const dateLabel = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+  const dateLabel = (data.date ? new Date(data.date) : new Date()).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 
   useEffect(() => {
     fetchAsDataUrl("/olympus-logo.png")

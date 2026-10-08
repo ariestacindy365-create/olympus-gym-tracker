@@ -9,6 +9,7 @@ import { BodyMetricForm } from "@/components/shared/BodyMetricForm";
 import { BodyMetricsView } from "@/components/shared/BodyMetricsView";
 import { CoachSetLogger } from "@/components/coach/CoachSetLogger";
 import { Role } from "@/generated/prisma/client";
+import { toBodyMetricEntry } from "@/lib/bodyMetricFields";
 
 export default async function CoachMemberDetailPage({
   params,
@@ -39,15 +40,7 @@ export default async function CoachMemberDetailPage({
     prisma.bodyMetric.findMany({ where: { memberId }, orderBy: { recordedDate: "asc" } }),
   ]);
 
-  const mappedBodyMetrics = bodyMetrics.map((e) => ({
-    id: e.id,
-    recordedDate: e.recordedDate.toISOString(),
-    weight: e.weight,
-    bodyFatPercent: e.bodyFatPercent,
-    skeletalMuscleMass: e.skeletalMuscleMass,
-    visceralFat: e.visceralFat,
-    note: e.note,
-  }));
+  const mappedBodyMetrics = bodyMetrics.map(toBodyMetricEntry);
 
   const byExercise = new Map<string, typeof records>();
   for (const record of records) {

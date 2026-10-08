@@ -9,16 +9,15 @@ import { StatTile } from "@/components/ui/StatTile";
 import { parseWeightInput } from "@/lib/parseWeight";
 import { EditIcon, TrashIcon } from "@/components/ui/Icons";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+import {
+  OMRON_FIELDS,
+  LEGACY_FIELDS,
+  formatMetric,
+  type BodyMetricEntry,
+  type BodyMetricKey,
+} from "@/lib/bodyMetricFields";
 
-export interface BodyMetricEntry {
-  id: string;
-  recordedDate: string;
-  weight: number;
-  bodyFatPercent: number | null;
-  skeletalMuscleMass: number | null;
-  visceralFat: number | null;
-  note: string | null;
-}
+export type { BodyMetricEntry };
 
 interface BodyMetricsViewProps {
   entries: BodyMetricEntry[];
@@ -57,10 +56,7 @@ export function BodyMetricsView({ entries, canEdit = false, canDelete = false, b
   const confirmDialog = useConfirm();
   const [data, setData] = useState(entries);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editWeight, setEditWeight] = useState("");
-  const [editBodyFat, setEditBodyFat] = useState("");
-  const [editMuscle, setEditMuscle] = useState("");
-  const [editVisceralFat, setEditVisceralFat] = useState("");
+  const [editValues, setEditValues] = useState<Partial<Record<BodyMetricKey, string>>>({});
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,21 +64,24 @@ export function BodyMetricsView({ entries, canEdit = false, canDelete = false, b
   const latest = sorted.at(-1) ?? null;
   const tableRows = [...sorted].reverse();
 
-  const weightChart = sorted.map((e) => ({ date: formatDate(e.recordedDate), value: e.weight }));
-  const bodyFatChart = sorted.filter((e) => e.bodyFatPercent != null).map((e) => ({ date: formatDate(e.recordedDate), value: e.bodyFatPercent as number }));
-  const muscleChart = sorted
-    .filter((e) => e.skeletalMuscleMass != null)
-    .map((e) => ({ date: formatDate(e.recordedDate), value: e.skeletalMuscleMass as number }));
-  const visceralFatChart = sorted
-    .filter((e) => e.visceralFat != null)
-    .map((e) => ({ date: formatDate(e.recordedDate), value: e.visceralFat as number }));
+  // Old InBody columns only show up for members who actually have such
+  // readings; everyone else just sees the Omron fields.
+  const columns = [...OMRON_FIELDS, ...LEGACY_FIELDS.filter((f) => sorted.some((e) => e[f.key] != null))];
+  const charts = columns
+    .map((field) => ({
+      field,
+      points: sorted
+        .filter((e) => e[field.key] != null)
+        .map((e) => ({ date: formatDate(e.recordedDate), value: e[field.key] as number })),
+    }))
+    // A one-point line says nothing yet; the tile above already shows it.
+    .filter((c) => c.field.key === "weight" || c.points.length >= 2);
 
   function startEdit(entry: BodyMetricEntry) {
     setEditingId(entry.id);
-    setEditWeight(String(entry.weight));
-    setEditBodyFat(entry.bodyFatPercent != null ? String(entry.bodyFatPercent) : "");
-    setEditMuscle(entry.skeletalMuscleMass != null ? String(entry.skeletalMuscleMass) : "");
-    setEditVisceralFat(entry.visceralFat != null ? String(entry.visceralFat) : "");
+    setEditValues(
+      Object.fromEntries(OMRON_FIELDS.map((f) => [f.key, entry[f.key] != null ? String(entry[f.key]) : ""]))
+    );
     setError(null);
   }
 
@@ -91,14 +90,23 @@ export function BodyMetricsView({ entries, canEdit = false, canDelete = false, b
   }
 
   async function saveEdit(id: string) {
-    const weightNum = parseWeightInput(editWeight);
-    if (!weightNum) {
-      setError("Isi berat badan yang valid.");
-      return;
+    const parsedValues: Partial<Record<BodyMetricKey, number>> = {};
+    for (const field of OMRON_FIELDS) {
+      const raw = editValues[field.key]?.trim() ?? "";
+      if (!raw) {
+        if (field.key === "weight") {
+          setError("Isi berat badan yang valid.");
+          return;
+        }
+        continue;
+      }
+      const num = parseWeightInput(raw);
+      if (!num) {
+        setError(`Isi ${field.label} yang valid.`);
+        return;
+      }
+      parsedValues[field.key] = num;
     }
-    const bodyFatNum = editBodyFat.trim() ? parseWeightInput(editBodyFat) : null;
-    const muscleNum = editMuscle.trim() ? parseWeightInput(editMuscle) : null;
-    const visceralFatNum = editVisceralFat.trim() ? parseWeightInput(editVisceralFat) : null;
 
     setPendingId(id);
     setError(null);
@@ -106,12 +114,8 @@ export function BodyMetricsView({ entries, canEdit = false, canDelete = false, b
       const res = await fetch(`${basePath}/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          weight: weightNum,
-          bodyFatPercent: bodyFatNum ?? undefined,
-          skeletalMuscleMass: muscleNum ?? undefined,
-          visceralFat: visceralFatNum ?? undefined,
-        }),
+        // Keep the entry's note; the edit row doesn't expose it.
+        body: JSON.stringify({ ...parsedValues, note: data.find((e) => e.id === id)?.note ?? undefined }),
       });
       const body = await res.json();
       if (!res.ok) {
@@ -157,38 +161,33 @@ export function BodyMetricsView({ entries, canEdit = false, canDelete = false, b
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatTile label="Berat Terakhir" value={`${latest?.weight}kg`} accent />
-        <StatTile label="Body Fat Terakhir" value={latest?.bodyFatPercent != null ? `${latest.bodyFatPercent}%` : "-"} />
-        <StatTile
-          label="Skeletal Muscle Terakhir"
-          value={latest?.skeletalMuscleMass != null ? `${latest.skeletalMuscleMass}kg` : "-"}
-        />
-        <StatTile
-          label="Visceral Fat Terakhir"
-          value={latest?.visceralFat != null ? `${latest.visceralFat}` : "-"}
-        />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+        {OMRON_FIELDS.map((field) => (
+          <StatTile
+            key={field.key}
+            label={field.label}
+            value={formatMetric(field, latest?.[field.key])}
+            accent={field.key === "weight"}
+          />
+        ))}
       </div>
 
-      <Card>
-        <h3 className="mb-3 font-display text-lg font-semibold">Berat Badan</h3>
-        <MiniChart data={weightChart} dataKey="Berat" unit="kg" color="var(--accent)" />
-      </Card>
-
-      <Card>
-        <h3 className="mb-3 font-display text-lg font-semibold">Body Fat %</h3>
-        <MiniChart data={bodyFatChart} dataKey="Body Fat" unit="%" color="#f59e0b" />
-      </Card>
-
-      <Card>
-        <h3 className="mb-3 font-display text-lg font-semibold">Skeletal Muscle Mass</h3>
-        <MiniChart data={muscleChart} dataKey="Muscle" unit="kg" color="#34d399" />
-      </Card>
-
-      <Card>
-        <h3 className="mb-3 font-display text-lg font-semibold">Visceral Fat</h3>
-        <MiniChart data={visceralFatChart} dataKey="Visceral Fat" unit="" color="#f472b6" />
-      </Card>
+      <div className="grid gap-4 md:grid-cols-2">
+        {charts.map(({ field, points }) => (
+          <Card key={field.key}>
+            <h3 className="mb-3 font-display text-lg font-semibold">
+              {field.label}
+              {field.unit && <span className="ml-1 text-sm font-normal text-muted">({field.unit})</span>}
+            </h3>
+            <MiniChart
+              data={points}
+              dataKey={field.label}
+              unit={field.unit === "%" || field.unit === "kg" ? field.unit : ""}
+              color={field.chartColor}
+            />
+          </Card>
+        ))}
+      </div>
 
       <Card>
         <h3 className="mb-3 font-display text-lg font-semibold">Riwayat</h3>
@@ -198,10 +197,11 @@ export function BodyMetricsView({ entries, canEdit = false, canDelete = false, b
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                 <th className="pb-2 pr-3">Tanggal</th>
-                <th className="pb-2 pr-3">Berat</th>
-                <th className="pb-2 pr-3">Body Fat</th>
-                <th className="pb-2 pr-3">Skeletal Muscle</th>
-                <th className="pb-2 pr-3">Visceral Fat</th>
+                {columns.map((field) => (
+                  <th key={field.key} className="whitespace-nowrap pb-2 pr-3">
+                    {field.label}
+                  </th>
+                ))}
                 <th className="pb-2 pr-3">Catatan</th>
                 {(canEdit || canDelete) && <th className="pb-2" />}
               </tr>
@@ -211,45 +211,23 @@ export function BodyMetricsView({ entries, canEdit = false, canDelete = false, b
                 editingId === e.id ? (
                   <tr key={e.id} className="border-b border-border bg-surface-2 last:border-0">
                     <td className="py-2 pr-3">{formatDate(e.recordedDate)}</td>
-                    <td className="py-2 pr-3">
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        value={editWeight}
-                        onChange={(ev) => setEditWeight(ev.target.value)}
-                        className="!py-1 w-20"
-                      />
-                    </td>
-                    <td className="py-2 pr-3">
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        value={editBodyFat}
-                        onChange={(ev) => setEditBodyFat(ev.target.value)}
-                        className="!py-1 w-16"
-                        placeholder="-"
-                      />
-                    </td>
-                    <td className="py-2 pr-3">
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        value={editMuscle}
-                        onChange={(ev) => setEditMuscle(ev.target.value)}
-                        className="!py-1 w-20"
-                        placeholder="-"
-                      />
-                    </td>
-                    <td className="py-2 pr-3">
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        value={editVisceralFat}
-                        onChange={(ev) => setEditVisceralFat(ev.target.value)}
-                        className="!py-1 w-16"
-                        placeholder="-"
-                      />
-                    </td>
+                    {columns.map((field) => (
+                      <td key={field.key} className="py-2 pr-3">
+                        {OMRON_FIELDS.includes(field) ? (
+                          <Input
+                            type="text"
+                            inputMode="decimal"
+                            aria-label={field.label}
+                            value={editValues[field.key] ?? ""}
+                            onChange={(ev) => setEditValues((prev) => ({ ...prev, [field.key]: ev.target.value }))}
+                            className="!py-1 w-20"
+                            placeholder="-"
+                          />
+                        ) : (
+                          <span className="text-muted">{formatMetric(field, e[field.key])}</span>
+                        )}
+                      </td>
+                    ))}
                     <td className="py-2 pr-3 text-muted">{e.note ?? "—"}</td>
                     <td className="py-2 text-right">
                       <div className="flex justify-end gap-2">
@@ -270,10 +248,11 @@ export function BodyMetricsView({ entries, canEdit = false, canDelete = false, b
                 ) : (
                   <tr key={e.id} className="border-b border-border last:border-0">
                     <td className="py-2 pr-3">{formatDate(e.recordedDate)}</td>
-                    <td className="py-2 pr-3">{e.weight}kg</td>
-                    <td className="py-2 pr-3">{e.bodyFatPercent != null ? `${e.bodyFatPercent}%` : "—"}</td>
-                    <td className="py-2 pr-3">{e.skeletalMuscleMass != null ? `${e.skeletalMuscleMass}kg` : "—"}</td>
-                    <td className="py-2 pr-3">{e.visceralFat != null ? e.visceralFat : "—"}</td>
+                    {columns.map((field) => (
+                      <td key={field.key} className="whitespace-nowrap py-2 pr-3">
+                        {formatMetric(field, e[field.key])}
+                      </td>
+                    ))}
                     <td className="py-2 pr-3 text-muted">{e.note ?? "—"}</td>
                     {(canEdit || canDelete) && (
                       <td className="py-2 text-right">

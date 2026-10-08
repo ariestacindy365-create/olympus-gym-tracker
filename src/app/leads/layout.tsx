@@ -1,5 +1,6 @@
 import { requireAnyRole } from "@/lib/auth";
 import { NavBar } from "@/components/ui/NavBar";
+import { QuickSaleScanner } from "@/components/leads/QuickSaleScanner";
 
 // Static sections under /leads; everything else there (/leads/[leadId]) is a
 // lead detail page and should keep "Lead" highlighted.
@@ -47,6 +48,8 @@ export default async function LeadsLayout({ children }: { children: React.ReactN
     <div className="flex flex-1 flex-col">
       <NavBar links={links} userName={user.name} role={user.role} />
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 print:max-w-none print:p-0">{children}</main>
+      {/* Only admins can record sales (POST /api/sales/scan is admin-only). */}
+      {user.role === "ADMIN" && <QuickSaleScanner />}
     </div>
   );
 }
