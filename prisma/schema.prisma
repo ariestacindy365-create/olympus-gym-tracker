@@ -52,6 +52,7 @@ model User {
   salesRecorded      Sale[]     @relation("SalesRecorded")
   salesDeleted       Sale[]     @relation("SalesDeleted")
   restocksRecorded   Restock[]  @relation("RestocksRecorded")
+  stockAdjustmentsRecorded StockAdjustment[] @relation("StockAdjustmentsRecorded")
 }
 
 // Achievement definitions live in code (src/lib/achievements.ts), not the
@@ -473,10 +474,36 @@ model Product {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  sales    Sale[]
-  restocks Restock[]
+  sales            Sale[]
+  restocks         Restock[]
+  stockAdjustments StockAdjustment[]
 
   @@index([isActive])
+}
+
+// Stock changes that aren't a sale or a restock: the starting stock of a
+// new product, and an admin overwriting the number in Kelola Produk (e.g.
+// after a stock count). Together with Sale and Restock this gives the full
+// "stok masuk / keluar" history on the Kasir Riwayat tab.
+enum StockAdjustmentReason {
+  INITIAL
+  EDIT
+}
+
+model StockAdjustment {
+  id          String                @id @default(cuid())
+  productId   String
+  product     Product               @relation(fields: [productId], references: [id])
+  reason      StockAdjustmentReason
+  change      Int
+  stockBefore Int
+  stockAfter  Int
+  createdById String
+  createdBy   User                  @relation("StockAdjustmentsRecorded", fields: [createdById], references: [id])
+  createdAt   DateTime              @default(now())
+
+  @@index([productId])
+  @@index([createdAt])
 }
 
 // A manual stock top-up, logged separately from just editing the stock

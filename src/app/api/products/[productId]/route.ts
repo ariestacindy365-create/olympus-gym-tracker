@@ -31,9 +31,24 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/produc
   }
 
   try {
-    const updated = await prisma.product.update({
-      where: { id: productId },
-      data: parsed.data,
+    // A direct stock overwrite is logged with what it changed from, so the
+    // stock history explains jumps that aren't sales or restocks.
+    const updated = await prisma.$transaction(async (tx) => {
+      const before = await tx.product.findUniqueOrThrow({ where: { id: productId }, select: { stock: true } });
+      const result = await tx.product.update({ where: { id: productId }, data: parsed.data });
+      if (parsed.data.stock !== undefined && result.stock !== before.stock) {
+        await tx.stockAdjustment.create({
+          data: {
+            productId,
+            reason: "EDIT",
+            change: result.stock - before.stock,
+            stockBefore: before.stock,
+            stockAfter: result.stock,
+            createdById: admin.id,
+          },
+        });
+      }
+      return result;
     });
     return NextResponse.json({ product: updated });
   } catch (error) {
