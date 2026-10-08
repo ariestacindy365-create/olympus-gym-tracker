@@ -7,6 +7,13 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { parseWeightInput } from "@/lib/parseWeight";
 import {
+  OMRON_FIELDS,
+  LEGACY_FIELDS,
+  formatMetric,
+  type BodyMetricEntry,
+  type BodyMetricKey,
+} from "@/lib/bodyMetricFields";
+import {
   BodyMetricCelebrationModal,
   type BodyMetricCelebrationData,
   type BodyMetricWin,
@@ -17,16 +24,11 @@ import {
   type UnlockedBadge,
 } from "@/components/shared/AchievementCelebrationModal";
 
-interface BodyMetricEntryLite {
-  id: string;
-  recordedDate: string;
-  weight: number;
-  bodyFatPercent: number | null;
-  skeletalMuscleMass: number | null;
-  visceralFat: number | null;
-}
+const ALL_FIELDS = [...OMRON_FIELDS, ...LEGACY_FIELDS];
 
-function findWins(entries: BodyMetricEntryLite[], savedEntryId: string): BodyMetricWin[] {
+// Compares the saved weigh-in with the one before it; every reading that
+// moved in its "better" direction becomes a line on the celebration card.
+function findWins(entries: BodyMetricEntry[], savedEntryId: string): BodyMetricWin[] {
   const sorted = [...entries].sort((a, b) => a.recordedDate.localeCompare(b.recordedDate));
   const index = sorted.findIndex((e) => e.id === savedEntryId);
   if (index <= 0) return [];
@@ -34,36 +36,20 @@ function findWins(entries: BodyMetricEntryLite[], savedEntryId: string): BodyMet
   const previous = sorted[index - 1];
 
   const wins: BodyMetricWin[] = [];
-  if (current.weight < previous.weight) {
+  for (const field of ALL_FIELDS) {
+    if (!field.better) continue;
+    const now = current[field.key];
+    const before = previous[field.key];
+    if (now == null || before == null || now === before) continue;
+    const improved = field.better === "lower" ? now < before : now > before;
+    if (!improved) continue;
+    const diff = Math.abs(now - before);
+    const sign = now < before ? "-" : "+";
+    const unit = field.unit === "%" || field.unit === "kg" ? field.unit : field.unit ? ` ${field.unit}` : "";
     wins.push({
-      icon: "⬇️",
-      label: "Berat Badan Turun",
-      detail: `-${(previous.weight - current.weight).toFixed(1)}kg → ${current.weight}kg`,
-    });
-  }
-  if (current.bodyFatPercent != null && previous.bodyFatPercent != null && current.bodyFatPercent < previous.bodyFatPercent) {
-    wins.push({
-      icon: "⬇️",
-      label: "Body Fat Turun",
-      detail: `-${(previous.bodyFatPercent - current.bodyFatPercent).toFixed(1)}% → ${current.bodyFatPercent}%`,
-    });
-  }
-  if (
-    current.skeletalMuscleMass != null &&
-    previous.skeletalMuscleMass != null &&
-    current.skeletalMuscleMass > previous.skeletalMuscleMass
-  ) {
-    wins.push({
-      icon: "⬆️",
-      label: "Skeletal Muscle Naik",
-      detail: `+${(current.skeletalMuscleMass - previous.skeletalMuscleMass).toFixed(1)}kg → ${current.skeletalMuscleMass}kg`,
-    });
-  }
-  if (current.visceralFat != null && previous.visceralFat != null && current.visceralFat < previous.visceralFat) {
-    wins.push({
-      icon: "⬇️",
-      label: "Visceral Fat Turun",
-      detail: `-${(previous.visceralFat - current.visceralFat).toFixed(1)} → ${current.visceralFat}`,
+      icon: now < before ? "⬇️" : "⬆️",
+      label: `${field.label} ${now < before ? "Turun" : "Naik"}`,
+      detail: `${sign}${Number(diff.toFixed(1))}${unit} → ${formatMetric(field, now)}`,
     });
   }
   return wins;
@@ -89,16 +75,13 @@ interface BodyMetricFormProps {
 export function BodyMetricForm({
   basePath,
   memberName,
-  title = "Catat Berat Badan",
-  description = "Berat badan, body fat, skeletal muscle mass, dan visceral fat hari ini.",
+  title = "Catat Hasil Timbang",
+  description = "Salin angka dari layar timbangan Omron Karada Scan. Selain berat badan, semua opsional.",
   showDatePicker = false,
 }: BodyMetricFormProps) {
   const router = useRouter();
   const [date, setDate] = useState(todayInputValue);
-  const [weight, setWeight] = useState("");
-  const [bodyFatPercent, setBodyFatPercent] = useState("");
-  const [skeletalMuscleMass, setSkeletalMuscleMass] = useState("");
-  const [visceralFat, setVisceralFat] = useState("");
+  const [values, setValues] = useState<Partial<Record<BodyMetricKey, string>>>({});
   const [note, setNote] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,25 +99,22 @@ export function BodyMetricForm({
       setError("Pilih tanggal.");
       return;
     }
-    const weightNum = parseWeightInput(weight);
-    if (!weightNum) {
-      setError("Isi berat badan yang valid.");
-      return;
-    }
-    const bodyFatNum = bodyFatPercent.trim() ? parseWeightInput(bodyFatPercent) : null;
-    if (bodyFatPercent.trim() && !bodyFatNum) {
-      setError("Isi body fat % yang valid.");
-      return;
-    }
-    const muscleNum = skeletalMuscleMass.trim() ? parseWeightInput(skeletalMuscleMass) : null;
-    if (skeletalMuscleMass.trim() && !muscleNum) {
-      setError("Isi skeletal muscle mass yang valid.");
-      return;
-    }
-    const visceralFatNum = visceralFat.trim() ? parseWeightInput(visceralFat) : null;
-    if (visceralFat.trim() && !visceralFatNum) {
-      setError("Isi visceral fat yang valid.");
-      return;
+    const parsedValues: Partial<Record<BodyMetricKey, number>> = {};
+    for (const field of OMRON_FIELDS) {
+      const raw = values[field.key]?.trim() ?? "";
+      if (!raw) {
+        if (field.key === "weight") {
+          setError("Isi berat badan yang valid.");
+          return;
+        }
+        continue;
+      }
+      const num = parseWeightInput(raw);
+      if (!num) {
+        setError(`Isi ${field.label} yang valid.`);
+        return;
+      }
+      parsedValues[field.key] = num;
     }
 
     setPending(true);
@@ -143,10 +123,7 @@ export function BodyMetricForm({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          weight: weightNum,
-          bodyFatPercent: bodyFatNum ?? undefined,
-          skeletalMuscleMass: muscleNum ?? undefined,
-          visceralFat: visceralFatNum ?? undefined,
+          ...parsedValues,
           note: note || undefined,
           recordedDate: showDatePicker ? date : undefined,
         }),
@@ -166,10 +143,7 @@ export function BodyMetricForm({
       } else if (newAchievements.length > 0) {
         setAchievementCelebration({ memberName, badges: newAchievements });
       }
-      setWeight("");
-      setBodyFatPercent("");
-      setSkeletalMuscleMass("");
-      setVisceralFat("");
+      setValues({});
       setNote("");
       setDate(todayInputValue());
       setSaved(true);
@@ -201,49 +175,26 @@ export function BodyMetricForm({
             />
           </div>
         )}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
-              Berat Badan (kg)
-            </label>
-            <Input type="text" inputMode="decimal" value={weight} onChange={(e) => setWeight(e.target.value)} />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
-              Body Fat (%)
-            </label>
-            <Input
-              type="text"
-              inputMode="decimal"
-              placeholder="opsional"
-              value={bodyFatPercent}
-              onChange={(e) => setBodyFatPercent(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
-              Skeletal Muscle (kg)
-            </label>
-            <Input
-              type="text"
-              inputMode="decimal"
-              placeholder="opsional"
-              value={skeletalMuscleMass}
-              onChange={(e) => setSkeletalMuscleMass(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
-              Visceral Fat
-            </label>
-            <Input
-              type="text"
-              inputMode="decimal"
-              placeholder="opsional"
-              value={visceralFat}
-              onChange={(e) => setVisceralFat(e.target.value)}
-            />
-          </div>
+        <div className="grid grid-cols-2 items-end gap-3 sm:grid-cols-4">
+          {OMRON_FIELDS.map((field) => (
+            <div key={field.key}>
+              <label
+                htmlFor={`bm-${field.key}`}
+                className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted"
+              >
+                {field.label}
+                {field.unit && ` (${field.unit})`}
+              </label>
+              <Input
+                id={`bm-${field.key}`}
+                type="text"
+                inputMode="decimal"
+                placeholder={field.key === "weight" ? "wajib" : field.hint ?? "opsional"}
+                value={values[field.key] ?? ""}
+                onChange={(e) => setValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
+              />
+            </div>
+          ))}
         </div>
 
         <div>

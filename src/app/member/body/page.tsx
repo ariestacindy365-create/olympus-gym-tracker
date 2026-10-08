@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { BodyMetricForm } from "@/components/shared/BodyMetricForm";
 import { BodyMetricsView } from "@/components/shared/BodyMetricsView";
+import { toBodyMetricEntry } from "@/lib/bodyMetricFields";
 
 export default async function MemberBodyPage() {
   const user = await getCurrentUser();
@@ -12,22 +13,14 @@ export default async function MemberBodyPage() {
     orderBy: { recordedDate: "asc" },
   });
 
-  const mapped = entries.map((e) => ({
-    id: e.id,
-    recordedDate: e.recordedDate.toISOString(),
-    weight: e.weight,
-    bodyFatPercent: e.bodyFatPercent,
-    skeletalMuscleMass: e.skeletalMuscleMass,
-    visceralFat: e.visceralFat,
-    note: e.note,
-  }));
+  const mapped = entries.map(toBodyMetricEntry);
 
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="font-display text-2xl font-bold">Body Metrics</h1>
         <p className="text-sm text-muted">
-          Pantau berat badan, body fat, skeletal muscle mass, dan visceral fat kamu.
+          Pantau hasil timbangan Omron Karada Scan kamu: berat, body fat, visceral fat, otot rangka, dan lainnya.
         </p>
       </div>
 

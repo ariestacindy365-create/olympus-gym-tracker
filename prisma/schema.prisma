@@ -128,8 +128,15 @@ model BodyMetric {
   recordedDate       DateTime
   weight             Float
   bodyFatPercent     Float?
+  // InBody-era reading (kg). The gym now uses an Omron Karada Scan, which
+  // reports skeletal muscle as a percentage instead — kept for history.
   skeletalMuscleMass Float?
   visceralFat        Float?
+  // Omron Karada Scan readings.
+  skeletalMusclePercent Float?
+  restingMetabolism     Float?
+  bmi                   Float?
+  bodyAge               Float?
   note               String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt

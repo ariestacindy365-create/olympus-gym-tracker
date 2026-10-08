@@ -47,6 +47,11 @@ capture/follow-up targets, and can delete a lead (ADMIN can only edit).
   omitted gracefully if not. Both env vars need to be added in Vercel's
   project settings too — `.env` is gitignored and doesn't deploy.
 
+- Body metrics follow the gym's **Omron Karada Scan** (weight, body fat %,
+  visceral fat level, skeletal muscle %, resting metabolism, BMI, body age).
+  The field list lives in `src/lib/bodyMetricFields.ts`; older InBody
+  readings (`skeletalMuscleMass`, kg) are kept and still shown in history.
+
 Schema changes were applied with `npx prisma db push` (this project doesn't
 use `prisma migrate`, see `prisma.config.ts`). Do **not** run `prisma/seed.ts`
 against the real database — it wipes and reseeds all users, including real
