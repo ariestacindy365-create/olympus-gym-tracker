@@ -7,7 +7,7 @@ export default async function ProgramHistoryPage() {
   const year = now.getFullYear();
   const month = now.getMonth();
 
-  const { rotation, days } = await computeMonthProgramDays(year, month);
+  const { rotation, days, currentWeek } = await computeMonthProgramDays(year, month);
 
   return (
     <div className="flex flex-col gap-4">
@@ -27,6 +27,7 @@ export default async function ProgramHistoryPage() {
         initialMonth={month}
         initialDays={days}
         initialRotation={{ anchorMonday: rotation.anchorMonday.toISOString(), anchorWeekNumber: rotation.anchorWeekNumber }}
+        initialCurrentWeek={currentWeek}
       />
     </div>
   );

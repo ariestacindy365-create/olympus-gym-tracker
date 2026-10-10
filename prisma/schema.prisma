@@ -39,6 +39,7 @@ model User {
   dailyWorkoutsCreated DailyWorkout[]      @relation("CoachDailyWorkouts")
   programsAsCoach      TrainingProgram[]   @relation("CoachPrograms")
   programSnapshots     ProgramSnapshot[]   @relation("CoachProgramSnapshots")
+  programWeekOverrides ProgramWeekOverride[] @relation("CoachProgramWeekOverrides")
   achievementUnlocks   AchievementUnlock[]
 
   // CRM (lead capture / follow-up) — used by ADMIN and OWNER roles only.
@@ -254,6 +255,18 @@ model ProgramRotation {
   anchorMonday     DateTime
   anchorWeekNumber Int
   updatedAt        DateTime @updatedAt
+}
+
+// One-off exception to the rotation: "the week starting this Monday runs
+// Minggu N instead". Only that week changes — the rotation keeps cycling
+// from its anchor, so the week after is back on schedule.
+model ProgramWeekOverride {
+  weekStart  DateTime @id
+  weekNumber Int
+  coachId    String
+  coach      User     @relation("CoachProgramWeekOverrides", fields: [coachId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 // --- CRM: WA lead capture & follow-up (ADMIN/OWNER only) -------------------
