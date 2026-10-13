@@ -13,6 +13,7 @@ import { effectiveRole } from "@/lib/staffAccess";
 
 const SESSION_COOKIE = "olympus_session";
 const SESSION_DURATION_DAYS = 30;
+const LAST_ACTIVE_WRITE_INTERVAL_MS = 30 * 1000;
 
 const secretKey = process.env.SESSION_SECRET;
 if (!secretKey) {
@@ -93,13 +94,22 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
   // even after they stop actively using the app mid-session.
   const presentDate = getCurrentClassSession(now) ? todayDateKey() : undefined;
 
-  const user = await prisma.user
-    .update({
-      where: { id: session.sub },
-      data: { lastActiveAt: now, ...(presentDate ? { presentDate } : {}) },
-    })
-    .catch(() => null);
+  let user = await prisma.user.findUnique({ where: { id: session.sub } });
   if (!user) return null;
+
+  // Writing on every request is costly, and "online" (status.ts) only needs
+  // lastActiveAt to within ~30s — so only write when it's stale or the
+  // member still needs to be checked in for today.
+  const needsPresent = !!presentDate && user.presentDate?.getTime() !== presentDate.getTime();
+  if (needsPresent || now.getTime() - user.lastActiveAt.getTime() > LAST_ACTIVE_WRITE_INTERVAL_MS) {
+    user = await prisma.user
+      .update({
+        where: { id: session.sub },
+        data: { lastActiveAt: now, ...(presentDate ? { presentDate } : {}) },
+      })
+      .catch(() => null);
+    if (!user) return null;
+  }
   return { ...user, role: effectiveRole(user) };
 });
 

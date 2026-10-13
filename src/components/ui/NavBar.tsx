@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ComponentProps } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/ui/LogoutButton";
@@ -39,6 +39,23 @@ interface NavBarProps {
 function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase() || "?";
+}
+
+// Links prefetch by default as soon as they're on screen, which for a full
+// nav bar means several server renders on every page view. Only prefetch
+// once the user shows intent (hover, touch or keyboard focus).
+function IntentPrefetchLink(props: Omit<ComponentProps<typeof Link>, "prefetch">) {
+  const [intent, setIntent] = useState(false);
+  const markIntent = () => setIntent(true);
+  return (
+    <Link
+      {...props}
+      prefetch={intent ? null : false}
+      onMouseEnter={markIntent}
+      onTouchStart={markIntent}
+      onFocus={markIntent}
+    />
+  );
 }
 
 export function NavBar({ links, userName, role }: NavBarProps) {
@@ -89,7 +106,7 @@ export function NavBar({ links, userName, role }: NavBarProps) {
             {links.map((link) => {
               const active = link.href === activeHref;
               return (
-                <Link
+                <IntentPrefetchLink
                   key={link.href}
                   href={link.href}
                   aria-current={active ? "page" : undefined}
@@ -100,7 +117,7 @@ export function NavBar({ links, userName, role }: NavBarProps) {
                   }`}
                 >
                   {link.label}
-                </Link>
+                </IntentPrefetchLink>
               );
             })}
           </nav>
@@ -130,7 +147,7 @@ export function NavBar({ links, userName, role }: NavBarProps) {
           {links.map((link) => {
             const active = link.href === activeHref;
             return (
-              <Link
+              <IntentPrefetchLink
                 key={link.href}
                 href={link.href}
                 aria-current={active ? "page" : undefined}
@@ -139,7 +156,7 @@ export function NavBar({ links, userName, role }: NavBarProps) {
                 }`}
               >
                 {link.label}
-              </Link>
+              </IntentPrefetchLink>
             );
           })}
         </nav>

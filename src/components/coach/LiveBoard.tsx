@@ -9,8 +9,19 @@ import { PRToast, type PREvent } from "@/components/coach/PRToast";
 import { CLASS_SESSIONS, getCurrentClassSession, isWithinSession } from "@/lib/classSessions";
 
 // Each poll is a serverless function call plus DB queries; the board is often
-// left open all day, so keep this modest to stay within Vercel's CPU budget.
-const POLL_INTERVAL_MS = 15000;
+// left open all day, so only poll quickly around class hours (with a margin for
+// members logging just before/after class) to stay within Vercel's CPU budget.
+const CLASS_POLL_INTERVAL_MS = 15 * 1000;
+const IDLE_POLL_INTERVAL_MS = 3 * 60 * 1000;
+const CLASS_MARGIN_MS = 15 * 60 * 1000;
+
+function nearClassTime(now: number): boolean {
+  return (
+    getCurrentClassSession(new Date(now)) !== null ||
+    getCurrentClassSession(new Date(now - CLASS_MARGIN_MS)) !== null ||
+    getCurrentClassSession(new Date(now + CLASS_MARGIN_MS)) !== null
+  );
+}
 const ALL_EXERCISES = "__all__";
 
 interface Member {
@@ -63,19 +74,31 @@ export function LiveBoard({ exercises, defaultExerciseId }: LiveBoardProps) {
       }
     }
 
+    // The delay is re-checked after every poll, so the board speeds up on
+    // its own when a class starts (an idle wait is at most a few minutes).
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    function schedule() {
+      clearTimeout(timer);
+      const delay = nearClassTime(Date.now()) ? CLASS_POLL_INTERVAL_MS : IDLE_POLL_INTERVAL_MS;
+      timer = setTimeout(async () => {
+        if (!document.hidden) await poll();
+        if (!cancelled) schedule();
+      }, delay);
+    }
+
     // Don't poll while the tab is hidden; catch up immediately when it's shown again.
-    function onVisibilityChange() {
-      if (!document.hidden) poll();
+    async function onVisibilityChange() {
+      if (document.hidden) return;
+      await poll();
+      if (!cancelled) schedule();
     }
 
     poll();
-    const interval = setInterval(() => {
-      if (!document.hidden) poll();
-    }, POLL_INTERVAL_MS);
+    schedule();
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, []);

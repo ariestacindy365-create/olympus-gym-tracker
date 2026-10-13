@@ -67,6 +67,15 @@ export async function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
+// Only the routes handled above. Every proxy run is a billed invocation, so
+// don't let it fire for icons, logos, manifest.json, sw.js and other assets.
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    "/member/:path*",
+    "/coach/:path*",
+    "/leads/:path*",
+    "/login",
+    "/register",
+    "/register-admin",
+  ],
 };

@@ -18,17 +18,11 @@ export default async function MemberDashboardPage() {
   await syncMemberAchievements(user.id, { markSeen: false });
   const unseenAchievements = await getUnseenAchievements(user.id);
 
-  const [dailyWorkout, exercises, todaysSets, pastSets, personalRecords, allSets] = await Promise.all([
+  // One query for every set the member has logged; today's sets and each
+  // exercise's previous session are derived from it below.
+  const [dailyWorkout, exercises, personalRecords, allSets] = await Promise.all([
     getTodayDailyWorkout(),
     prisma.exercise.findMany({ orderBy: { name: "asc" } }),
-    prisma.setEntry.findMany({
-      where: { memberId: user.id, workoutDate: todayDateKey() },
-      orderBy: { setNumber: "asc" },
-    }),
-    prisma.setEntry.findMany({
-      where: { memberId: user.id, workoutDate: { lt: todayDateKey() } },
-      orderBy: [{ workoutDate: "desc" }, { setNumber: "asc" }],
-    }),
     prisma.personalRecord.findMany({ where: { memberId: user.id } }),
     prisma.setEntry.findMany({
       where: { memberId: user.id },
@@ -36,6 +30,8 @@ export default async function MemberDashboardPage() {
       orderBy: [{ workoutDate: "asc" }, { setNumber: "asc" }],
     }),
   ]);
+  const todayTs = todayDateKey().getTime();
+  const todaysSets = allSets.filter((s) => s.workoutDate.getTime() === todayTs);
 
   const todaysSetsMap: Record<
     string,
@@ -52,23 +48,23 @@ export default async function MemberDashboardPage() {
     });
   }
 
-  // pastSets is ordered most-recent-day-first; the first day seen per
-  // exercise is that exercise's most recent prior session.
+  // allSets is ordered oldest-day-first, so a later day before today simply
+  // replaces an exercise's list — what's left is its most recent prior session.
   const lastDateByExercise: Record<string, number> = {};
   const lastSetsMap: Record<string, { setNumber: number; weight: number; reps: number; workoutDate: string }[]> = {};
-  for (const s of pastSets) {
+  for (const s of allSets) {
     const ts = s.workoutDate.getTime();
-    if (lastDateByExercise[s.exerciseId] === undefined) {
+    if (ts >= todayTs) continue;
+    if (lastDateByExercise[s.exerciseId] !== ts) {
       lastDateByExercise[s.exerciseId] = ts;
+      lastSetsMap[s.exerciseId] = [];
     }
-    if (lastDateByExercise[s.exerciseId] === ts) {
-      (lastSetsMap[s.exerciseId] ??= []).push({
-        setNumber: s.setNumber,
-        weight: s.weight,
-        reps: s.reps,
-        workoutDate: s.workoutDate.toISOString(),
-      });
-    }
+    lastSetsMap[s.exerciseId].push({
+      setNumber: s.setNumber,
+      weight: s.weight,
+      reps: s.reps,
+      workoutDate: s.workoutDate.toISOString(),
+    });
   }
 
   const personalRecordsByExercise: Record<string, { maxWeight: number | null; maxEstimated1RM: number | null }> = {};
