@@ -37,3 +37,15 @@ export function scanErrorFeedback() {
   beep(220, 90, 0.12);
   navigator.vibrate?.([40, 60, 40]);
 }
+
+// Browsers only let audio start from a tap; call this inside one (e.g. the
+// "Log Set" submit) so a beep fired later by a timer can still play.
+export function primeFeedbackAudio() {
+  void getAudioContext()?.resume();
+}
+
+export function restTimerDoneFeedback() {
+  beep(660, 140);
+  beep(880, 180, 0.18);
+  navigator.vibrate?.([120, 80, 120]);
+}

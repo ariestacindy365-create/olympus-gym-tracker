@@ -8,6 +8,8 @@ import { syncMemberAchievements, getUnseenAchievements } from "@/lib/achievement
 import { PageHeader } from "@/components/ui/PageHeader";
 import { lifterFromStored, skinToneFromStored } from "@/lib/volumeStory";
 import { todayLabel } from "@/lib/dateLabel";
+import { computeTrainingSummary } from "@/lib/trainingSummary";
+import { TrainingHeatmap, TrainingStats } from "@/components/member/TrainingSummary";
 
 export default async function MemberDashboardPage() {
   const user = await getCurrentUser();
@@ -113,9 +115,13 @@ export default async function MemberDashboardPage() {
     a.exerciseName.localeCompare(b.exerciseName)
   );
 
+  const summary = computeTrainingSummary(allSets);
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader eyebrow={todayLabel()} title={`Halo, ${user.name}`} subtitle="Berikut latihan hari ini." />
+
+      <TrainingStats summary={summary} />
 
       {dailyWorkout && (
         <div className="relative overflow-hidden rounded-xl bg-nav-bg p-5 text-nav-foreground shadow-raised [background-image:radial-gradient(28rem_10rem_at_100%_0%,rgb(37_99_235/0.45),transparent)]">
@@ -140,6 +146,8 @@ export default async function MemberDashboardPage() {
           storySkinTone={skinToneFromStored(user.storySkinTone)}
         />
       )}
+
+      <TrainingHeatmap summary={summary} />
 
       <ProgressView
         exercises={progressExercises}

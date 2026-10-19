@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -20,6 +20,10 @@ import { PRShareButton } from "@/components/member/PRShareButton";
 import { VolumeStoryModal } from "@/components/member/VolumeStoryModal";
 import { formatKg, totalVolume, type LifterCharacter, type SkinTone, type VolumeStoryData } from "@/lib/volumeStory";
 import { epley1RM } from "@/lib/oneRepMax";
+import { RestTimer } from "@/components/member/RestTimer";
+import { primeFeedbackAudio } from "@/lib/scanFeedback";
+
+const WEIGHT_STEP = 2.5;
 
 interface ExerciseOption {
   id: string;
@@ -86,6 +90,8 @@ export function TopSetForm({
   const [editReps, setEditReps] = useState("");
   const [rowPendingId, setRowPendingId] = useState<string | null>(null);
   const [rowError, setRowError] = useState<string | null>(null);
+  const [restStartedAt, setRestStartedAt] = useState<number | null>(null);
+  const dismissRest = useCallback(() => setRestStartedAt(null), []);
 
   function handleExerciseChange(id: string) {
     setExerciseId(id);
@@ -110,6 +116,7 @@ export function TopSetForm({
     }
 
     setPending(true);
+    primeFeedbackAudio();
     try {
       const res = await fetch("/api/member/sets", {
         method: "POST",
@@ -152,9 +159,10 @@ export function TopSetForm({
       } else if (newAchievements.length > 0) {
         setAchievementCelebration({ memberName, badges: newAchievements });
       }
-      setWeight("");
-      setReps("");
+      // Keep beban/reps filled: the next set is usually the same or one
+      // small step away, so members only tap "Log Set" again.
       setNote("");
+      setRestStartedAt(Date.now());
     } catch {
       setError("Terjadi kesalahan. Coba lagi.");
     } finally {
@@ -259,6 +267,18 @@ export function TopSetForm({
       isDebut: lastExerciseSets.length === 0 && s.setNumber === firstSetToday,
     });
   }
+  // "Ulangi" suggestion: today's latest set, else the first set from last session.
+  const repeatSource = currentSets.at(-1) ?? lastExerciseSets[0] ?? null;
+  const repeatLabel = currentSets.length > 0 ? "Ulangi set terakhir" : "Pakai sesi lalu";
+  const repeatMatches =
+    repeatSource != null && parseWeightInput(weight) === repeatSource.weight && Number(reps) === repeatSource.reps;
+
+  function stepWeight(delta: number) {
+    const current = parseWeightInput(weight) ?? 0;
+    const next = Math.max(0, Math.round((current + delta) * 100) / 100);
+    setWeight(next > 0 ? String(next) : "");
+  }
+
   const nextSetNumber = currentSets.length > 0 ? Math.max(...currentSets.map((s) => s.setNumber)) + 1 : 1;
 
   return (
@@ -381,17 +401,49 @@ export function TopSetForm({
           </div>
         )}
 
+        {repeatSource && !repeatMatches && (
+          <button
+            type="button"
+            onClick={() => {
+              setWeight(String(repeatSource.weight));
+              setReps(String(repeatSource.reps));
+            }}
+            className="self-start rounded-full border border-border bg-surface-2 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-accent hover:text-accent"
+          >
+            ↺ {repeatLabel}: {repeatSource.reps} x {repeatSource.weight}kg
+          </button>
+        )}
+
         <div className="flex gap-3">
-          <div className="flex-1">
+          <div className="flex-[1.4]">
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
               Beban (kg)
             </label>
-            <Input
-              type="text"
-              inputMode="decimal"
-              value={weight}
-              onChange={(e) => setWeight(e.target.value)}
-            />
+            <div className="flex gap-1.5">
+              <button
+                type="button"
+                onClick={() => stepWeight(-WEIGHT_STEP)}
+                aria-label="Kurangi 2,5 kg"
+                className="shrink-0 rounded-lg border border-border bg-surface-2 px-2.5 text-xs font-semibold text-muted transition hover:border-border-strong hover:text-foreground"
+              >
+                −2,5
+              </button>
+              <Input
+                type="text"
+                inputMode="decimal"
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                className="min-w-0 text-center"
+              />
+              <button
+                type="button"
+                onClick={() => stepWeight(WEIGHT_STEP)}
+                aria-label="Tambah 2,5 kg"
+                className="shrink-0 rounded-lg border border-border bg-surface-2 px-2.5 text-xs font-semibold text-muted transition hover:border-border-strong hover:text-foreground"
+              >
+                +2,5
+              </button>
+            </div>
           </div>
           <div className="flex-1">
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">Reps</label>
@@ -424,6 +476,9 @@ export function TopSetForm({
         </Button>
       </form>
 
+      {restStartedAt !== null && (
+        <RestTimer key={restStartedAt} startedAt={restStartedAt} onDismiss={dismissRest} />
+      )}
       {celebration && (
         <PRCelebrationModal
           data={celebration}
