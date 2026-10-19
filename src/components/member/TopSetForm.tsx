@@ -3,9 +3,7 @@
 import { useCallback, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { LastPerformancePanel } from "@/components/member/LastPerformancePanel";
 import { PRCelebrationModal, type PRCelebrationData } from "@/components/member/PRCelebrationModal";
@@ -16,14 +14,17 @@ import {
 } from "@/components/shared/AchievementCelebrationModal";
 import { parseWeightInput } from "@/lib/parseWeight";
 import { EditIcon, TrashIcon } from "@/components/ui/Icons";
-import { PRShareButton } from "@/components/member/PRShareButton";
 import { VolumeStoryModal } from "@/components/member/VolumeStoryModal";
 import { formatKg, totalVolume, type LifterCharacter, type SkinTone, type VolumeStoryData } from "@/lib/volumeStory";
 import { epley1RM } from "@/lib/oneRepMax";
 import { RestTimer } from "@/components/member/RestTimer";
+import { StepperInput } from "@/components/member/StepperInput";
+import { ExercisePicker } from "@/components/member/ExercisePicker";
+import { WorkoutDoneSheet } from "@/components/member/WorkoutDoneSheet";
 import { primeFeedbackAudio } from "@/lib/scanFeedback";
 
 const WEIGHT_STEP = 2.5;
+const SAVED_FLASH_MS = 1400;
 
 interface ExerciseOption {
   id: string;
@@ -55,6 +56,8 @@ interface TopSetFormProps {
   /** Lifter picked on the member's account (null = not chosen yet). */
   storyCharacter: LifterCharacter | null;
   storySkinTone: SkinTone | null;
+  /** Heaviest weight per exercise before today, for the PR "+N kg". */
+  priorBestWeights?: Record<string, number>;
   onExerciseChange?: (exerciseId: string) => void;
 }
 
@@ -66,6 +69,7 @@ export function TopSetForm({
   memberName,
   storyCharacter,
   storySkinTone,
+  priorBestWeights = {},
   onExerciseChange,
 }: TopSetFormProps) {
   const confirmDialog = useConfirm();
@@ -83,7 +87,8 @@ export function TopSetForm({
   const [character, setCharacter] = useState(storyCharacter);
   const [skinTone, setSkinTone] = useState(storySkinTone);
   const [achievementCelebration, setAchievementCelebration] = useState<AchievementCelebrationData | null>(null);
-  const [queuedAchievements, setQueuedAchievements] = useState<UnlockedBadge[] | null>(null);
+  const [savedFlash, setSavedFlash] = useState(false);
+  const [doneSheet, setDoneSheet] = useState(false);
 
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
   const [editWeight, setEditWeight] = useState("");
@@ -141,24 +146,13 @@ export function TopSetForm({
         ...prev,
         [exerciseId]: [...(prev[exerciseId] ?? []), newSet],
       }));
+      // A PR no longer interrupts the workout with a popup: the set gets a
+      // 🏆 and the share card waits on the "Selesai" screen.
       setJustSavedPR(newSet.isPR);
       const newAchievements: UnlockedBadge[] = data.newAchievements ?? [];
-      if (newSet.isPR) {
-        const exerciseName = exercises.find((ex) => ex.id === exerciseId)?.name ?? "";
-        const isDebut = lastExerciseSets.length === 0 && currentSets.length === 0;
-        setCelebration({
-          memberName,
-          exerciseName,
-          weight: weightNum,
-          reps: repsNum,
-          estimated1RM: data.setEntry.estimated1RM,
-          isDebut,
-        });
-        // PR celebration shows first; the achievement one follows once that's dismissed.
-        if (newAchievements.length > 0) setQueuedAchievements(newAchievements);
-      } else if (newAchievements.length > 0) {
-        setAchievementCelebration({ memberName, badges: newAchievements });
-      }
+      if (newAchievements.length > 0) setAchievementCelebration({ memberName, badges: newAchievements });
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), SAVED_FLASH_MS);
       // Keep beban/reps filled: the next set is usually the same or one
       // small step away, so members only tap "Log Set" again.
       setNote("");
@@ -273,89 +267,111 @@ export function TopSetForm({
   const repeatMatches =
     repeatSource != null && parseWeightInput(weight) === repeatSource.weight && Number(reps) === repeatSource.reps;
 
-  function stepWeight(delta: number) {
-    const current = parseWeightInput(weight) ?? 0;
-    const next = Math.max(0, Math.round((current + delta) * 100) / 100);
-    setWeight(next > 0 ? String(next) : "");
+  const exerciseName = exercises.find((ex) => ex.id === exerciseId)?.name ?? "";
+  const storySets = currentSets.map((s) => ({ weight: s.weight, reps: s.reps }));
+  const prSets = currentSets.filter((s) => s.isPR);
+  const bestPR = prSets.reduce<ExistingSet | null>(
+    (best, s) => (!best || s.weight > best.weight || (s.weight === best.weight && s.reps > best.reps) ? s : best),
+    null
+  );
+  const priorBest = priorBestWeights[exerciseId];
+  const prGain = bestPR && priorBest != null ? Math.round((bestPR.weight - priorBest) * 10) / 10 : null;
+  const heaviest = currentSets.reduce<ExistingSet | null>((h, s) => (!h || s.weight > h.weight ? s : h), null);
+  const doneIds = new Set(Object.entries(saved).filter(([, list]) => list.length > 0).map(([id]) => id));
+  const recentIds = Object.entries(lastSets)
+    .filter(([, list]) => list.length > 0)
+    .sort((a, b) => b[1][0].workoutDate.localeCompare(a[1][0].workoutDate))
+    .map(([id]) => id);
+
+  function openVolumeCard() {
+    setVolumeCard({
+      memberName,
+      exerciseName,
+      sets: storySets,
+      prLabel: bestPR
+        ? `${formatKg(bestPR.weight)} KG × ${bestPR.reps}${prGain != null && prGain > 0 ? ` · +${formatKg(prGain)} KG` : ""}`
+        : undefined,
+    });
   }
 
   const nextSetNumber = currentSets.length > 0 ? Math.max(...currentSets.map((s) => s.setNumber)) + 1 : 1;
 
   return (
     <Card>
-      <div className="mb-1 flex items-center justify-between">
-        <h3 className="font-display text-lg font-semibold">Catat Set</h3>
-        {currentSets.length > 0 && (
-          <Badge tone={currentSets.some((s) => s.isPR) ? "accent" : "muted"}>
-            {currentSets.length} set tercatat
-          </Badge>
-        )}
-      </div>
-      <p className="mb-4 text-xs text-muted">Catat beban dan reps untuk tiap set hari ini.</p>
+      <h3 className="font-display text-lg font-semibold">Catat Latihan Hari Ini</h3>
+      <p className="mb-4 text-xs text-muted">Catat setiap set (beban &amp; reps). Setelah set terakhir, tekan Selesai.</p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
           <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">Gerakan</label>
-          <Select value={exerciseId} onChange={(e) => handleExerciseChange(e.target.value)}>
-            {exercises.map((ex) => (
-              <option key={ex.id} value={ex.id}>
-                {ex.name}
-              </option>
-            ))}
-          </Select>
+          <ExercisePicker
+            exercises={exercises}
+            value={exerciseId}
+            onChange={handleExerciseChange}
+            coachExerciseId={defaultExerciseId}
+            recentIds={recentIds}
+            doneIds={doneIds}
+          />
         </div>
 
-        <LastPerformancePanel lastSets={lastExerciseSets} />
+        {currentSets.length === 0 && <LastPerformancePanel lastSets={lastExerciseSets} />}
 
         {currentSets.length > 0 && (
-          <div className="flex flex-col gap-1.5">
-            {currentSets.map((s) =>
-              editingSetId === s.id ? (
-                <div key={s.id} className="flex flex-col gap-2 rounded-md border border-accent bg-surface-2 px-3 py-2">
-                  <div className="flex items-center gap-2">
-                    <span className="w-12 shrink-0 text-xs text-muted">Set {s.setNumber}</span>
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      value={editWeight}
-                      onChange={(e) => setEditWeight(e.target.value)}
-                      className="!py-1"
-                      placeholder="kg"
-                    />
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      value={editReps}
-                      onChange={(e) => setEditReps(e.target.value)}
-                      className="!py-1"
-                      placeholder="reps"
-                    />
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button type="button" variant="ghost" className="px-2 py-1 text-xs" onClick={cancelEdit}>
-                      Batal
-                    </Button>
-                    <Button
-                      type="button"
-                      className="px-2 py-1 text-xs"
-                      disabled={rowPendingId === s.id}
-                      onClick={() => saveEdit(s.id)}
-                    >
-                      {rowPendingId === s.id ? "..." : "Simpan"}
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div
-                  key={s.id}
-                  className="flex items-center justify-between rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm"
-                >
-                  <span className="text-muted">Set {s.setNumber}</span>
-                  <div className="flex items-center gap-2">
-                    <span>
-                      {s.reps} x {s.weight}kg
+          <div className="overflow-hidden rounded-xl border border-border">
+            <ul className="divide-y divide-border">
+              {currentSets.map((s) =>
+                editingSetId === s.id ? (
+                  <li key={s.id} className="flex flex-col gap-2 bg-surface-2 px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-12 shrink-0 text-xs font-semibold text-muted">SET {s.setNumber}</span>
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        value={editWeight}
+                        onChange={(e) => setEditWeight(e.target.value)}
+                        className="!py-1"
+                        placeholder="kg"
+                      />
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        value={editReps}
+                        onChange={(e) => setEditReps(e.target.value)}
+                        className="!py-1"
+                        placeholder="reps"
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button type="button" variant="ghost" className="px-2 py-1 text-xs" onClick={cancelEdit}>
+                        Batal
+                      </Button>
+                      <Button
+                        type="button"
+                        className="px-2 py-1 text-xs"
+                        disabled={rowPendingId === s.id}
+                        onClick={() => saveEdit(s.id)}
+                      >
+                        {rowPendingId === s.id ? "..." : "Simpan"}
+                      </Button>
+                    </div>
+                  </li>
+                ) : (
+                  <li key={s.id} className="flex items-center gap-2 px-3 py-1.5 text-sm">
+                    <span className="w-11 shrink-0 text-[11px] font-semibold text-muted">SET {s.setNumber}</span>
+                    <span className="tabular min-w-0 flex-1 whitespace-nowrap font-semibold">
+                      {formatKg(s.weight)} kg × {s.reps}
                     </span>
-                    {s.isPR && <PRShareButton onClick={() => reopenCelebration(s)} />}
+                    {s.isPR && (
+                      <button
+                        type="button"
+                        onClick={() => reopenCelebration(s)}
+                        aria-label="Bagikan PR"
+                        title="Rekor baru — tap untuk bagikan"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/15 text-base ring-1 ring-accent/40 transition hover:bg-accent/25"
+                      >
+                        🏆
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => startEdit(s)}
@@ -374,32 +390,22 @@ export function TopSetForm({
                     >
                       <TrashIcon />
                     </button>
-                  </div>
-                </div>
-              )
-            )}
-            {rowError && <p className="text-sm text-danger">{rowError}</p>}
-            <button
-              type="button"
-              onClick={() =>
-                setVolumeCard({
-                  memberName,
-                  exerciseName: exercises.find((ex) => ex.id === exerciseId)?.name ?? "",
-                  sets: currentSets.map((s) => ({ weight: s.weight, reps: s.reps })),
-                })
-              }
-              className="mt-1 flex items-center justify-between gap-3 rounded-lg border border-accent/30 bg-accent/10 px-3 py-2.5 text-left text-sm transition hover:bg-accent/15 active:scale-[0.99]"
-            >
+                  </li>
+                )
+              )}
+            </ul>
+            <div className="flex items-center justify-between gap-2 bg-surface-2 px-3 py-2 text-xs text-muted">
               <span>
-                <span className="block font-semibold text-accent">🎉 Gerakan selesai? Bagikan volume</span>
-                <span className="text-xs text-muted">
-                  Total {formatKg(totalVolume(currentSets))} kg dari {currentSets.length} set — kartu untuk Instagram Story
-                </span>
+                {currentSets.length} set
+                {heaviest && ` · terberat ${formatKg(heaviest.weight)} kg`}
               </span>
-              <span aria-hidden className="text-accent">→</span>
-            </button>
+              <span>
+                Volume <span className="tabular font-semibold text-foreground">{formatKg(totalVolume(currentSets))} kg</span>
+              </span>
+            </div>
           </div>
         )}
+        {rowError && <p className="text-sm text-danger">{rowError}</p>}
 
         {repeatSource && !repeatMatches && (
           <button
@@ -410,45 +416,16 @@ export function TopSetForm({
             }}
             className="self-start rounded-full border border-border bg-surface-2 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-accent hover:text-accent"
           >
-            ↺ {repeatLabel}: {repeatSource.reps} x {repeatSource.weight}kg
+            ↺ {repeatLabel}: {formatKg(repeatSource.weight)} kg × {repeatSource.reps}
           </button>
         )}
 
-        <div className="flex gap-3">
-          <div className="flex-[1.4]">
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
-              Beban (kg)
-            </label>
-            <div className="flex gap-1.5">
-              <button
-                type="button"
-                onClick={() => stepWeight(-WEIGHT_STEP)}
-                aria-label="Kurangi 2,5 kg"
-                className="shrink-0 rounded-lg border border-border bg-surface-2 px-2.5 text-xs font-semibold text-muted transition hover:border-border-strong hover:text-foreground"
-              >
-                −2,5
-              </button>
-              <Input
-                type="text"
-                inputMode="decimal"
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-                className="min-w-0 text-center"
-              />
-              <button
-                type="button"
-                onClick={() => stepWeight(WEIGHT_STEP)}
-                aria-label="Tambah 2,5 kg"
-                className="shrink-0 rounded-lg border border-border bg-surface-2 px-2.5 text-xs font-semibold text-muted transition hover:border-border-strong hover:text-foreground"
-              >
-                +2,5
-              </button>
-            </div>
+        <div>
+          <div className="flex gap-3">
+            <StepperInput label="Beban (kg)" value={weight} onChange={setWeight} step={WEIGHT_STEP} decimal placeholder="mis. 40" />
+            <StepperInput label="Reps" value={reps} onChange={setReps} step={1} placeholder="mis. 8" />
           </div>
-          <div className="flex-1">
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">Reps</label>
-            <Input type="number" inputMode="numeric" value={reps} onChange={(e) => setReps(e.target.value)} />
-          </div>
+          <p className="mt-1.5 text-[11px] text-muted">Tombol − / + mengubah beban 2,5 kg dan reps 1.</p>
         </div>
 
         <div>
@@ -457,7 +434,7 @@ export function TopSetForm({
           </label>
           <Input
             type="text"
-            placeholder="mis. terasa ringan, form rapi, PR!"
+            placeholder="mis. terasa ringan, form rapi"
             value={note}
             onChange={(e) => setNote(e.target.value)}
           />
@@ -466,29 +443,47 @@ export function TopSetForm({
         {error && <p className="text-sm text-danger">{error}</p>}
         {justSavedPR && (
           <p className="text-sm text-accent">
-            Selamat, ini rekor baru! Kartunya tertutup? Tekan <span className="font-semibold">PR · Share</span> di set
-            itu untuk membukanya lagi.
+            🏆 Rekor baru! Kartunya bisa dibagikan saat kamu tekan <span className="font-semibold">Selesai</span>, atau
+            lewat tombol <span className="font-semibold">🏆</span> di set itu.
           </p>
         )}
 
-        <Button type="submit" disabled={pending} className="w-full">
-          {pending ? "Menyimpan..." : `Log Set ${nextSetNumber}`}
+        <Button
+          type="submit"
+          variant={currentSets.length > 0 ? "secondary" : "primary"}
+          disabled={pending || savedFlash}
+          className="w-full py-3"
+        >
+          {pending ? "Menyimpan..." : savedFlash ? "✓ Tersimpan!" : `+ Tambah Set ${nextSetNumber}`}
         </Button>
+        {currentSets.length > 0 && (
+          <Button type="button" onClick={() => setDoneSheet(true)} className="w-full py-3">
+            🏁 Selesai {exerciseName}
+          </Button>
+        )}
       </form>
 
       {restStartedAt !== null && (
         <RestTimer key={restStartedAt} startedAt={restStartedAt} onDismiss={dismissRest} />
       )}
+      {doneSheet && currentSets.length > 0 && (
+        <WorkoutDoneSheet
+          memberName={memberName}
+          exerciseName={exerciseName}
+          sets={storySets}
+          prSet={bestPR}
+          prGain={prGain}
+          character={character}
+          skinTone={skinTone}
+          onSharePR={() => bestPR && reopenCelebration(bestPR)}
+          onShareVolume={openVolumeCard}
+          onClose={() => setDoneSheet(false)}
+        />
+      )}
       {celebration && (
         <PRCelebrationModal
           data={celebration}
-          onClose={() => {
-            setCelebration(null);
-            if (queuedAchievements) {
-              setAchievementCelebration({ memberName, badges: queuedAchievements });
-              setQueuedAchievements(null);
-            }
-          }}
+          onClose={() => setCelebration(null)}
         />
       )}
       {volumeCard && (
