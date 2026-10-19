@@ -43,6 +43,8 @@ export interface ExerciseProgress {
   exerciseId: string;
   exerciseName: string;
   sessions: ProgressSession[];
+  /** Every set, when `sessions` is collapsed to one row per day. */
+  allSessions?: ProgressSession[];
 }
 
 function formatDate(iso: string) {
@@ -117,7 +119,7 @@ export function ProgressView({
       note: s.note,
       isPR: s.isPR,
     }));
-    setData((prev) => prev.map((ex) => (ex.exerciseId === exerciseId ? { ...ex, sessions } : ex)));
+    setData((prev) => prev.map((ex) => (ex.exerciseId === exerciseId ? { ...ex, sessions, allSessions: undefined } : ex)));
   }
 
   async function handleDelete(setId: string, exerciseId: string) {
@@ -208,13 +210,14 @@ export function ProgressView({
     const d = formatDate(s.workoutDate);
     dateOccurrences.set(d, (dateOccurrences.get(d) ?? 0) + 1);
   }
-  const e1rmPoints = bestE1RMByDay(sessions);
+  const everySet = current.allSessions ?? sessions;
+  const e1rmPoints = bestE1RMByDay(everySet);
   const delta = progressDelta(e1rmPoints);
 
   // One entry per training day, newest first — for the chart's volume mode
   // and the "share a past session" list.
   const dayMap = new Map<string, { date: string; sets: { weight: number; reps: number }[] }>();
-  for (const s of sessions) {
+  for (const s of everySet) {
     const key = s.workoutDate.slice(0, 10);
     const day = dayMap.get(key) ?? { date: s.workoutDate, sets: [] };
     day.sets.push({ weight: s.weight, reps: s.reps });

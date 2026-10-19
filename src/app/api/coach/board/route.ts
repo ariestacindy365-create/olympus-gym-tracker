@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isPresentToday } from "@/lib/status";
 import { todayDateKey } from "@/lib/workout";
+import { getPriorBests } from "@/lib/priorBests";
 import { Role } from "@/generated/prisma/client";
 
 export async function GET() {
@@ -32,21 +33,7 @@ export async function GET() {
   const bestSets = Array.from(bestByPair.values());
 
   const exerciseIds = Array.from(new Set(bestSets.map((s) => s.exerciseId)));
-  const priorBests =
-    exerciseIds.length > 0
-      ? await prisma.setEntry.groupBy({
-          by: ["memberId", "exerciseId"],
-          where: { workoutDate: { lt: todayDateKey() }, exerciseId: { in: exerciseIds } },
-          _max: { estimated1RM: true },
-        })
-      : [];
-
-  const priorBestMap = new Map<string, number>();
-  for (const p of priorBests) {
-    if (p._max.estimated1RM != null) {
-      priorBestMap.set(`${p.memberId}:${p.exerciseId}`, p._max.estimated1RM);
-    }
-  }
+  const priorBestMap = await getPriorBests(todayDateKey(), exerciseIds);
 
   const rows = bestSets.map((setEntry) => {
     const priorBest = priorBestMap.get(`${setEntry.memberId}:${setEntry.exerciseId}`);

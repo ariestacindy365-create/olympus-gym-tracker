@@ -4,6 +4,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { epley1RM } from "@/lib/oneRepMax";
 import { recomputeExerciseRecords } from "@/lib/recomputeRecords";
+import { invalidatePriorBests } from "@/lib/priorBests";
+import { todayDateKey } from "@/lib/workout";
 import { coachEditSetEntrySchema } from "@/lib/validation";
 import { Role } from "@/generated/prisma/client";
 
@@ -39,6 +41,9 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/coach/
     });
   });
 
+  // Editing an older set can change the Live Board's "previous best".
+  if (existing.workoutDate < todayDateKey()) invalidatePriorBests();
+
   return NextResponse.json({ sets });
 }
 
@@ -62,6 +67,9 @@ export async function DELETE(_request: NextRequest, ctx: RouteContext<"/api/coac
       orderBy: [{ workoutDate: "asc" }, { setNumber: "asc" }],
     });
   });
+
+  // Editing an older set can change the Live Board's "previous best".
+  if (existing.workoutDate < todayDateKey()) invalidatePriorBests();
 
   return NextResponse.json({ sets });
 }
