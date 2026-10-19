@@ -40,3 +40,17 @@ export const FOLLOWUP_TYPE_TONE: Record<string, "default" | "success" | "accent"
   H21: "danger",
   CUSTOM: "muted",
 };
+
+// Where a lead heard of the gym (Lead.source). Order = chip order on the
+// capture form.
+export const LEAD_SOURCES = ["INSTAGRAM", "TIKTOK", "FACEBOOK", "WALK_IN", "REFERRAL", "LAINNYA"] as const;
+export type LeadSourceValue = (typeof LEAD_SOURCES)[number];
+
+export const SOURCE_LABEL: Record<string, string> = {
+  INSTAGRAM: "Instagram",
+  TIKTOK: "TikTok",
+  FACEBOOK: "Facebook",
+  WALK_IN: "Walk-in",
+  REFERRAL: "Referral teman",
+  LAINNYA: "Lainnya",
+};

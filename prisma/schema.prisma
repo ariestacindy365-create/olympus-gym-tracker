@@ -17,6 +17,22 @@ enum Role {
   OWNER
 }
 
+// Which cartoon lifter appears on the member's shareable story cards —
+// picked by the member themselves (the app stores no gender/hijab data).
+enum StoryCharacter {
+  PRIA
+  WANITA
+  HIJAB
+}
+
+// Skin colour of that lifter, also the member's own pick.
+enum StorySkinTone {
+  TERANG
+  LANGSAT
+  SAWO
+  GELAP
+}
+
 enum PRType {
   MAX_WEIGHT
   MAX_1RM
@@ -30,6 +46,11 @@ model User {
   role         Role
   lastActiveAt DateTime  @default(now())
   presentDate  DateTime?
+  // Null until the member picks one; the story card asks on first use.
+  storyCharacter StoryCharacter?
+  storySkinTone  StorySkinTone?
+  // Members can hide themselves from the monthly leaderboard.
+  leaderboardOptOut Boolean @default(false)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -39,7 +60,10 @@ model User {
   dailyWorkoutsCreated DailyWorkout[]      @relation("CoachDailyWorkouts")
   programsAsCoach      TrainingProgram[]   @relation("CoachPrograms")
   programSnapshots     ProgramSnapshot[]   @relation("CoachProgramSnapshots")
+  programWeekOverrides ProgramWeekOverride[] @relation("CoachProgramWeekOverrides")
   achievementUnlocks   AchievementUnlock[]
+  coachNotesReceived   CoachNote[]         @relation("MemberCoachNotes")
+  coachNotesWritten    CoachNote[]         @relation("CoachNotesWritten")
 
   // CRM (lead capture / follow-up) — used by ADMIN and OWNER roles only.
   capturedLeads      Lead[]     @relation("CapturedLeads")
@@ -256,6 +280,18 @@ model ProgramRotation {
   updatedAt        DateTime @updatedAt
 }
 
+// One-off exception to the rotation: "the week starting this Monday runs
+// Minggu N instead". Only that week changes — the rotation keeps cycling
+// from its anchor, so the week after is back on schedule.
+model ProgramWeekOverride {
+  weekStart  DateTime @id
+  weekNumber Int
+  coachId    String
+  coach      User     @relation("CoachProgramWeekOverrides", fields: [coachId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
 // --- CRM: WA lead capture & follow-up (ADMIN/OWNER only) -------------------
 
 // The funnel stage an admin moves a lead through by hand. Trial booking
@@ -266,6 +302,18 @@ enum LeadStatus {
   MEMBER
   RETENSI
   LOST
+}
+
+// Where a lead first heard of the gym — picked at capture, drives the
+// owner's "konversi per sumber" breakdown. Null for leads captured before
+// this existed (shown as "Belum diisi").
+enum LeadSource {
+  INSTAGRAM
+  TIKTOK
+  FACEBOOK
+  WALK_IN
+  REFERRAL
+  LAINNYA
 }
 
 // A prospective client who DM'd after seeing an ad.
@@ -280,6 +328,7 @@ model Lead {
   waNumberNormalized String     @default("")
   name               String
   status             LeadStatus @default(DM)
+  source             LeadSource?
   replyCount         Int        @default(0)
   // Set when status is marked TRIAL (booking itself happens in Fitquarter).
   // Base date for the auto-generated H+1/H+3 follow-ups below.
@@ -551,4 +600,21 @@ model Sale {
 
   @@index([productId])
   @@index([createdAt])
+}
+
+// Feedback a coach leaves for a member (form cues, progress notes). context
+// is a free-text snapshot of what it's about, e.g. "Back Squat · 12 Okt",
+// so the note still reads right if the set is later edited or deleted.
+model CoachNote {
+  id        String    @id @default(cuid())
+  memberId  String
+  member    User      @relation("MemberCoachNotes", fields: [memberId], references: [id])
+  coachId   String
+  coach     User      @relation("CoachNotesWritten", fields: [coachId], references: [id])
+  context   String?
+  body      String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([memberId, createdAt])
 }

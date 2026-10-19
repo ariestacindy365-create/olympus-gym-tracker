@@ -34,6 +34,8 @@ interface NavBarProps {
   links: NavLink[];
   userName: string;
   role: NavRole;
+  /** Off when the page supplies its own mobile navigation (member bottom bar). */
+  mobileTabs?: boolean;
 }
 
 function initials(name: string) {
@@ -58,7 +60,7 @@ function IntentPrefetchLink(props: Omit<ComponentProps<typeof Link>, "prefetch">
   );
 }
 
-export function NavBar({ links, userName, role }: NavBarProps) {
+export function NavBar({ links, userName, role, mobileTabs = true }: NavBarProps) {
   const pathname = usePathname();
   const mobileNavRef = useRef<HTMLElement>(null);
   // The mobile nav is a horizontally scrolling strip with more links than
@@ -142,7 +144,7 @@ export function NavBar({ links, userName, role }: NavBarProps) {
         </div>
       </div>
 
-      <div className="relative border-t border-white/5 sm:hidden">
+      <div className={`relative border-t border-white/5 sm:hidden ${mobileTabs ? "" : "hidden"}`}>
         <nav ref={mobileNavRef} className="no-scrollbar flex gap-1 overflow-x-auto px-3 pb-2 pt-1.5">
           {links.map((link) => {
             const active = link.href === activeHref;

@@ -6,6 +6,8 @@ import confetti from "canvas-confetti";
 import fixWebmDuration from "fix-webm-duration";
 import { Button } from "@/components/ui/Button";
 import { fetchAsDataUrl, compositeLogoOntoDataUrl } from "@/lib/imageDataUrl";
+import { shareOrDownload } from "@/lib/shareFile";
+import { pickVideoMimeType } from "@/lib/videoFormat";
 
 export interface PRCelebrationData {
   memberName: string;
@@ -75,30 +77,6 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
       : `Baru aja PR ${data.exerciseName} ${data.weight}kg x ${data.reps} di OLYMPUS Lifting Club! 💪`;
   }
 
-  async function shareOrDownload(file: File) {
-    if (navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: "OLYMPUS Lifting Club", text: shareText() });
-        return;
-      } catch (e) {
-        // User closed the share sheet themselves — respect that, don't
-        // fall back to a surprise download they didn't ask for.
-        if ((e as { name?: string }).name === "AbortError") throw e;
-        // Any other failure (seen in the wild: "Permission denied" — some
-        // Android/OEM builds block passing files to other apps via the
-        // share sheet even though canShare() said it should work) — fall
-        // through to a plain download so the file still reaches the user.
-        console.error("navigator.share failed, falling back to download:", e);
-      }
-    }
-    const url = URL.createObjectURL(file);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = file.name;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
   async function buildImageFile(): Promise<File> {
     if (!cardRef.current) throw new Error("card not ready");
     let dataUrl = await toPng(cardRef.current, { pixelRatio: 3 });
@@ -114,7 +92,7 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
     setImagePending(true);
     try {
       const file = await buildImageFile();
-      await shareOrDownload(file);
+      await shareOrDownload(file, shareText());
     } catch (e) {
       if ((e as { name?: string }).name !== "AbortError") {
         console.error("PR image share failed:", e);
@@ -172,9 +150,7 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
     // not a general share permission problem). WebM stays as a fallback for
     // devices that can't record MP4 at all, with its duration patched below
     // since MediaRecorder never writes real duration metadata for it.
-    const mimeType = ["video/mp4", "video/webm;codecs=vp9", "video/webm"].find((t) =>
-      MediaRecorder.isTypeSupported(t)
-    );
+    const mimeType = pickVideoMimeType();
     if (!mimeType) throw new Error("Video tidak didukung di perangkat ini.");
 
     const outputCanvas = document.createElement("canvas");
@@ -191,7 +167,7 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
       if (e.data.size > 0) chunks.push(e.data);
     };
     const recordingDone = new Promise<Blob>((resolve) => {
-      recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
+      recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType.split(";")[0] }));
     });
 
     const recordingStart = performance.now();
@@ -232,7 +208,7 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
       ? await fixWebmDuration(rawBlob, actualDurationMs, { logger: false })
       : rawBlob;
     const ext = mimeType.startsWith("video/mp4") ? "mp4" : "webm";
-    return new File([blob], `olympus-pr-${Date.now()}.${ext}`, { type: mimeType });
+    return new File([blob], `olympus-pr-${Date.now()}.${ext}`, { type: mimeType.split(";")[0] });
   }
 
   async function handleShareVideo() {
@@ -243,7 +219,7 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
       // share/download call happens synchronously within it.
       setVideoPending(true);
       try {
-        await shareOrDownload(videoReady);
+        await shareOrDownload(videoReady, shareText());
         setVideoReady(null);
       } catch (e) {
         if ((e as { name?: string }).name !== "AbortError") {
@@ -274,7 +250,8 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 px-4 py-6 backdrop-blur-md">
-      <div className="absolute inset-0" onClick={onClose} />
+      {/* No tap-outside-to-close: members kept dismissing the card by accident
+          before sharing. Only ✕ / "Nanti saja" close it. */}
       <div className="relative flex w-full max-w-xs flex-col items-center gap-4">
         <div ref={cardRef} className="flex aspect-[9/16] w-full flex-col rounded-[32px] p-4" style={{ background: "#dbeafe" }}>
           <div

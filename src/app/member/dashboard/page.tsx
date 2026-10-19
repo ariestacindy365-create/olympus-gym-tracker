@@ -6,7 +6,12 @@ import { ProgressView, type ExerciseProgress } from "@/components/shared/Progres
 import { UnseenAchievementNotifier } from "@/components/member/UnseenAchievementNotifier";
 import { syncMemberAchievements, getUnseenAchievements } from "@/lib/achievements";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { lifterFromStored, skinToneFromStored } from "@/lib/volumeStory";
 import { todayLabel } from "@/lib/dateLabel";
+import { CoachNotesCard } from "@/components/member/CoachNotesCard";
+import { getCoachNotes } from "@/lib/coachNotes";
+import { computeTrainingSummary } from "@/lib/trainingSummary";
+import { TrainingHeatmap, TrainingStats } from "@/components/member/TrainingSummary";
 
 export default async function MemberDashboardPage() {
   const user = await getCurrentUser();
@@ -20,7 +25,7 @@ export default async function MemberDashboardPage() {
 
   // One query for every set the member has logged; today's sets and each
   // exercise's previous session are derived from it below.
-  const [dailyWorkout, exercises, personalRecords, allSets] = await Promise.all([
+  const [dailyWorkout, exercises, personalRecords, allSets, coachNotes] = await Promise.all([
     getTodayDailyWorkout(),
     prisma.exercise.findMany({ orderBy: { name: "asc" } }),
     prisma.personalRecord.findMany({ where: { memberId: user.id } }),
@@ -29,6 +34,7 @@ export default async function MemberDashboardPage() {
       include: { exercise: true },
       orderBy: [{ workoutDate: "asc" }, { setNumber: "asc" }],
     }),
+    getCoachNotes(user.id, 10),
   ]);
   const todayTs = todayDateKey().getTime();
   const todaysSets = allSets.filter((s) => s.workoutDate.getTime() === todayTs);
@@ -104,13 +110,34 @@ export default async function MemberDashboardPage() {
       isPR: s.isPR,
     });
   }
+  // The chart/table above show one row per day; volume cards and the 1RM
+  // trend need every set.
+  for (const s of allSets) {
+    const entry = byExercise.get(s.exerciseId);
+    if (!entry) continue;
+    (entry.allSessions ??= []).push({
+      id: s.id,
+      workoutDate: s.workoutDate.toISOString(),
+      setNumber: s.setNumber,
+      weight: s.weight,
+      reps: s.reps,
+      note: s.note,
+      isPR: s.isPR,
+    });
+  }
   const progressExercises = Array.from(byExercise.values()).sort((a, b) =>
     a.exerciseName.localeCompare(b.exerciseName)
   );
 
+  const summary = computeTrainingSummary(allSets);
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader eyebrow={todayLabel()} title={`Halo, ${user.name}`} subtitle="Berikut latihan hari ini." />
+
+      <TrainingStats summary={summary} />
+
+      <CoachNotesCard notes={coachNotes} />
 
       {dailyWorkout && (
         <div className="relative overflow-hidden rounded-xl bg-nav-bg p-5 text-nav-foreground shadow-raised [background-image:radial-gradient(28rem_10rem_at_100%_0%,rgb(37_99_235/0.45),transparent)]">
@@ -131,14 +158,20 @@ export default async function MemberDashboardPage() {
           lastSets={lastSetsMap}
           personalRecordsByExercise={personalRecordsByExercise}
           memberName={user.name}
+          storyCharacter={lifterFromStored(user.storyCharacter)}
+          storySkinTone={skinToneFromStored(user.storySkinTone)}
         />
       )}
+
+      <TrainingHeatmap summary={summary} />
 
       <ProgressView
         exercises={progressExercises}
         referenceDate={new Date().toISOString()}
         canDelete
         shareMemberName={user.name}
+        storyCharacter={lifterFromStored(user.storyCharacter)}
+        storySkinTone={skinToneFromStored(user.storySkinTone)}
       />
 
       <UnseenAchievementNotifier memberName={user.name} badges={unseenAchievements} />

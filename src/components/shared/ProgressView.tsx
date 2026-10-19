@@ -14,6 +14,20 @@ import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { PRShareButton } from "@/components/member/PRShareButton";
 import { PRCelebrationModal, type PRCelebrationData } from "@/components/member/PRCelebrationModal";
 import { epley1RM } from "@/lib/oneRepMax";
+import { VolumeStoryModal } from "@/components/member/VolumeStoryModal";
+import { ProgressStoryModal } from "@/components/member/ProgressStoryModal";
+import { bestE1RMByDay, progressDelta, type ProgressStoryData } from "@/lib/progressStory";
+import { formatKg, totalVolume, type LifterCharacter, type SkinTone, type VolumeStoryData } from "@/lib/volumeStory";
+
+type ChartMode = "weight" | "e1rm" | "volume";
+
+const CHART_MODES: { id: ChartMode; label: string }[] = [
+  { id: "weight", label: "Beban" },
+  { id: "e1rm", label: "Estimasi 1RM" },
+  { id: "volume", label: "Volume" },
+];
+
+const HISTORY_PREVIEW_DAYS = 5;
 
 export interface ProgressSession {
   id: string;
@@ -29,6 +43,8 @@ export interface ExerciseProgress {
   exerciseId: string;
   exerciseName: string;
   sessions: ProgressSession[];
+  /** Every set, when `sessions` is collapsed to one row per day. */
+  allSessions?: ProgressSession[];
 }
 
 function formatDate(iso: string) {
@@ -47,6 +63,9 @@ interface ProgressViewProps {
   basePath?: string;
   /** Member's own dashboard only: PR badges reopen the shareable PR card under this name. */
   shareMemberName?: string;
+  /** Lifter/skin tone for volume cards shared from history (member only). */
+  storyCharacter?: LifterCharacter | null;
+  storySkinTone?: SkinTone | null;
 }
 
 export function ProgressView({
@@ -56,6 +75,8 @@ export function ProgressView({
   canEdit = false,
   basePath = "/api/member/sets",
   shareMemberName,
+  storyCharacter = null,
+  storySkinTone = null,
 }: ProgressViewProps) {
   const confirmDialog = useConfirm();
   const [data, setData] = useState(exercises);
@@ -78,6 +99,12 @@ export function ProgressView({
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [shareCard, setShareCard] = useState<PRCelebrationData | null>(null);
+  const [chartMode, setChartMode] = useState<ChartMode>("weight");
+  const [volumeCard, setVolumeCard] = useState<VolumeStoryData | null>(null);
+  const [progressCard, setProgressCard] = useState<ProgressStoryData | null>(null);
+  const [character, setCharacter] = useState(storyCharacter);
+  const [skinTone, setSkinTone] = useState(storySkinTone);
+  const [showAllDays, setShowAllDays] = useState(false);
   const current = data.find((e) => e.exerciseId === selectedId) ?? data[0] ?? null;
 
   function applySessions(exerciseId: string, rawSessions: unknown[]) {
@@ -92,7 +119,7 @@ export function ProgressView({
       note: s.note,
       isPR: s.isPR,
     }));
-    setData((prev) => prev.map((ex) => (ex.exerciseId === exerciseId ? { ...ex, sessions } : ex)));
+    setData((prev) => prev.map((ex) => (ex.exerciseId === exerciseId ? { ...ex, sessions, allSessions: undefined } : ex)));
   }
 
   async function handleDelete(setId: string, exerciseId: string) {
@@ -183,12 +210,34 @@ export function ProgressView({
     const d = formatDate(s.workoutDate);
     dateOccurrences.set(d, (dateOccurrences.get(d) ?? 0) + 1);
   }
-  const chartData = sessions.map((s) => {
-    const d = formatDate(s.workoutDate);
-    const label = (dateOccurrences.get(d) ?? 0) > 1 ? `${d} S${s.setNumber}` : d;
-    return { date: label, weight: s.weight };
-  });
+  const everySet = current.allSessions ?? sessions;
+  const e1rmPoints = bestE1RMByDay(everySet);
+  const delta = progressDelta(e1rmPoints);
+
+  // One entry per training day, newest first — for the chart's volume mode
+  // and the "share a past session" list.
+  const dayMap = new Map<string, { date: string; sets: { weight: number; reps: number }[] }>();
+  for (const s of everySet) {
+    const key = s.workoutDate.slice(0, 10);
+    const day = dayMap.get(key) ?? { date: s.workoutDate, sets: [] };
+    day.sets.push({ weight: s.weight, reps: s.reps });
+    dayMap.set(key, day);
+  }
+  const days = [...dayMap.values()].sort((a, b) => b.date.localeCompare(a.date));
+
+  const chartData =
+    chartMode === "weight"
+      ? sessions.map((s) => {
+          const d = formatDate(s.workoutDate);
+          const label = (dateOccurrences.get(d) ?? 0) > 1 ? `${d} S${s.setNumber}` : d;
+          return { date: label, value: s.weight };
+        })
+      : chartMode === "e1rm"
+        ? e1rmPoints.map((p) => ({ date: formatDate(p.date), value: p.value }))
+        : [...days].reverse().map((d) => ({ date: formatDate(d.date), value: totalVolume(d.sets) }));
+  const chartLabel = chartMode === "weight" ? "Beban" : chartMode === "e1rm" ? "Estimasi 1RM" : "Volume";
   const lastIndex = chartData.length - 1;
+  const visibleDays = showAllDays ? days : days.slice(0, HISTORY_PREVIEW_DAYS);
 
   const tableRows = [...sessions].reverse();
 
@@ -212,10 +261,61 @@ export function ProgressView({
         <StatTile label="PR 7 Hari" value={pr7d != null ? `${pr7d}kg` : "-"} />
       </div>
 
+      {e1rmPoints.length > 1 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/30 bg-accent/10 px-4 py-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Progres {current.exerciseName}</p>
+            <p className="font-display text-xl font-bold text-accent">
+              {delta > 0 ? `Estimasi 1RM naik +${formatKg(delta)} kg` : "Estimasi 1RM masih stabil"}
+            </p>
+            <p className="text-xs text-muted">
+              {formatKg(e1rmPoints[0].value)} kg ({formatDate(e1rmPoints[0].date)}) → terbaik{" "}
+              {formatKg(Math.max(...e1rmPoints.map((p) => p.value)))} kg
+            </p>
+          </div>
+          {shareMemberName && (
+            <Button
+              type="button"
+              variant="secondary"
+              className="px-3 py-2 text-xs"
+              onClick={() =>
+                setProgressCard({
+                  memberName: shareMemberName,
+                  exerciseName: current.exerciseName,
+                  points: e1rmPoints,
+                  sessions: totalSessions,
+                  maxWeight,
+                })
+              }
+            >
+              📈 Bagikan progres
+            </Button>
+          )}
+        </div>
+      )}
+
       <Card>
-        <h3 className="mb-3 font-display text-lg font-semibold">
-          {current.exerciseName} ({totalSessions} sesi)
-        </h3>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="font-display text-lg font-semibold">
+            {current.exerciseName} ({totalSessions} sesi)
+          </h3>
+          <div role="tablist" aria-label="Jenis grafik" className="flex rounded-lg bg-surface-2 p-0.5 text-xs font-semibold">
+            {CHART_MODES.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                role="tab"
+                aria-selected={chartMode === m.id}
+                onClick={() => setChartMode(m.id)}
+                className={`rounded-md px-2.5 py-1.5 transition ${
+                  chartMode === m.id ? "bg-surface text-foreground shadow-card" : "text-muted hover:text-foreground"
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div style={{ width: "100%", height: 260 }}>
           <ResponsiveContainer>
             <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -223,12 +323,13 @@ export function ProgressView({
               <XAxis dataKey="date" tick={{ fontSize: 11, fill: "var(--muted)" }} />
               <YAxis tick={{ fontSize: 11, fill: "var(--muted)" }} unit="kg" />
               <Tooltip
+                formatter={(v) => [`${formatKg(Number(v))} kg`, chartLabel]}
                 contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", fontSize: 12 }}
                 labelStyle={{ color: "var(--foreground)" }}
               />
               <Line
                 type="monotone"
-                dataKey="weight"
+                dataKey="value"
                 stroke="var(--accent)"
                 strokeWidth={2}
                 dot={(props: { cx?: number; cy?: number; index?: number }) => {
@@ -248,6 +349,52 @@ export function ProgressView({
           </ResponsiveContainer>
         </div>
       </Card>
+
+      {shareMemberName && days.length > 0 && (
+        <Card>
+          <h3 className="font-display text-lg font-semibold">Bagikan Volume Sesi</h3>
+          <p className="mb-3 text-xs text-muted">Kartu volume untuk hari latihan mana pun, bukan hanya hari ini.</p>
+          <ul className="flex flex-col gap-2">
+            {visibleDays.map((d) => (
+              <li
+                key={d.date}
+                className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm"
+              >
+                <span className="min-w-0">
+                  <span className="font-medium">{formatDate(d.date)}</span>
+                  <span className="block text-xs text-muted">
+                    {d.sets.length} set · {formatKg(totalVolume(d.sets))} kg
+                  </span>
+                </span>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="shrink-0 px-3 py-1.5 text-xs"
+                  onClick={() =>
+                    setVolumeCard({
+                      memberName: shareMemberName,
+                      exerciseName: current.exerciseName,
+                      sets: d.sets,
+                      date: d.date,
+                    })
+                  }
+                >
+                  🎉 Bagikan
+                </Button>
+              </li>
+            ))}
+          </ul>
+          {days.length > HISTORY_PREVIEW_DAYS && (
+            <button
+              type="button"
+              onClick={() => setShowAllDays((v) => !v)}
+              className="mt-2 text-xs font-semibold text-accent hover:underline"
+            >
+              {showAllDays ? "Tampilkan lebih sedikit" : `Lihat semua (${days.length} hari)`}
+            </button>
+          )}
+        </Card>
+      )}
 
       <Card>
         <h3 className="mb-3 font-display text-lg font-semibold">Riwayat Sesi</h3>
@@ -377,6 +524,17 @@ export function ProgressView({
         </div>
       </Card>
       {shareCard && <PRCelebrationModal data={shareCard} onClose={() => setShareCard(null)} />}
+      {volumeCard && (
+        <VolumeStoryModal
+          data={volumeCard}
+          initialCharacter={character}
+          initialSkinTone={skinTone}
+          onCharacterChange={setCharacter}
+          onSkinToneChange={setSkinTone}
+          onClose={() => setVolumeCard(null)}
+        />
+      )}
+      {progressCard && <ProgressStoryModal data={progressCard} onClose={() => setProgressCard(null)} />}
     </div>
   );
 }

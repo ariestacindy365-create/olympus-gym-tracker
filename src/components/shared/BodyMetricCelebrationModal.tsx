@@ -101,7 +101,8 @@ export function BodyMetricCelebrationModal({ data, onClose }: BodyMetricCelebrat
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 px-4 py-6 backdrop-blur-md">
-      <div className="absolute inset-0" onClick={onClose} />
+      {/* No tap-outside-to-close: members kept dismissing the card by accident
+          before sharing. Only ✕ / "Nanti saja" close it. */}
       <div className="relative flex w-full max-w-xs flex-col items-center gap-4">
         <div ref={cardRef} className="flex aspect-[9/16] w-full flex-col rounded-[32px] p-4" style={{ background: "#dbeafe" }}>
           <div

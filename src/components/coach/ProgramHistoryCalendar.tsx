@@ -18,6 +18,8 @@ interface DaySlot {
 interface DayEntry {
   date: string; // YYYY-MM-DD
   weekNumber: number;
+  /** This week runs a different Minggu than the rotation (one-off). */
+  overridden: boolean;
   day: { dayLabel: string; focusLabel: string | null; slots: DaySlot[] } | null;
 }
 
@@ -26,11 +28,25 @@ interface Rotation {
   anchorWeekNumber: number;
 }
 
+interface CurrentWeek {
+  weekStart: string; // YYYY-MM-DD (Monday)
+  weekEnd: string;
+  weekNumber: number;
+  rotationWeekNumber: number;
+  overridden: boolean;
+}
+
 interface ProgramHistoryCalendarProps {
   initialYear: number;
   initialMonth: number; // 0-11
   initialDays: DayEntry[];
   initialRotation: Rotation;
+  initialCurrentWeek: CurrentWeek;
+}
+
+function formatShort(key: string) {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
 }
 
 const MONTH_NAMES = [
@@ -54,6 +70,7 @@ export function ProgramHistoryCalendar({
   initialMonth,
   initialDays,
   initialRotation,
+  initialCurrentWeek,
 }: ProgramHistoryCalendarProps) {
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
@@ -65,6 +82,9 @@ export function ProgramHistoryCalendar({
   const [rotationDate, setRotationDate] = useState("");
   const [rotationWeek, setRotationWeek] = useState("1");
   const [rotationSaving, setRotationSaving] = useState(false);
+  const [currentWeek, setCurrentWeek] = useState(initialCurrentWeek);
+  const [overrideSaving, setOverrideSaving] = useState(false);
+  const [overrideError, setOverrideError] = useState<string | null>(null);
 
   const daysByDate = useMemo(() => new Map(days.map((d) => [d.date, d])), [days]);
 
@@ -93,6 +113,7 @@ export function ProgramHistoryCalendar({
       const json = await res.json();
       setDays(json.days ?? []);
       if (json.rotation) setRotation(json.rotation);
+      if (json.currentWeek) setCurrentWeek(json.currentWeek);
     } finally {
       setLoading(false);
     }
@@ -131,10 +152,61 @@ export function ProgramHistoryCalendar({
     }
   }
 
+  // Only this week can be switched; the rotation itself stays as is.
+  async function setThisWeek(weekNumber: number | null) {
+    setOverrideSaving(true);
+    setOverrideError(null);
+    try {
+      const res = await fetch("/api/coach/programs/override", {
+        method: weekNumber === null ? "DELETE" : "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: weekNumber === null ? undefined : JSON.stringify({ weekNumber }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        setOverrideError(json.error ?? "Gagal menyimpan.");
+        return;
+      }
+      await loadMonth(year, month);
+    } finally {
+      setOverrideSaving(false);
+    }
+  }
+
   const selectedEntry = selectedDate ? daysByDate.get(selectedDate) : null;
+  const weekRange = `${formatShort(currentWeek.weekStart)}–${formatShort(currentWeek.weekEnd)}`;
 
   return (
     <div className="flex flex-col gap-4">
+      <Card
+        className={`flex flex-wrap items-center justify-between gap-3 p-4 ${
+          currentWeek.overridden ? "border-amber-400/50 bg-amber-400/5" : ""
+        }`}
+      >
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Minggu ini · {weekRange}</p>
+          <p className="font-display text-lg font-bold">
+            Program Minggu {currentWeek.weekNumber}
+            {currentWeek.overridden && (
+              <span className="ml-2 align-middle text-xs font-semibold text-amber-500">
+                diganti khusus minggu ini (jadwal: Minggu {currentWeek.rotationWeekNumber})
+              </span>
+            )}
+          </p>
+        </div>
+        {currentWeek.overridden && (
+          <Button
+            variant="secondary"
+            className="px-3 py-1.5 text-xs"
+            disabled={overrideSaving}
+            onClick={() => setThisWeek(null)}
+          >
+            {overrideSaving ? "..." : `Kembalikan ke jadwal (Minggu ${currentWeek.rotationWeekNumber})`}
+          </Button>
+        )}
+        {overrideError && <p className="w-full text-sm text-danger">{overrideError}</p>}
+      </Card>
+
       <Card className="p-4">
         <div className="mb-3 flex items-center justify-between">
           <button
@@ -184,7 +256,15 @@ export function ProgramHistoryCalendar({
                 }`}
               >
                 <span>{cell.day}</span>
-                {entry && <span className="text-[10px] leading-none opacity-70">M{entry.weekNumber}</span>}
+                {entry && (
+                  <span
+                    className={`text-[10px] leading-none ${entry.overridden ? "font-bold text-amber-500" : "opacity-70"}`}
+                    title={entry.overridden ? "Diganti khusus minggu ini" : undefined}
+                  >
+                    M{entry.weekNumber}
+                    {entry.overridden && "*"}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -198,6 +278,21 @@ export function ProgramHistoryCalendar({
             {selectedEntry.day.dayLabel}
             {selectedEntry.day.focusLabel && <span className="text-foreground"> &mdash; {selectedEntry.day.focusLabel}</span>}
           </p>
+          {selectedEntry.weekNumber !== currentWeek.weekNumber && (
+            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg bg-accent/10 px-3 py-2">
+              <p className="flex-1 text-xs text-muted">
+                Mau minggu ini ({weekRange}) pakai Minggu {selectedEntry.weekNumber}? Hanya minggu ini yang berubah,
+                minggu depan kembali ke jadwal.
+              </p>
+              <Button
+                className="px-3 py-1.5 text-xs"
+                disabled={overrideSaving}
+                onClick={() => setThisWeek(selectedEntry.weekNumber)}
+              >
+                {overrideSaving ? "Menyimpan..." : `Pakai Minggu ${selectedEntry.weekNumber} untuk minggu ini`}
+              </Button>
+            </div>
+          )}
           <div className="flex flex-col gap-0.5">
             {selectedEntry.day.slots.length === 0 && <p className="text-sm text-muted">(belum ada gerakan)</p>}
             {selectedEntry.day.slots.map((slot, si) => {
@@ -219,7 +314,8 @@ export function ProgramHistoryCalendar({
       {!selectedDate && (
         <p className="text-sm text-muted">
           Klik tanggal yang ada tulisannya untuk lihat program di hari itu. Angka kecil di bawah tanggal (mis. &quot;M2&quot;)
-          menunjukkan Minggu ke berapa yang berlaku.
+          menunjukkan Minggu ke berapa yang berlaku; tanda * berarti minggu itu diganti khusus. Dari tanggal mana pun kamu
+          bisa memakai program Minggu-nya untuk minggu ini.
         </p>
       )}
 

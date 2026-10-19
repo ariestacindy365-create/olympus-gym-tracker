@@ -18,6 +18,8 @@ import { Role } from "@/generated/prisma/client";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { isStaffEmailAllowed } from "@/lib/staffAccess";
 import { todayLabel } from "@/lib/dateLabel";
+import { getProductInsights, getRetentionByMonth, getSourceConversion } from "@/lib/ownerInsights";
+import { ProductInsightsCard, RetentionCard, SourceConversionCard } from "@/components/leads/OwnerInsights";
 
 export default async function LeadsOwnerPage() {
   await requireRole("OWNER");
@@ -75,6 +77,12 @@ export default async function LeadsOwnerPage() {
   ]);
   const revenueThisMonthTotal = (membershipRevenueThisMonth._sum.amount ?? 0) + (salesRevenueThisMonth._sum.price ?? 0);
   const netProfitThisMonth = revenueThisMonthTotal - (expensesThisMonth._sum.amount ?? 0);
+
+  const [retentionMonths, sourceConversion, productInsights] = await Promise.all([
+    getRetentionByMonth(),
+    getSourceConversion(),
+    getProductInsights(),
+  ]);
 
   const adminStats = await Promise.all(
     admins.map(async (admin) => {
@@ -155,6 +163,13 @@ export default async function LeadsOwnerPage() {
           </div>
         </Card>
       </Link>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <RetentionCard months={retentionMonths} />
+        <SourceConversionCard rows={sourceConversion} />
+      </div>
+
+      <ProductInsightsCard top={productInsights.top} lowStock={productInsights.lowStock} />
 
       <Card className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">

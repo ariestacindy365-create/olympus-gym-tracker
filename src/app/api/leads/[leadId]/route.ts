@@ -41,7 +41,12 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/leads/
 
   const updated = await prisma.lead.update({
     where: { id: leadId },
-    data: { waNumber: parsed.data.waNumber, waNumberNormalized, name: parsed.data.name },
+    data: {
+      waNumber: parsed.data.waNumber,
+      waNumberNormalized,
+      name: parsed.data.name,
+      ...(parsed.data.source !== undefined && { source: parsed.data.source }),
+    },
   });
 
   return NextResponse.json({ lead: updated });
