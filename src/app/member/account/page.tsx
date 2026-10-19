@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/Card";
 import { ChangeEmailForm } from "@/components/member/ChangeEmailForm";
 import { ChangePinForm } from "@/components/member/ChangePinForm";
 import { StoryCharacterSetting } from "@/components/member/StoryCharacterPicker";
-import { lifterFromStored } from "@/lib/volumeStory";
+import { lifterFromStored, skinToneFromStored } from "@/lib/volumeStory";
 
 export default async function MemberAccountPage() {
   const user = await getCurrentUser();
@@ -27,7 +27,10 @@ export default async function MemberAccountPage() {
         <p className="mb-4 text-xs text-muted">
           Karakter yang mengangkat beban di kartu volume yang kamu bagikan ke Instagram Story atau WhatsApp.
         </p>
-        <StoryCharacterSetting initial={lifterFromStored(user.storyCharacter)} />
+        <StoryCharacterSetting
+          initialCharacter={lifterFromStored(user.storyCharacter)}
+          initialSkinTone={skinToneFromStored(user.storySkinTone)}
+        />
       </Card>
 
       <Card>

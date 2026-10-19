@@ -18,7 +18,7 @@ import { parseWeightInput } from "@/lib/parseWeight";
 import { EditIcon, TrashIcon } from "@/components/ui/Icons";
 import { PRShareButton } from "@/components/member/PRShareButton";
 import { VolumeStoryModal } from "@/components/member/VolumeStoryModal";
-import { formatKg, totalVolume, type LifterCharacter, type VolumeStoryData } from "@/lib/volumeStory";
+import { formatKg, totalVolume, type LifterCharacter, type SkinTone, type VolumeStoryData } from "@/lib/volumeStory";
 import { epley1RM } from "@/lib/oneRepMax";
 
 interface ExerciseOption {
@@ -50,6 +50,7 @@ interface TopSetFormProps {
   memberName: string;
   /** Lifter picked on the member's account (null = not chosen yet). */
   storyCharacter: LifterCharacter | null;
+  storySkinTone: SkinTone | null;
   onExerciseChange?: (exerciseId: string) => void;
 }
 
@@ -60,6 +61,7 @@ export function TopSetForm({
   lastSets,
   memberName,
   storyCharacter,
+  storySkinTone,
   onExerciseChange,
 }: TopSetFormProps) {
   const confirmDialog = useConfirm();
@@ -75,6 +77,7 @@ export function TopSetForm({
   const [celebration, setCelebration] = useState<PRCelebrationData | null>(null);
   const [volumeCard, setVolumeCard] = useState<VolumeStoryData | null>(null);
   const [character, setCharacter] = useState(storyCharacter);
+  const [skinTone, setSkinTone] = useState(storySkinTone);
   const [achievementCelebration, setAchievementCelebration] = useState<AchievementCelebrationData | null>(null);
   const [queuedAchievements, setQueuedAchievements] = useState<UnlockedBadge[] | null>(null);
 
@@ -437,7 +440,9 @@ export function TopSetForm({
         <VolumeStoryModal
           data={volumeCard}
           initialCharacter={character}
+          initialSkinTone={skinTone}
           onCharacterChange={setCharacter}
+          onSkinToneChange={setSkinTone}
           onClose={() => setVolumeCard(null)}
         />
       )}

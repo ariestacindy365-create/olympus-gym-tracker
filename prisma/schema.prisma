@@ -25,6 +25,14 @@ enum StoryCharacter {
   HIJAB
 }
 
+// Skin colour of that lifter, also the member's own pick.
+enum StorySkinTone {
+  TERANG
+  LANGSAT
+  SAWO
+  GELAP
+}
+
 enum PRType {
   MAX_WEIGHT
   MAX_1RM
@@ -40,6 +48,7 @@ model User {
   presentDate  DateTime?
   // Null until the member picks one; the story card asks on first use.
   storyCharacter StoryCharacter?
+  storySkinTone  StorySkinTone?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 

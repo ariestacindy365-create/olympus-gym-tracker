@@ -15,15 +15,19 @@ import {
   shareCaption,
   type VolumeStoryAssets,
   type VolumeStoryData,
-  saveStoryCharacter,
+  DEFAULT_SKIN_TONE,
+  saveStoryPrefs,
+  type SkinTone,
 } from "@/lib/volumeStory";
-import { StoryCharacterPicker } from "@/components/member/StoryCharacterPicker";
+import { SkinTonePicker, StoryCharacterPicker } from "@/components/member/StoryCharacterPicker";
 
 interface VolumeStoryModalProps {
   data: VolumeStoryData;
   /** From the member's account; null = never picked, so ask first. */
   initialCharacter: LifterCharacter | null;
+  initialSkinTone: SkinTone | null;
   onCharacterChange?: (character: LifterCharacter) => void;
+  onSkinToneChange?: (skinTone: SkinTone) => void;
   onClose: () => void;
 }
 
@@ -33,10 +37,21 @@ interface VolumeStoryModalProps {
  * from the same canvas renderer (lib/volumeStory), so what members see is
  * exactly what gets posted.
  */
-export function VolumeStoryModal({ data: baseData, initialCharacter, onCharacterChange, onClose }: VolumeStoryModalProps) {
-  // The member picks which lifter appears; saved on their account.
+export function VolumeStoryModal({
+  data: baseData,
+  initialCharacter,
+  initialSkinTone,
+  onCharacterChange,
+  onSkinToneChange,
+  onClose,
+}: VolumeStoryModalProps) {
+  // The member picks which lifter appears and its skin tone; saved on their account.
   const [character, setCharacter] = useState<LifterCharacter | null>(initialCharacter);
-  const data = useMemo(() => ({ ...baseData, character: character ?? "pria" }), [baseData, character]);
+  const [skinTone, setSkinTone] = useState<SkinTone>(initialSkinTone ?? DEFAULT_SKIN_TONE);
+  const data = useMemo(
+    () => ({ ...baseData, character: character ?? "pria", skinTone }),
+    [baseData, character, skinTone]
+  );
 
   const previewRef = useRef<HTMLCanvasElement>(null);
   const assetsRef = useRef<VolumeStoryAssets | null>(null);
@@ -54,8 +69,16 @@ export function VolumeStoryModal({ data: baseData, initialCharacter, onCharacter
     setCharacter(c);
     setVideoReady(null);
     onCharacterChange?.(c);
-    // Fire-and-forget: the card works the same even if saving fails.
-    void saveStoryCharacter(c);
+    // Fire-and-forget: the card works the same even if saving fails. The
+    // skin tone goes along so a first-time pick stores both.
+    void saveStoryPrefs({ character: c, skinTone });
+  }
+
+  function pickSkinTone(t: SkinTone) {
+    setSkinTone(t);
+    setVideoReady(null);
+    onSkinToneChange?.(t);
+    void saveStoryPrefs(character ? { character, skinTone: t } : { skinTone: t });
   }
 
   useEffect(() => {
@@ -221,6 +244,7 @@ export function VolumeStoryModal({ data: baseData, initialCharacter, onCharacter
                 Karakter ini yang akan mengangkat beban di kartumu. Bisa diganti kapan saja di halaman Akun.
               </p>
             </div>
+            <SkinTonePicker value={skinTone} onChange={pickSkinTone} tone="dark" />
             <StoryCharacterPicker value={null} onChange={pickCharacter} tone="dark" />
           </div>
         ) : (
@@ -249,6 +273,7 @@ export function VolumeStoryModal({ data: baseData, initialCharacter, onCharacter
               </button>
             </div>
             <StoryCharacterPicker value={character} onChange={pickCharacter} tone="dark" disabled={videoPending} />
+            <SkinTonePicker value={skinTone} onChange={pickSkinTone} tone="dark" disabled={videoPending} />
           </>
         )}
 

@@ -26,6 +26,7 @@ export interface VolumeStoryData {
   sets: VolumeStorySet[];
   /** Which cartoon lifter does the lift (picked by the member). */
   character?: LifterCharacter;
+  skinTone?: SkinTone;
 }
 
 export interface VolumeStoryAssets {
@@ -190,6 +191,17 @@ const liftedHandY = GROUND_Y - LEG - TORSO - NECK - HEAD_R * 2 - 40;
 
 export type LifterCharacter = "pria" | "wanita" | "hijab";
 
+export type SkinTone = "terang" | "langsat" | "sawo" | "gelap";
+
+export const SKIN_TONES: { id: SkinTone; label: string; color: string }[] = [
+  { id: "terang", label: "Terang", color: "#f3d3b5" },
+  { id: "langsat", label: "Kuning langsat", color: "#e6b590" },
+  { id: "sawo", label: "Sawo matang", color: "#c08457" },
+  { id: "gelap", label: "Gelap", color: "#7d4f31" },
+];
+
+export const DEFAULT_SKIN_TONE: SkinTone = "langsat";
+
 export const LIFTER_CHARACTERS: { id: LifterCharacter; label: string; emoji: string }[] = [
   { id: "pria", label: "Cowok", emoji: "👨" },
   { id: "wanita", label: "Cewek", emoji: "👩" },
@@ -197,7 +209,6 @@ export const LIFTER_CHARACTERS: { id: LifterCharacter; label: string; emoji: str
 ];
 
 const LIFTER = {
-  skin: { pria: "#d39b72", wanita: "#e6b590", hijab: "#e6b590" },
   hair: "#2a1c14",
   top: "#2563eb",
   topEdge: "#1d4ed8",
@@ -221,10 +232,11 @@ function drawLifter(
   groundY: number,
   lift: number,
   walk: number,
-  character: LifterCharacter
+  character: LifterCharacter,
+  skinTone: SkinTone
 ) {
   const female = character !== "pria";
-  const skin = LIFTER.skin[character];
+  const skin = (SKIN_TONES.find((t) => t.id === skinTone) ?? SKIN_TONES[1]).color;
   const bob = Math.abs(Math.sin(walk * Math.PI * 2)) * 6;
   const hipY = groundY - LEG - bob;
   const shoulderY = hipY - TORSO;
@@ -595,7 +607,15 @@ export function drawVolumeFrame(
   if (t >= 5.0) {
     const walkIn = progress(t, 5.0, 0.85);
     const mx = lerp(-200, cx, easeOut(walkIn));
-    drawLifter(ctx, mx, groundY, clamp01(lift), walkIn < 1 ? walkIn * 3 : 0, data.character ?? "pria");
+    drawLifter(
+      ctx,
+      mx,
+      groundY,
+      clamp01(lift),
+      walkIn < 1 ? walkIn * 3 : 0,
+      data.character ?? "pria",
+      data.skinTone ?? DEFAULT_SKIN_TONE
+    );
   }
 
   // Badge, sparkles, caption, logo
@@ -654,13 +674,19 @@ export function lifterFromStored(stored: string | null | undefined): LifterChara
   return null;
 }
 
-/** Persists the member's pick on their account (PATCH /api/member/story-character). */
-export async function saveStoryCharacter(character: LifterCharacter): Promise<boolean> {
+/** DB enum (TERANG / LANGSAT / SAWO / GELAP) → the renderer's skin tone id. */
+export function skinToneFromStored(stored: string | null | undefined): SkinTone | null {
+  const id = stored?.toLowerCase();
+  return SKIN_TONES.some((t) => t.id === id) ? (id as SkinTone) : null;
+}
+
+/** Persists the member's picks on their account (PATCH /api/member/story-character). */
+export async function saveStoryPrefs(prefs: { character?: LifterCharacter; skinTone?: SkinTone }): Promise<boolean> {
   try {
     const res = await fetch("/api/member/story-character", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ character }),
+      body: JSON.stringify(prefs),
     });
     return res.ok;
   } catch {
