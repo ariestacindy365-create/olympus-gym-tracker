@@ -17,6 +17,14 @@ enum Role {
   OWNER
 }
 
+// Which cartoon lifter appears on the member's shareable story cards —
+// picked by the member themselves (the app stores no gender/hijab data).
+enum StoryCharacter {
+  PRIA
+  WANITA
+  HIJAB
+}
+
 enum PRType {
   MAX_WEIGHT
   MAX_1RM
@@ -30,6 +38,8 @@ model User {
   role         Role
   lastActiveAt DateTime  @default(now())
   presentDate  DateTime?
+  // Null until the member picks one; the story card asks on first use.
+  storyCharacter StoryCharacter?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 

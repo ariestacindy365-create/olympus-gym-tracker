@@ -645,3 +645,25 @@ export function drawVolumeFrame(
   }
   ctx.globalAlpha = 1;
 }
+
+/** DB enum (PRIA / WANITA / HIJAB) → the renderer's lifter id. */
+export function lifterFromStored(stored: string | null | undefined): LifterCharacter | null {
+  if (stored === "PRIA") return "pria";
+  if (stored === "WANITA") return "wanita";
+  if (stored === "HIJAB") return "hijab";
+  return null;
+}
+
+/** Persists the member's pick on their account (PATCH /api/member/story-character). */
+export async function saveStoryCharacter(character: LifterCharacter): Promise<boolean> {
+  try {
+    const res = await fetch("/api/member/story-character", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ character }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}

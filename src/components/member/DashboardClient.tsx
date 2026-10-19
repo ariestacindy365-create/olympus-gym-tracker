@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { TopSetForm } from "@/components/member/TopSetForm";
 import { EstimasiBebanTable } from "@/components/member/EstimasiBebanTable";
+import type { LifterCharacter } from "@/lib/volumeStory";
 
 interface ExerciseOption {
   id: string;
@@ -37,6 +38,7 @@ interface DashboardClientProps {
   lastSets: Record<string, LastSet[]>;
   personalRecordsByExercise: Record<string, PRSummary>;
   memberName: string;
+  storyCharacter: LifterCharacter | null;
 }
 
 export function DashboardClient({
@@ -46,6 +48,7 @@ export function DashboardClient({
   lastSets,
   personalRecordsByExercise,
   memberName,
+  storyCharacter,
 }: DashboardClientProps) {
   const [exerciseId, setExerciseId] = useState(defaultExerciseId ?? exercises[0]?.id ?? "");
   const pr = personalRecordsByExercise[exerciseId] ?? { maxWeight: null, maxEstimated1RM: null };
@@ -58,6 +61,7 @@ export function DashboardClient({
         todaysSets={todaysSets}
         lastSets={lastSets}
         memberName={memberName}
+        storyCharacter={storyCharacter}
         onExerciseChange={setExerciseId}
       />
       <EstimasiBebanTable maxWeight={pr.maxWeight} maxEstimated1RM={pr.maxEstimated1RM} />

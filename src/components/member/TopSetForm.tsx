@@ -18,7 +18,7 @@ import { parseWeightInput } from "@/lib/parseWeight";
 import { EditIcon, TrashIcon } from "@/components/ui/Icons";
 import { PRShareButton } from "@/components/member/PRShareButton";
 import { VolumeStoryModal } from "@/components/member/VolumeStoryModal";
-import { formatKg, totalVolume, type VolumeStoryData } from "@/lib/volumeStory";
+import { formatKg, totalVolume, type LifterCharacter, type VolumeStoryData } from "@/lib/volumeStory";
 import { epley1RM } from "@/lib/oneRepMax";
 
 interface ExerciseOption {
@@ -48,6 +48,8 @@ interface TopSetFormProps {
   todaysSets: Record<string, ExistingSet[]>;
   lastSets: Record<string, LastSet[]>;
   memberName: string;
+  /** Lifter picked on the member's account (null = not chosen yet). */
+  storyCharacter: LifterCharacter | null;
   onExerciseChange?: (exerciseId: string) => void;
 }
 
@@ -57,6 +59,7 @@ export function TopSetForm({
   todaysSets,
   lastSets,
   memberName,
+  storyCharacter,
   onExerciseChange,
 }: TopSetFormProps) {
   const confirmDialog = useConfirm();
@@ -71,6 +74,7 @@ export function TopSetForm({
   const [justSavedPR, setJustSavedPR] = useState(false);
   const [celebration, setCelebration] = useState<PRCelebrationData | null>(null);
   const [volumeCard, setVolumeCard] = useState<VolumeStoryData | null>(null);
+  const [character, setCharacter] = useState(storyCharacter);
   const [achievementCelebration, setAchievementCelebration] = useState<AchievementCelebrationData | null>(null);
   const [queuedAchievements, setQueuedAchievements] = useState<UnlockedBadge[] | null>(null);
 
@@ -429,7 +433,14 @@ export function TopSetForm({
           }}
         />
       )}
-      {volumeCard && <VolumeStoryModal data={volumeCard} onClose={() => setVolumeCard(null)} />}
+      {volumeCard && (
+        <VolumeStoryModal
+          data={volumeCard}
+          initialCharacter={character}
+          onCharacterChange={setCharacter}
+          onClose={() => setVolumeCard(null)}
+        />
+      )}
       {achievementCelebration && (
         <AchievementCelebrationModal
           data={achievementCelebration}

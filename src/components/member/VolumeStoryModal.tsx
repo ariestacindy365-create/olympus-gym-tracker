@@ -9,17 +9,21 @@ import {
   STORY_DURATION,
   STORY_HEIGHT,
   STORY_WIDTH,
-  LIFTER_CHARACTERS,
   drawVolumeFrame,
   loadStoryAssets,
   type LifterCharacter,
   shareCaption,
   type VolumeStoryAssets,
   type VolumeStoryData,
+  saveStoryCharacter,
 } from "@/lib/volumeStory";
+import { StoryCharacterPicker } from "@/components/member/StoryCharacterPicker";
 
 interface VolumeStoryModalProps {
   data: VolumeStoryData;
+  /** From the member's account; null = never picked, so ask first. */
+  initialCharacter: LifterCharacter | null;
+  onCharacterChange?: (character: LifterCharacter) => void;
   onClose: () => void;
 }
 
@@ -29,22 +33,10 @@ interface VolumeStoryModalProps {
  * from the same canvas renderer (lib/volumeStory), so what members see is
  * exactly what gets posted.
  */
-const CHARACTER_KEY = "olympus-story-character";
-
-function savedCharacter(): LifterCharacter {
-  try {
-    const v = localStorage.getItem(CHARACTER_KEY);
-    if (v === "pria" || v === "wanita" || v === "hijab") return v;
-  } catch {
-    // Storage blocked (private mode etc.) — just use the default.
-  }
-  return "pria";
-}
-
-export function VolumeStoryModal({ data: baseData, onClose }: VolumeStoryModalProps) {
-  // The member picks which lifter appears; remembered for next time.
-  const [character, setCharacter] = useState<LifterCharacter>(savedCharacter);
-  const data = useMemo(() => ({ ...baseData, character }), [baseData, character]);
+export function VolumeStoryModal({ data: baseData, initialCharacter, onCharacterChange, onClose }: VolumeStoryModalProps) {
+  // The member picks which lifter appears; saved on their account.
+  const [character, setCharacter] = useState<LifterCharacter | null>(initialCharacter);
+  const data = useMemo(() => ({ ...baseData, character: character ?? "pria" }), [baseData, character]);
 
   const previewRef = useRef<HTMLCanvasElement>(null);
   const assetsRef = useRef<VolumeStoryAssets | null>(null);
@@ -61,11 +53,9 @@ export function VolumeStoryModal({ data: baseData, onClose }: VolumeStoryModalPr
   function pickCharacter(c: LifterCharacter) {
     setCharacter(c);
     setVideoReady(null);
-    try {
-      localStorage.setItem(CHARACTER_KEY, c);
-    } catch {
-      // ignore
-    }
+    onCharacterChange?.(c);
+    // Fire-and-forget: the card works the same even if saving fails.
+    void saveStoryCharacter(c);
   }
 
   useEffect(() => {
@@ -214,52 +204,55 @@ export function VolumeStoryModal({ data: baseData, onClose }: VolumeStoryModalPr
         aria-label="Kartu volume gerakan"
         className="relative flex w-full max-w-xs flex-col items-center gap-3"
       >
-        <div className="relative w-full overflow-hidden rounded-[28px] shadow-overlay ring-1 ring-white/10">
-          <canvas
-            ref={previewRef}
-            width={STORY_WIDTH}
-            height={STORY_HEIGHT}
-            className="block aspect-[9/16] w-full bg-[#0d1d42]"
-          />
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Tutup"
-            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white/80 hover:bg-black/50"
-          >
-            ✕
-          </button>
-          <button
-            type="button"
-            onClick={() => setPlayKey((k) => k + 1)}
-            className="absolute bottom-3 right-3 rounded-full bg-black/30 px-3 py-1 text-xs font-semibold text-white/90 hover:bg-black/50"
-          >
-            ↻ Putar ulang
-          </button>
-        </div>
-
-        <div role="radiogroup" aria-label="Pilih karakter" className="grid w-full grid-cols-3 gap-2">
-          {LIFTER_CHARACTERS.map((c) => (
+        {character === null ? (
+          <div className="relative flex w-full flex-col items-center gap-4 rounded-[28px] bg-[#0d1d42] px-5 py-8 text-center shadow-overlay ring-1 ring-white/10">
             <button
-              key={c.id}
               type="button"
-              role="radio"
-              aria-checked={character === c.id}
-              onClick={() => pickCharacter(c.id)}
-              disabled={videoPending}
-              className={`flex flex-col items-center gap-0.5 rounded-xl px-2 py-2 text-xs font-semibold transition ${
-                character === c.id
-                  ? "bg-accent text-white ring-2 ring-white/70"
-                  : "bg-white/10 text-white/80 hover:bg-white/20"
-              }`}
+              onClick={onClose}
+              aria-label="Tutup"
+              className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white/80 hover:bg-black/50"
             >
-              <span className="text-xl leading-none">{c.emoji}</span>
-              {c.label}
+              ✕
             </button>
-          ))}
-        </div>
+            <p className="text-3xl">🏋️</p>
+            <div>
+              <h2 className="font-display text-xl font-bold text-white">Pilih karakter kamu</h2>
+              <p className="mt-1 text-sm text-white/70">
+                Karakter ini yang akan mengangkat beban di kartumu. Bisa diganti kapan saja di halaman Akun.
+              </p>
+            </div>
+            <StoryCharacterPicker value={null} onChange={pickCharacter} tone="dark" />
+          </div>
+        ) : (
+          <>
+            <div className="relative w-full overflow-hidden rounded-[28px] shadow-overlay ring-1 ring-white/10">
+              <canvas
+                ref={previewRef}
+                width={STORY_WIDTH}
+                height={STORY_HEIGHT}
+                className="block aspect-[9/16] w-full bg-[#0d1d42]"
+              />
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Tutup"
+                className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white/80 hover:bg-black/50"
+              >
+                ✕
+              </button>
+              <button
+                type="button"
+                onClick={() => setPlayKey((k) => k + 1)}
+                className="absolute bottom-3 right-3 rounded-full bg-black/30 px-3 py-1 text-xs font-semibold text-white/90 hover:bg-black/50"
+              >
+                ↻ Putar ulang
+              </button>
+            </div>
+            <StoryCharacterPicker value={character} onChange={pickCharacter} tone="dark" disabled={videoPending} />
+          </>
+        )}
 
-        {videoSupported && (
+        {character !== null && videoSupported && (
           <Button onClick={handleShareVideo} disabled={!ready || videoPending} className="w-full py-3">
             {videoPending
               ? videoReady
@@ -270,6 +263,7 @@ export function VolumeStoryModal({ data: baseData, onClose }: VolumeStoryModalPr
                 : "🎬 Bagikan Video ke Story"}
           </Button>
         )}
+        {character !== null && (
         <Button
           variant={videoSupported ? "secondary" : "primary"}
           onClick={handleShareImage}
@@ -278,6 +272,7 @@ export function VolumeStoryModal({ data: baseData, onClose }: VolumeStoryModalPr
         >
           {imagePending ? "Menyiapkan..." : "📤 Bagikan Gambar"}
         </Button>
+        )}
         {error && <p className="text-center text-sm text-red-300">{error}</p>}
         <button type="button" onClick={onClose} className="text-sm text-white/70 hover:text-white">
           Nanti saja

@@ -6,6 +6,7 @@ import { ProgressView, type ExerciseProgress } from "@/components/shared/Progres
 import { UnseenAchievementNotifier } from "@/components/member/UnseenAchievementNotifier";
 import { syncMemberAchievements, getUnseenAchievements } from "@/lib/achievements";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { lifterFromStored } from "@/lib/volumeStory";
 import { todayLabel } from "@/lib/dateLabel";
 
 export default async function MemberDashboardPage() {
@@ -135,6 +136,7 @@ export default async function MemberDashboardPage() {
           lastSets={lastSetsMap}
           personalRecordsByExercise={personalRecordsByExercise}
           memberName={user.name}
+          storyCharacter={lifterFromStored(user.storyCharacter)}
         />
       )}
 
