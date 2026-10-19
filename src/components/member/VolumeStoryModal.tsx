@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import fixWebmDuration from "fix-webm-duration";
 import { Button } from "@/components/ui/Button";
 import { shareOrDownload } from "@/lib/shareFile";
@@ -8,8 +8,10 @@ import {
   STORY_DURATION,
   STORY_HEIGHT,
   STORY_WIDTH,
+  LIFTER_CHARACTERS,
   drawVolumeFrame,
   loadStoryAssets,
+  type LifterCharacter,
   shareCaption,
   type VolumeStoryAssets,
   type VolumeStoryData,
@@ -26,7 +28,23 @@ interface VolumeStoryModalProps {
  * from the same canvas renderer (lib/volumeStory), so what members see is
  * exactly what gets posted.
  */
-export function VolumeStoryModal({ data, onClose }: VolumeStoryModalProps) {
+const CHARACTER_KEY = "olympus-story-character";
+
+function savedCharacter(): LifterCharacter {
+  try {
+    const v = localStorage.getItem(CHARACTER_KEY);
+    if (v === "pria" || v === "wanita" || v === "hijab") return v;
+  } catch {
+    // Storage blocked (private mode etc.) — just use the default.
+  }
+  return "pria";
+}
+
+export function VolumeStoryModal({ data: baseData, onClose }: VolumeStoryModalProps) {
+  // The member picks which lifter appears; remembered for next time.
+  const [character, setCharacter] = useState<LifterCharacter>(savedCharacter);
+  const data = useMemo(() => ({ ...baseData, character }), [baseData, character]);
+
   const previewRef = useRef<HTMLCanvasElement>(null);
   const assetsRef = useRef<VolumeStoryAssets | null>(null);
   const [playKey, setPlayKey] = useState(0);
@@ -38,6 +56,16 @@ export function VolumeStoryModal({ data, onClose }: VolumeStoryModalProps) {
   const [videoReady, setVideoReady] = useState<File | null>(null);
   const [videoSupported, setVideoSupported] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function pickCharacter(c: LifterCharacter) {
+    setCharacter(c);
+    setVideoReady(null);
+    try {
+      localStorage.setItem(CHARACTER_KEY, c);
+    } catch {
+      // ignore
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -208,6 +236,27 @@ export function VolumeStoryModal({ data, onClose }: VolumeStoryModalProps) {
           >
             ↻ Putar ulang
           </button>
+        </div>
+
+        <div role="radiogroup" aria-label="Pilih karakter" className="grid w-full grid-cols-3 gap-2">
+          {LIFTER_CHARACTERS.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              role="radio"
+              aria-checked={character === c.id}
+              onClick={() => pickCharacter(c.id)}
+              disabled={videoPending}
+              className={`flex flex-col items-center gap-0.5 rounded-xl px-2 py-2 text-xs font-semibold transition ${
+                character === c.id
+                  ? "bg-accent text-white ring-2 ring-white/70"
+                  : "bg-white/10 text-white/80 hover:bg-white/20"
+              }`}
+            >
+              <span className="text-xl leading-none">{c.emoji}</span>
+              {c.label}
+            </button>
+          ))}
         </div>
 
         {videoSupported && (

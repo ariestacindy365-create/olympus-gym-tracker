@@ -4,9 +4,12 @@
 // drawVolumeFrame(ctx, assets, data, t) renders the scene at `t` seconds.
 //
 // Timeline (STORY_DURATION = 9s): header → total volume counts up → set
-// rows slide in and out → a real-world object runs in → the Olympus
-// kettlebell mascot walks under it and lifts it → "×N" badge + "Setara
+// rows slide in and out → a real-world object runs in → a cartoon
+// lifter in Olympus kit walks under it and lifts it → "×N" badge + "Setara
 // mengangkat N× <object>" → logo.
+//
+// The lifter is one of three looks (cowok / cewek / cewek berhijab) that
+// the member picks in the share popup.
 
 export const STORY_WIDTH = 1080;
 export const STORY_HEIGHT = 1920;
@@ -21,6 +24,8 @@ export interface VolumeStoryData {
   memberName: string;
   exerciseName: string;
   sets: VolumeStorySet[];
+  /** Which cartoon lifter does the lift (picked by the member). */
+  character?: LifterCharacter;
 }
 
 export interface VolumeStoryAssets {
@@ -174,96 +179,247 @@ function drawSparkle(ctx: CanvasRenderingContext2D, x: number, y: number, size: 
   ctx.restore();
 }
 
-// Mascot geometry, shared with the lifted object so it sits in the hands.
-const MASCOT_R = 85;
-const MASCOT_LEG = 150;
-const ARM_REACH = 150;
+// Lifter geometry, shared with the lifted object so it sits in the hands.
+const LEG = 120; // hip → ground
+const TORSO = 170; // shoulder → hip
+const NECK = 14;
+const HEAD_R = 50;
 const GROUND_Y = 1640;
-const OBJECT_SIZE = 210;
-const liftedHandY = GROUND_Y - MASCOT_LEG - MASCOT_R - ARM_REACH;
+const OBJECT_SIZE = 190;
+const liftedHandY = GROUND_Y - LEG - TORSO - NECK - HEAD_R * 2 - 40;
+
+export type LifterCharacter = "pria" | "wanita" | "hijab";
+
+export const LIFTER_CHARACTERS: { id: LifterCharacter; label: string; emoji: string }[] = [
+  { id: "pria", label: "Cowok", emoji: "👨" },
+  { id: "wanita", label: "Cewek", emoji: "👩" },
+  { id: "hijab", label: "Cewek berhijab", emoji: "🧕" },
+];
+
+const LIFTER = {
+  skin: { pria: "#d39b72", wanita: "#e6b590", hijab: "#e6b590" },
+  hair: "#2a1c14",
+  top: "#2563eb",
+  topEdge: "#1d4ed8",
+  hijab: "#93c5fd",
+  hijabShade: "#60a5fa",
+  bottoms: "#1f2937",
+  belt: "#111827",
+  buckle: "#facc15",
+  shoe: "#f8fafc",
+  outline: "rgba(255, 255, 255, 0.22)",
+};
 
 /**
- * The Olympus mascot: a white kettlebell ball with the logo's blue ring,
- * a handle on top, a face, and stick limbs. `lift` 0→1 raises the arms
- * overhead; `walk` drives the leg swing while it moves.
+ * Cartoon lifter in Olympus kit — one of three looks (cowok, cewek, cewek
+ * berhijab). `lift` 0→1 raises the arms overhead; `walk` drives the leg and
+ * arm swing while it walks in.
  */
-function drawMascot(ctx: CanvasRenderingContext2D, cx: number, groundY: number, lift: number, walk: number) {
-  const r = MASCOT_R;
-  const bob = Math.abs(Math.sin(walk * Math.PI * 2)) * 8;
-  const bodyY = groundY - MASCOT_LEG - bob;
-  const limb = 18;
+function drawLifter(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  groundY: number,
+  lift: number,
+  walk: number,
+  character: LifterCharacter
+) {
+  const female = character !== "pria";
+  const skin = LIFTER.skin[character];
+  const bob = Math.abs(Math.sin(walk * Math.PI * 2)) * 6;
+  const hipY = groundY - LEG - bob;
+  const shoulderY = hipY - TORSO;
+  const headY = shoulderY - NECK - HEAD_R;
+  const shoulderHalf = female ? 70 : 82;
+  const waistHalf = female ? 52 : 58;
+  const swing = Math.sin(walk * Math.PI * 2) * 20;
+  const up = easeInOut(lift);
 
   ctx.save();
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
-  // Legs
-  const swing = Math.sin(walk * Math.PI * 2) * 22;
-  ctx.strokeStyle = COLORS.white;
-  ctx.lineWidth = limb;
+  // Legs (bare below shorts for cowok, leggings for both cewek looks) + shoes
   for (const [side, phase] of [
     [-1, 1],
     [1, -1],
   ] as const) {
+    const fx = cx + side * 34 + swing * phase;
+    ctx.strokeStyle = female ? LIFTER.bottoms : skin;
+    ctx.lineWidth = 30;
     ctx.beginPath();
-    ctx.moveTo(cx + side * 38, bodyY + r * 0.8);
-    ctx.lineTo(cx + side * 44 + swing * phase, groundY - 6);
+    ctx.moveTo(cx + side * 30, hipY);
+    ctx.lineTo(fx, groundY - 16);
     ctx.stroke();
+    ctx.fillStyle = LIFTER.shoe;
+    roundRect(ctx, fx - 22 + side * 6, groundY - 22, 44, 22, 10);
+    ctx.fill();
+  }
+  // Bottoms: shorts (cowok) or the top of the leggings
+  ctx.fillStyle = LIFTER.bottoms;
+  roundRect(ctx, cx - waistHalf - 6, hipY - 24, (waistHalf + 6) * 2, female ? 46 : 62, 16);
+  ctx.fill();
+  if (!female) {
+    ctx.strokeStyle = LIFTER.outline;
+    ctx.lineWidth = 4;
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(cx + side * (waistHalf + 2), hipY - 14);
+      ctx.lineTo(cx + side * (waistHalf + 2), hipY + 32);
+      ctx.stroke();
+    }
   }
 
-  // Arms: hanging at the sides → straight up holding the load.
-  ctx.strokeStyle = COLORS.accentLight;
-  for (const side of [-1, 1] as const) {
-    const sx = cx + side * (r * 0.82);
-    const sy = bodyY - 10;
-    const hx = lerp(cx + side * (r + 50), cx + side * 58, easeInOut(lift));
-    const hy = lerp(bodyY + 85, bodyY - r - ARM_REACH, easeInOut(lift));
+  // Ponytail sits behind the head (cewek without hijab)
+  if (character === "wanita") {
+    ctx.fillStyle = LIFTER.hair;
     ctx.beginPath();
-    ctx.moveTo(sx, sy);
-    ctx.quadraticCurveTo(lerp(sx + side * 40, sx + side * 20, lift), lerp(sy + 40, sy - 110, lift), hx, hy);
-    ctx.stroke();
-    ctx.fillStyle = COLORS.accentLight;
-    ctx.beginPath();
-    ctx.arc(hx, hy, 15, 0, Math.PI * 2);
+    ctx.ellipse(cx + 48, headY + 10 + Math.sin(walk * Math.PI * 4) * 4, 20, 46, -0.35, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // Kettlebell handle
-  ctx.strokeStyle = COLORS.white;
-  ctx.lineWidth = 26;
-  ctx.beginPath();
-  ctx.arc(cx, bodyY - r * 0.72, r * 0.52, Math.PI * 1.08, Math.PI * 1.92);
-  ctx.stroke();
+  // Hijab drape over the shoulders goes under the top's neckline
+  if (character === "hijab") {
+    ctx.fillStyle = LIFTER.hijabShade;
+    ctx.beginPath();
+    ctx.ellipse(cx, shoulderY + 18, shoulderHalf - 6, 46, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
-  // Body + blue ring (like the logo)
+  // Torso: tank top (long-sleeve top for hijab — sleeves are the arms below)
+  ctx.fillStyle = LIFTER.top;
+  ctx.beginPath();
+  ctx.moveTo(cx - shoulderHalf, shoulderY + 6);
+  ctx.quadraticCurveTo(cx - shoulderHalf - 4, shoulderY - 6, cx - shoulderHalf + 18, shoulderY - 8);
+  ctx.lineTo(cx + shoulderHalf - 18, shoulderY - 8);
+  ctx.quadraticCurveTo(cx + shoulderHalf + 4, shoulderY - 6, cx + shoulderHalf, shoulderY + 6);
+  ctx.lineTo(cx + waistHalf, hipY - 20);
+  ctx.lineTo(cx - waistHalf, hipY - 20);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = LIFTER.topEdge;
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  // Olympus badge on the chest
   ctx.fillStyle = COLORS.white;
   ctx.beginPath();
-  ctx.arc(cx, bodyY, r, 0, Math.PI * 2);
+  ctx.arc(cx, shoulderY + 58, 20, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = COLORS.accent;
-  ctx.lineWidth = 14;
+  ctx.lineWidth = 5;
   ctx.beginPath();
-  ctx.arc(cx, bodyY, r + 4, Math.PI * 0.15, Math.PI * 1.25);
+  ctx.arc(cx, shoulderY + 58, 22, Math.PI * 0.2, Math.PI * 1.3);
+  ctx.stroke();
+  // Lifting belt
+  ctx.fillStyle = LIFTER.belt;
+  roundRect(ctx, cx - waistHalf - 4, hipY - 46, (waistHalf + 4) * 2, 30, 8);
+  ctx.fill();
+  ctx.strokeStyle = LIFTER.buckle;
+  ctx.lineWidth = 5;
+  roundRect(ctx, cx - 14, hipY - 42, 28, 22, 4);
   ctx.stroke();
 
-  // Face
-  ctx.fillStyle = COLORS.navy;
-  const eyeY = bodyY - 12 - lift * 6;
-  for (const side of [-1, 1]) {
+  // Arms: sides → straight up holding the load. Sleeved for hijab.
+  for (const side of [-1, 1] as const) {
+    const sx = cx + side * (shoulderHalf - 10);
+    const sy = shoulderY + 10;
+    const hx = lerp(cx + side * (shoulderHalf + 34) - swing * side * 0.6, cx + side * 60, up);
+    const hy = lerp(hipY - 30, liftedHandY + bob, up);
+    const ex = lerp(cx + side * (shoulderHalf + 26), cx + side * (shoulderHalf + 20), up);
+    const ey = lerp(shoulderY + 80, shoulderY - 70, up);
+    ctx.strokeStyle = character === "hijab" ? LIFTER.top : skin;
+    ctx.lineWidth = female ? 24 : 30;
     ctx.beginPath();
-    ctx.ellipse(cx + side * 30, eyeY, 10, lift > 0.5 ? 7 : 12, 0, 0, Math.PI * 2);
+    ctx.moveTo(sx, sy);
+    ctx.quadraticCurveTo(ex, ey, hx, hy);
+    ctx.stroke();
+    if (!female) {
+      // Bicep bulge
+      ctx.fillStyle = skin;
+      ctx.beginPath();
+      ctx.arc(lerp(sx, ex, 0.55), lerp(sy, ey, 0.55), 19, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = skin;
+    ctx.beginPath();
+    ctx.arc(hx, hy, 17, 0, Math.PI * 2);
     ctx.fill();
   }
+
+  // Neck
+  if (character !== "hijab") {
+    ctx.fillStyle = skin;
+    roundRect(ctx, cx - 16, shoulderY - NECK - 12, 32, NECK + 18, 8);
+    ctx.fill();
+  }
+
+  // Head
+  if (character === "hijab") {
+    // Sport hijab framing the face down to the chin
+    ctx.fillStyle = LIFTER.hijab;
+    ctx.beginPath();
+    ctx.ellipse(cx, headY + 8, HEAD_R + 14, HEAD_R + 22, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = skin;
+    ctx.beginPath();
+    ctx.ellipse(cx, headY + 10, HEAD_R - 10, HEAD_R - 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.fillStyle = skin;
+    ctx.beginPath();
+    ctx.arc(cx, headY, HEAD_R, 0, Math.PI * 2);
+    ctx.fill();
+    // Hair cap
+    ctx.fillStyle = LIFTER.hair;
+    ctx.beginPath();
+    ctx.arc(cx, headY - 2, HEAD_R + 2, Math.PI * 1.02, Math.PI * 1.98);
+    ctx.quadraticCurveTo(cx + HEAD_R * 0.3, headY - HEAD_R * 0.55, cx - HEAD_R - 1, headY - 6);
+    ctx.fill();
+    if (female) {
+      // Side hair framing the face
+      ctx.beginPath();
+      ctx.ellipse(cx - HEAD_R + 6, headY + 6, 10, 26, 0.15, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Headband
+    ctx.strokeStyle = COLORS.accentLight;
+    ctx.lineWidth = 9;
+    ctx.beginPath();
+    ctx.arc(cx, headY + 4, HEAD_R - 1, Math.PI * 1.08, Math.PI * 1.92);
+    ctx.stroke();
+  }
+
+  // Face: open eyes while walking, happy squint once the load is up
+  const faceY = headY + (character === "hijab" ? 12 : 6);
+  ctx.fillStyle = COLORS.navy;
   ctx.strokeStyle = COLORS.navy;
-  ctx.lineWidth = 8;
+  ctx.lineWidth = 6;
+  for (const side of [-1, 1]) {
+    const exx = cx + side * 18;
+    if (lift > 0.6) {
+      ctx.beginPath();
+      ctx.arc(exx, faceY + 2, 9, Math.PI * 1.15, Math.PI * 1.85);
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(exx, faceY, 6.5, 0, Math.PI * 2);
+      ctx.fill();
+      if (female) {
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(exx + side * 5, faceY - 5);
+        ctx.lineTo(exx + side * 11, faceY - 10);
+        ctx.stroke();
+        ctx.lineWidth = 6;
+      }
+    }
+  }
   ctx.beginPath();
-  ctx.arc(cx, bodyY + 18, 26, Math.PI * 0.15, Math.PI * 0.85);
+  ctx.arc(cx, faceY + 14, 13, Math.PI * 0.15, Math.PI * 0.85);
   ctx.stroke();
-  // Cheeks
-  ctx.fillStyle = "rgba(96, 165, 250, 0.35)";
+  ctx.fillStyle = "rgba(244, 114, 182, 0.35)";
   for (const side of [-1, 1]) {
     ctx.beginPath();
-    ctx.ellipse(cx + side * 58, bodyY + 18, 14, 9, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx + side * 32, faceY + 16, 9, 6, 0, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
@@ -434,7 +590,7 @@ export function drawVolumeFrame(
   if (t >= 5.0) {
     const walkIn = progress(t, 5.0, 0.85);
     const mx = lerp(-200, cx, easeOut(walkIn));
-    drawMascot(ctx, mx, groundY, clamp01(lift), walkIn < 1 ? walkIn * 3 : 0);
+    drawLifter(ctx, mx, groundY, clamp01(lift), walkIn < 1 ? walkIn * 3 : 0, data.character ?? "pria");
   }
 
   // Badge, sparkles, caption, logo
