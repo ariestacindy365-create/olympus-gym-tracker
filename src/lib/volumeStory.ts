@@ -26,6 +26,8 @@ export interface VolumeStoryData {
   sets: VolumeStorySet[];
   /** ISO date of a past session (shared from history); omitted for today. */
   date?: string;
+  /** Set when this exercise had a PR in the session, e.g. "120 KG × 12 · +20 KG". */
+  prLabel?: string;
   /** Which cartoon lifter does the lift (picked by the member). */
   character?: LifterCharacter;
   skinTone?: SkinTone;
@@ -83,7 +85,8 @@ export function storySummary(sets: VolumeStorySet[]) {
 export function shareCaption(data: VolumeStoryData) {
   const volume = totalVolume(data.sets);
   const eq = pickEquivalent(volume);
-  return `Total volume ${data.exerciseName} ${formatKg(volume)} kg di OLYMPUS Lifting Club, setara ${formatKg(eq.factor)}× ${eq.name}! ${eq.emoji}💪`;
+  const pr = data.prLabel ? " Plus rekor pribadi baru 🏆" : "";
+  return `Total volume ${data.exerciseName} ${formatKg(volume)} kg di OLYMPUS Lifting Club, setara ${formatKg(eq.factor)}× ${eq.name}! ${eq.emoji}💪${pr}`;
 }
 
 // --- easing helpers --------------------------------------------------------
@@ -489,7 +492,7 @@ export function drawVolumeFrame(
   ctx.globalAlpha = a.alpha;
   ctx.fillStyle = COLORS.accentLight;
   ctx.font = display(600, 50);
-  ctx.fillText("🎉 GERAKAN SELESAI", cx, 290 + a.dy);
+  ctx.fillText(data.prLabel ? "🏆 REKOR PRIBADI BARU" : "🎉 GERAKAN SELESAI", cx, 290 + a.dy);
 
   a = fadeUp(0.3);
   ctx.globalAlpha = a.alpha;
@@ -543,14 +546,35 @@ export function drawVolumeFrame(
   ctx.font = body(500, 34);
   ctx.fillText(storySummary(data.sets), cx, 975 + a.dy);
 
-  // Set breakdown: slides in one by one, then clears for the mascot.
-  const rows = data.sets.slice(0, 5);
+  // Set breakdown: slides in one by one, then clears for the mascot. A PR
+  // pill sits on top of it (and clears with it) so it never meets the lift.
   const out = progress(t, 3.9, 0.4);
+  const rowsTop = data.prLabel ? 1115 : 1035;
+  if (data.prLabel) {
+    const p = easeOutBack(progress(t, 2.0, 0.4));
+    if (p > 0 && out < 1) {
+      ctx.save();
+      ctx.globalAlpha = clamp01(p) * (1 - out);
+      ctx.translate(cx, 1050);
+      ctx.scale(p, p);
+      ctx.font = display(700, 38);
+      const pw = ctx.measureText(data.prLabel).width + 70;
+      ctx.fillStyle = COLORS.accent;
+      roundRect(ctx, -pw / 2, -34, pw, 68, 34);
+      ctx.fill();
+      ctx.fillStyle = COLORS.white;
+      ctx.textBaseline = "middle";
+      ctx.fillText(data.prLabel, 0, 2);
+      ctx.restore();
+      ctx.textBaseline = "alphabetic";
+    }
+  }
+  const rows = data.sets.slice(0, data.prLabel ? 4 : 5);
   rows.forEach((s, i) => {
     const p = easeOut(progress(t, 2.4 + i * 0.25, 0.35));
     const alpha = p * (1 - out);
     if (alpha <= 0) return;
-    const y = 1035 + i * 78;
+    const y = rowsTop + i * 78;
     ctx.globalAlpha = alpha;
     ctx.fillStyle = "rgba(148, 197, 255, 0.10)";
     roundRect(ctx, 170 + (1 - p) * 60, y, 740, 62, 31);
@@ -569,7 +593,7 @@ export function drawVolumeFrame(
     ctx.globalAlpha = easeOut(progress(t, 2.4 + rows.length * 0.25, 0.35)) * (1 - out);
     ctx.fillStyle = COLORS.muted;
     ctx.font = body(500, 30);
-    ctx.fillText(`+${data.sets.length - rows.length} set lagi`, cx, 1035 + rows.length * 78 + 40);
+    ctx.fillText(`+${data.sets.length - rows.length} set lagi`, cx, rowsTop + rows.length * 78 + 40);
   }
   ctx.globalAlpha = 1;
 

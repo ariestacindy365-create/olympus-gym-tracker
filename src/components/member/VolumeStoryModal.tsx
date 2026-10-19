@@ -55,6 +55,8 @@ export function VolumeStoryModal({
 
   const previewRef = useRef<HTMLCanvasElement>(null);
   const assetsRef = useRef<VolumeStoryAssets | null>(null);
+  // While a video records, the recorder owns the preview canvas.
+  const recordingRef = useRef(false);
   const [playKey, setPlayKey] = useState(0);
   const [ready, setReady] = useState(false);
   const [imagePending, setImagePending] = useState(false);
@@ -63,6 +65,7 @@ export function VolumeStoryModal({
   // built on the first tap and shared on a second one.
   const [videoReady, setVideoReady] = useState<File | null>(null);
   const [videoSupported, setVideoSupported] = useState(false);
+  const [videoProgress, setVideoProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   function pickCharacter(c: LifterCharacter) {
@@ -106,6 +109,7 @@ export function VolumeStoryModal({
     let raf = 0;
     const start = performance.now();
     const frame = (now: number) => {
+      if (recordingRef.current) return;
       const t = Math.min((now - start) / 1000, STORY_DURATION);
       drawVolumeFrame(ctx, assets, data, t);
       if (t < STORY_DURATION) raf = requestAnimationFrame(frame);
@@ -162,17 +166,30 @@ export function VolumeStoryModal({
     });
 
     const start = performance.now();
+    const total = STORY_DURATION + 0.6;
+    const previewCtx = previewRef.current?.getContext("2d") ?? null;
+    let lastShown = -1;
+    recordingRef.current = true;
     recorder.start();
     await new Promise<void>((resolve) => {
       const frame = (now: number) => {
         const t = (now - start) / 1000;
         // Hold the last frame a moment so the logo isn't cut off.
         drawVolumeFrame(ctx, assets, data, Math.min(t, STORY_DURATION));
-        if (t < STORY_DURATION + 0.6) requestAnimationFrame(frame);
+        // Mirror the recording into the preview so members watch it build.
+        previewCtx?.drawImage(canvas, 0, 0);
+        const pct = Math.min(99, Math.floor((t / total) * 100));
+        if (pct !== lastShown) {
+          lastShown = pct;
+          setVideoProgress(pct);
+        }
+        if (t < total) requestAnimationFrame(frame);
         else resolve();
       };
       requestAnimationFrame(frame);
     });
+    recordingRef.current = false;
+    setVideoProgress(null);
     const elapsedMs = performance.now() - start;
     recorder.stop();
     const raw = await done;
@@ -214,6 +231,8 @@ export function VolumeStoryModal({
       reportError(videoReady ? "Gagal membagikan video. Coba lagi." : "Gagal menyiapkan video. Coba lagi.", e);
     } finally {
       setVideoPending(false);
+      setVideoProgress(null);
+      recordingRef.current = false;
     }
   }
 
@@ -264,8 +283,17 @@ export function VolumeStoryModal({
               >
                 ✕
               </button>
+              {videoProgress !== null && (
+                <div className="absolute inset-x-4 bottom-4 flex flex-col gap-1.5 rounded-xl bg-black/50 px-3 py-2 text-xs font-semibold text-white backdrop-blur">
+                  <span>Membuat video... {videoProgress}%</span>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-white/20">
+                    <div className="h-full rounded-full bg-accent transition-[width]" style={{ width: `${videoProgress}%` }} />
+                  </div>
+                </div>
+              )}
               <button
                 type="button"
+                hidden={videoProgress !== null}
                 onClick={() => setPlayKey((k) => k + 1)}
                 className="absolute bottom-3 right-3 rounded-full bg-black/30 px-3 py-1 text-xs font-semibold text-white/90 hover:bg-black/50"
               >
@@ -282,7 +310,7 @@ export function VolumeStoryModal({
             {videoPending
               ? videoReady
                 ? "Membuka..."
-                : "Menyiapkan video (±10 detik)..."
+                : `Membuat video... ${videoProgress ?? 0}%`
               : videoReady
                 ? "📤 Video siap, bagikan sekarang"
                 : "🎬 Bagikan Video ke Story"}

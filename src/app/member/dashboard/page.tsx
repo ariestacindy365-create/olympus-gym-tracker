@@ -73,6 +73,14 @@ export default async function MemberDashboardPage() {
     });
   }
 
+  // Heaviest weight per exercise before today: the PR "+N kg" on the
+  // Selesai screen is measured against it.
+  const priorBestWeights: Record<string, number> = {};
+  for (const s of allSets) {
+    if (s.workoutDate.getTime() >= todayTs) continue;
+    priorBestWeights[s.exerciseId] = Math.max(priorBestWeights[s.exerciseId] ?? 0, s.weight);
+  }
+
   const personalRecordsByExercise: Record<string, { maxWeight: number | null; maxEstimated1RM: number | null }> = {};
   for (const pr of personalRecords) {
     const entry = (personalRecordsByExercise[pr.exerciseId] ??= { maxWeight: null, maxEstimated1RM: null });
@@ -160,6 +168,7 @@ export default async function MemberDashboardPage() {
           memberName={user.name}
           storyCharacter={lifterFromStored(user.storyCharacter)}
           storySkinTone={skinToneFromStored(user.storySkinTone)}
+          priorBestWeights={priorBestWeights}
         />
       )}
 

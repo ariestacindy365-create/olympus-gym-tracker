@@ -40,6 +40,7 @@ interface DashboardClientProps {
   memberName: string;
   storyCharacter: LifterCharacter | null;
   storySkinTone: SkinTone | null;
+  priorBestWeights: Record<string, number>;
 }
 
 export function DashboardClient({
@@ -51,6 +52,7 @@ export function DashboardClient({
   memberName,
   storyCharacter,
   storySkinTone,
+  priorBestWeights,
 }: DashboardClientProps) {
   const [exerciseId, setExerciseId] = useState(defaultExerciseId ?? exercises[0]?.id ?? "");
   const pr = personalRecordsByExercise[exerciseId] ?? { maxWeight: null, maxEstimated1RM: null };
@@ -65,6 +67,7 @@ export function DashboardClient({
         memberName={memberName}
         storyCharacter={storyCharacter}
         storySkinTone={storySkinTone}
+        priorBestWeights={priorBestWeights}
         onExerciseChange={setExerciseId}
       />
       <EstimasiBebanTable maxWeight={pr.maxWeight} maxEstimated1RM={pr.maxEstimated1RM} />
