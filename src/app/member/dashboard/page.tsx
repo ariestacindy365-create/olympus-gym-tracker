@@ -8,6 +8,8 @@ import { syncMemberAchievements, getUnseenAchievements } from "@/lib/achievement
 import { PageHeader } from "@/components/ui/PageHeader";
 import { lifterFromStored, skinToneFromStored } from "@/lib/volumeStory";
 import { todayLabel } from "@/lib/dateLabel";
+import { CoachNotesCard } from "@/components/member/CoachNotesCard";
+import { getCoachNotes } from "@/lib/coachNotes";
 import { computeTrainingSummary } from "@/lib/trainingSummary";
 import { TrainingHeatmap, TrainingStats } from "@/components/member/TrainingSummary";
 
@@ -21,7 +23,7 @@ export default async function MemberDashboardPage() {
   await syncMemberAchievements(user.id, { markSeen: false });
   const unseenAchievements = await getUnseenAchievements(user.id);
 
-  const [dailyWorkout, exercises, todaysSets, pastSets, personalRecords, allSets] = await Promise.all([
+  const [dailyWorkout, exercises, todaysSets, pastSets, personalRecords, allSets, coachNotes] = await Promise.all([
     getTodayDailyWorkout(),
     prisma.exercise.findMany({ orderBy: { name: "asc" } }),
     prisma.setEntry.findMany({
@@ -38,6 +40,7 @@ export default async function MemberDashboardPage() {
       include: { exercise: true },
       orderBy: [{ workoutDate: "asc" }, { setNumber: "asc" }],
     }),
+    getCoachNotes(user.id, 10),
   ]);
 
   const todaysSetsMap: Record<
@@ -123,6 +126,8 @@ export default async function MemberDashboardPage() {
 
       <TrainingStats summary={summary} />
 
+      <CoachNotesCard notes={coachNotes} />
+
       {dailyWorkout && (
         <div className="relative overflow-hidden rounded-xl bg-nav-bg p-5 text-nav-foreground shadow-raised [background-image:radial-gradient(28rem_10rem_at_100%_0%,rgb(37_99_235/0.45),transparent)]">
           <p className="text-xs font-semibold uppercase tracking-wider text-nav-muted">🎯 Gerakan hari ini dari pelatih</p>
@@ -154,6 +159,8 @@ export default async function MemberDashboardPage() {
         referenceDate={new Date().toISOString()}
         canDelete
         shareMemberName={user.name}
+        storyCharacter={lifterFromStored(user.storyCharacter)}
+        storySkinTone={skinToneFromStored(user.storySkinTone)}
       />
 
       <UnseenAchievementNotifier memberName={user.name} badges={unseenAchievements} />

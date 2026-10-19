@@ -49,6 +49,8 @@ model User {
   // Null until the member picks one; the story card asks on first use.
   storyCharacter StoryCharacter?
   storySkinTone  StorySkinTone?
+  // Members can hide themselves from the monthly leaderboard.
+  leaderboardOptOut Boolean @default(false)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -60,6 +62,8 @@ model User {
   programSnapshots     ProgramSnapshot[]   @relation("CoachProgramSnapshots")
   programWeekOverrides ProgramWeekOverride[] @relation("CoachProgramWeekOverrides")
   achievementUnlocks   AchievementUnlock[]
+  coachNotesReceived   CoachNote[]         @relation("MemberCoachNotes")
+  coachNotesWritten    CoachNote[]         @relation("CoachNotesWritten")
 
   // CRM (lead capture / follow-up) — used by ADMIN and OWNER roles only.
   capturedLeads      Lead[]     @relation("CapturedLeads")
@@ -300,6 +304,18 @@ enum LeadStatus {
   LOST
 }
 
+// Where a lead first heard of the gym — picked at capture, drives the
+// owner's "konversi per sumber" breakdown. Null for leads captured before
+// this existed (shown as "Belum diisi").
+enum LeadSource {
+  INSTAGRAM
+  TIKTOK
+  FACEBOOK
+  WALK_IN
+  REFERRAL
+  LAINNYA
+}
+
 // A prospective client who DM'd after seeing an ad.
 model Lead {
   id                 String     @id @default(cuid())
@@ -312,6 +328,7 @@ model Lead {
   waNumberNormalized String     @default("")
   name               String
   status             LeadStatus @default(DM)
+  source             LeadSource?
   replyCount         Int        @default(0)
   // Set when status is marked TRIAL (booking itself happens in Fitquarter).
   // Base date for the auto-generated H+1/H+3 follow-ups below.
@@ -583,4 +600,21 @@ model Sale {
 
   @@index([productId])
   @@index([createdAt])
+}
+
+// Feedback a coach leaves for a member (form cues, progress notes). context
+// is a free-text snapshot of what it's about, e.g. "Back Squat · 12 Okt",
+// so the note still reads right if the set is later edited or deleted.
+model CoachNote {
+  id        String    @id @default(cuid())
+  memberId  String
+  member    User      @relation("MemberCoachNotes", fields: [memberId], references: [id])
+  coachId   String
+  coach     User      @relation("CoachNotesWritten", fields: [coachId], references: [id])
+  context   String?
+  body      String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([memberId, createdAt])
 }

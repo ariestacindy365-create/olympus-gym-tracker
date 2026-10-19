@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/Card";
 import { ChangeEmailForm } from "@/components/member/ChangeEmailForm";
 import { ChangePinForm } from "@/components/member/ChangePinForm";
 import { StoryCharacterSetting } from "@/components/member/StoryCharacterPicker";
+import { LeaderboardOptOutToggle } from "@/components/member/LeaderboardOptOutToggle";
 import { lifterFromStored, skinToneFromStored } from "@/lib/volumeStory";
 
 export default async function MemberAccountPage() {
@@ -31,6 +32,11 @@ export default async function MemberAccountPage() {
           initialCharacter={lifterFromStored(user.storyCharacter)}
           initialSkinTone={skinToneFromStored(user.storySkinTone)}
         />
+      </Card>
+
+      <Card>
+        <h2 className="mb-3 font-display text-lg font-semibold">Peringkat Bulanan</h2>
+        <LeaderboardOptOutToggle initialOptOut={user.leaderboardOptOut} />
       </Card>
 
       <Card>

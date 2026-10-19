@@ -15,6 +15,11 @@ const ITEMS = [
     icon: "M12 4a2 2 0 110 4 2 2 0 010-4zM7 10h10l-1.5 4H14v6h-4v-6H8.5L7 10z",
   },
   {
+    href: "/member/leaderboard",
+    label: "Peringkat",
+    icon: "M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0V4zM7 6H4v1a3 3 0 003 3m10-4h3v1a3 3 0 01-3 3",
+  },
+  {
     href: "/member/achievements",
     label: "Emblem",
     icon: "M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9L12 3z",

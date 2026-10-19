@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       waNumber: parsed.data.waNumber,
       waNumberNormalized,
       name: parsed.data.name,
+      source: parsed.data.source ?? null,
       capturedById: admin.id,
     },
   });

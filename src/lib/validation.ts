@@ -131,6 +131,8 @@ export const createLeadSchema = z.object({
     .max(20)
     .regex(/^[\d+\s-]+$/, { error: "Nomor WA hanya boleh angka." }),
   name: z.string().trim().min(1, { error: "Isi nama calon klien." }).max(80),
+  // Omitted = leave as is; null = clear.
+  source: z.enum(["INSTAGRAM", "TIKTOK", "FACEBOOK", "WALK_IN", "REFERRAL", "LAINNYA"]).nullable().optional(),
 });
 
 export const editLeadSchema = createLeadSchema;

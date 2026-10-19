@@ -10,6 +10,11 @@ import { BodyMetricsView } from "@/components/shared/BodyMetricsView";
 import { CoachSetLogger } from "@/components/coach/CoachSetLogger";
 import { Role } from "@/generated/prisma/client";
 import { toBodyMetricEntry } from "@/lib/bodyMetricFields";
+import { CoachNotesPanel } from "@/components/coach/CoachNotesPanel";
+import { getCoachNotes } from "@/lib/coachNotes";
+
+const NOTE_CONTEXT_LIMIT = 12;
+const shortDate = (d: Date) => d.toLocaleDateString("id-ID", { day: "numeric", month: "short", timeZone: "UTC" });
 
 export default async function CoachMemberDetailPage({
   params,
@@ -24,7 +29,7 @@ export default async function CoachMemberDetailPage({
     notFound();
   }
 
-  const [setEntries, records, loggedToday, exercises, bodyMetrics] = await Promise.all([
+  const [setEntries, records, loggedToday, exercises, bodyMetrics, notes] = await Promise.all([
     prisma.setEntry.findMany({
       where: { memberId },
       include: { exercise: true },
@@ -38,7 +43,18 @@ export default async function CoachMemberDetailPage({
     hasLoggedToday(memberId),
     prisma.exercise.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.bodyMetric.findMany({ where: { memberId }, orderBy: { recordedDate: "asc" } }),
+    getCoachNotes(memberId),
   ]);
+
+  // What a note can be "about": the member's recent exercise sessions and
+  // weigh-ins, newest first.
+  const noteContexts: string[] = [];
+  for (const s of [...setEntries].reverse()) {
+    const label = `${s.exercise.name} · ${shortDate(s.workoutDate)}`;
+    if (!noteContexts.includes(label)) noteContexts.push(label);
+    if (noteContexts.length >= NOTE_CONTEXT_LIMIT) break;
+  }
+  for (const m of bodyMetrics.slice(-3).reverse()) noteContexts.push(`Body metric · ${shortDate(m.recordedDate)}`);
 
   const mappedBodyMetrics = bodyMetrics.map(toBodyMetricEntry);
 
@@ -101,6 +117,8 @@ export default async function CoachMemberDetailPage({
           </div>
         )}
       </Card>
+
+      <CoachNotesPanel memberId={memberId} memberName={member.name} contexts={noteContexts} initialNotes={notes} />
 
       <CoachSetLogger memberId={memberId} exercises={exercises} />
 

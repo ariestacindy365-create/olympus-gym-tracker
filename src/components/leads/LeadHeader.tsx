@@ -6,17 +6,21 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useToast } from "@/components/ui/ToastProvider";
+import { Select } from "@/components/ui/Select";
+import { LEAD_SOURCES, SOURCE_LABEL, type LeadSourceValue } from "@/lib/leadStatusLabels";
 
 export function LeadHeader({
   leadId,
   name,
   waNumber,
+  source = null,
   canEdit = true,
   canDelete = true,
 }: {
   leadId: string;
   name: string;
   waNumber: string;
+  source?: LeadSourceValue | null;
   canEdit?: boolean;
   canDelete?: boolean;
 }) {
@@ -26,6 +30,7 @@ export function LeadHeader({
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(name);
   const [editWaNumber, setEditWaNumber] = useState(waNumber);
+  const [editSource, setEditSource] = useState<LeadSourceValue | "">(source ?? "");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +42,7 @@ export function LeadHeader({
       const res = await fetch(`/api/leads/${leadId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: editName, waNumber: editWaNumber }),
+        body: JSON.stringify({ name: editName, waNumber: editWaNumber, source: editSource || null }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -86,6 +91,14 @@ export function LeadHeader({
       <form onSubmit={handleSave} className="flex flex-col gap-2">
         <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Nama calon klien" required />
         <Input value={editWaNumber} onChange={(e) => setEditWaNumber(e.target.value)} placeholder="Nomor WA" required />
+        <Select value={editSource} onChange={(e) => setEditSource(e.target.value as LeadSourceValue | "")} aria-label="Sumber lead">
+          <option value="">Sumber belum diisi</option>
+          {LEAD_SOURCES.map((s) => (
+            <option key={s} value={s}>
+              {SOURCE_LABEL[s]}
+            </option>
+          ))}
+        </Select>
         {error && <p className="text-sm text-danger">{error}</p>}
         <div className="flex gap-2">
           <Button type="submit" disabled={pending} className="text-sm">
@@ -103,7 +116,10 @@ export function LeadHeader({
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
         <h1 className="font-display text-2xl font-bold">{name}</h1>
-        <p className="text-sm text-muted">{waNumber}</p>
+        <p className="text-sm text-muted">
+          {waNumber}
+          {source && ` · dari ${SOURCE_LABEL[source]}`}
+        </p>
       </div>
       {(canEdit || canDelete) && (
         <div className="flex gap-2">

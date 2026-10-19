@@ -89,6 +89,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
           leadId={lead.id}
           name={lead.name}
           waNumber={lead.waNumber}
+          source={lead.source}
           canEdit={isAdmin}
           canDelete={isOwner}
         />

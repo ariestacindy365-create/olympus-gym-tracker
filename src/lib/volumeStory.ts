@@ -24,6 +24,8 @@ export interface VolumeStoryData {
   memberName: string;
   exerciseName: string;
   sets: VolumeStorySet[];
+  /** ISO date of a past session (shared from history); omitted for today. */
+  date?: string;
   /** Which cartoon lifter does the lift (picked by the member). */
   character?: LifterCharacter;
   skinTone?: SkinTone;
@@ -48,7 +50,7 @@ const EQUIVALENTS = [
   { emoji: "🐘", name: "gajah", kg: 5000 },
 ] as const;
 
-const COLORS = {
+export const COLORS = {
   bgTop: "#0d1d42",
   bgBottom: "#050b1c",
   accent: "#3b82f6",
@@ -145,7 +147,7 @@ export async function loadStoryAssets(): Promise<VolumeStoryAssets> {
 
 const EMOJI_FONT = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
 
-function fitText(ctx: CanvasRenderingContext2D, text: string, font: (size: number) => string, size: number, maxWidth: number) {
+export function fitText(ctx: CanvasRenderingContext2D, text: string, font: (size: number) => string, size: number, maxWidth: number) {
   let s = size;
   ctx.font = font(s);
   while (s > 20 && ctx.measureText(text).width > maxWidth) {
@@ -155,7 +157,7 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, font: (size: numbe
   return s;
 }
 
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+export function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -442,6 +444,23 @@ function drawLifter(
   ctx.restore();
 }
 
+/** Navy gradient + hex pattern + soft blue glow shared by every story card. */
+export function drawStoryBackground(ctx: CanvasRenderingContext2D, assets: VolumeStoryAssets) {
+  const W = STORY_WIDTH;
+  const H = STORY_HEIGHT;
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, COLORS.bgTop);
+  bg.addColorStop(1, COLORS.bgBottom);
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+  ctx.drawImage(assets.hexPattern, 0, 0);
+  const glow = ctx.createRadialGradient(W / 2, H * 0.45, 40, W / 2, H * 0.45, H * 0.55);
+  glow.addColorStop(0, "rgba(37, 99, 235, 0.32)");
+  glow.addColorStop(1, "rgba(37, 99, 235, 0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+}
+
 export function drawVolumeFrame(
   ctx: CanvasRenderingContext2D,
   assets: VolumeStoryAssets,
@@ -449,25 +468,13 @@ export function drawVolumeFrame(
   t: number
 ) {
   const W = STORY_WIDTH;
-  const H = STORY_HEIGHT;
   const cx = W / 2;
   const volume = totalVolume(data.sets);
   const eq = pickEquivalent(volume);
   const display = (weight: number, size: number) => `${weight} ${size}px ${assets.displayFont}`;
   const body = (weight: number, size: number) => `${weight} ${size}px ${assets.bodyFont}`;
 
-  // Background: navy gradient, hex pattern, soft blue glow.
-  const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, COLORS.bgTop);
-  bg.addColorStop(1, COLORS.bgBottom);
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
-  ctx.drawImage(assets.hexPattern, 0, 0);
-  const glow = ctx.createRadialGradient(cx, H * 0.45, 40, cx, H * 0.45, H * 0.55);
-  glow.addColorStop(0, "rgba(37, 99, 235, 0.32)");
-  glow.addColorStop(1, "rgba(37, 99, 235, 0)");
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, W, H);
+  drawStoryBackground(ctx, assets);
 
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
@@ -494,7 +501,9 @@ export function drawVolumeFrame(
   a = fadeUp(0.55);
   ctx.globalAlpha = a.alpha;
   ctx.fillStyle = COLORS.muted;
-  const exText = data.exerciseName.toUpperCase();
+  const exText = data.date
+    ? `${data.exerciseName} · ${new Date(data.date).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}`.toUpperCase()
+    : data.exerciseName.toUpperCase();
   fitText(ctx, exText, (s) => display(500, s), 54, W - 160);
   ctx.fillText(exText, cx, 500 + a.dy);
 
