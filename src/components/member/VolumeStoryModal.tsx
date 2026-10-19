@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import fixWebmDuration from "fix-webm-duration";
 import { Button } from "@/components/ui/Button";
 import { shareOrDownload } from "@/lib/shareFile";
+import { pickVideoMimeType } from "@/lib/videoFormat";
 import {
   STORY_DURATION,
   STORY_HEIGHT,
@@ -132,9 +133,7 @@ export function VolumeStoryModal({ data: baseData, onClose }: VolumeStoryModalPr
     if (!assets) throw new Error("Kartu belum siap.");
     // MP4 first: Android's share sheet rejects WebM on real devices (see
     // PRCelebrationModal); WebM only as a fallback, with duration patched.
-    const mimeType = ["video/mp4", "video/webm;codecs=vp9", "video/webm"].find((type) =>
-      MediaRecorder.isTypeSupported(type)
-    );
+    const mimeType = pickVideoMimeType();
     if (!mimeType) throw new Error("Video tidak didukung di perangkat ini.");
 
     const { canvas, ctx } = makeCanvas();
@@ -146,7 +145,7 @@ export function VolumeStoryModal({ data: baseData, onClose }: VolumeStoryModalPr
       if (e.data.size > 0) chunks.push(e.data);
     };
     const done = new Promise<Blob>((resolve) => {
-      recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
+      recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType.split(";")[0] }));
     });
 
     const start = performance.now();
@@ -166,7 +165,7 @@ export function VolumeStoryModal({ data: baseData, onClose }: VolumeStoryModalPr
     const raw = await done;
     const blob = mimeType.startsWith("video/webm") ? await fixWebmDuration(raw, elapsedMs, { logger: false }) : raw;
     const ext = mimeType.startsWith("video/mp4") ? "mp4" : "webm";
-    return new File([blob], `olympus-volume-${Date.now()}.${ext}`, { type: mimeType });
+    return new File([blob], `olympus-volume-${Date.now()}.${ext}`, { type: mimeType.split(";")[0] });
   }
 
   function reportError(prefix: string, e: unknown) {
@@ -207,7 +206,8 @@ export function VolumeStoryModal({ data: baseData, onClose }: VolumeStoryModalPr
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 px-4 py-6 backdrop-blur-md">
-      <div className="absolute inset-0" onClick={onClose} />
+      {/* No tap-outside-to-close: members kept dismissing the card by accident
+          before sharing. Only ✕ / "Nanti saja" close it. */}
       <div
         role="dialog"
         aria-modal="true"

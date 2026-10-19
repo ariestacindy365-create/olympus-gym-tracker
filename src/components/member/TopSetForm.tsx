@@ -405,7 +405,12 @@ export function TopSetForm({
         </div>
 
         {error && <p className="text-sm text-danger">{error}</p>}
-        {justSavedPR && <p className="text-sm text-accent">Selamat, ini rekor baru!</p>}
+        {justSavedPR && (
+          <p className="text-sm text-accent">
+            Selamat, ini rekor baru! Kartunya tertutup? Tekan <span className="font-semibold">PR · Share</span> di set
+            itu untuk membukanya lagi.
+          </p>
+        )}
 
         <Button type="submit" disabled={pending} className="w-full">
           {pending ? "Menyimpan..." : `Log Set ${nextSetNumber}`}

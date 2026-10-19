@@ -7,6 +7,7 @@ import fixWebmDuration from "fix-webm-duration";
 import { Button } from "@/components/ui/Button";
 import { fetchAsDataUrl, compositeLogoOntoDataUrl } from "@/lib/imageDataUrl";
 import { shareOrDownload } from "@/lib/shareFile";
+import { pickVideoMimeType } from "@/lib/videoFormat";
 
 export interface PRCelebrationData {
   memberName: string;
@@ -149,9 +150,7 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
     // not a general share permission problem). WebM stays as a fallback for
     // devices that can't record MP4 at all, with its duration patched below
     // since MediaRecorder never writes real duration metadata for it.
-    const mimeType = ["video/mp4", "video/webm;codecs=vp9", "video/webm"].find((t) =>
-      MediaRecorder.isTypeSupported(t)
-    );
+    const mimeType = pickVideoMimeType();
     if (!mimeType) throw new Error("Video tidak didukung di perangkat ini.");
 
     const outputCanvas = document.createElement("canvas");
@@ -168,7 +167,7 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
       if (e.data.size > 0) chunks.push(e.data);
     };
     const recordingDone = new Promise<Blob>((resolve) => {
-      recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
+      recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType.split(";")[0] }));
     });
 
     const recordingStart = performance.now();
@@ -209,7 +208,7 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
       ? await fixWebmDuration(rawBlob, actualDurationMs, { logger: false })
       : rawBlob;
     const ext = mimeType.startsWith("video/mp4") ? "mp4" : "webm";
-    return new File([blob], `olympus-pr-${Date.now()}.${ext}`, { type: mimeType });
+    return new File([blob], `olympus-pr-${Date.now()}.${ext}`, { type: mimeType.split(";")[0] });
   }
 
   async function handleShareVideo() {
@@ -251,7 +250,8 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 px-4 py-6 backdrop-blur-md">
-      <div className="absolute inset-0" onClick={onClose} />
+      {/* No tap-outside-to-close: members kept dismissing the card by accident
+          before sharing. Only ✕ / "Nanti saja" close it. */}
       <div className="relative flex w-full max-w-xs flex-col items-center gap-4">
         <div ref={cardRef} className="flex aspect-[9/16] w-full flex-col rounded-[32px] p-4" style={{ background: "#dbeafe" }}>
           <div

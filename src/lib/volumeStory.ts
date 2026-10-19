@@ -269,11 +269,12 @@ function drawLifter(
     }
   }
 
-  // Ponytail sits behind the head (cewek without hijab)
+  // High bun (cewek without hijab): sits on top of the head, between the
+  // raised arms, so it stays visible through the lift.
   if (character === "wanita") {
     ctx.fillStyle = LIFTER.hair;
     ctx.beginPath();
-    ctx.ellipse(cx + 48, headY + 10 + Math.sin(walk * Math.PI * 4) * 4, 20, 46, -0.35, 0, Math.PI * 2);
+    ctx.arc(cx + 8, headY - HEAD_R - 6 + Math.sin(walk * Math.PI * 4) * 3, 24, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -379,13 +380,25 @@ function drawLifter(
       ctx.beginPath();
       ctx.ellipse(cx - HEAD_R + 6, headY + 6, 10, 26, 0.15, 0, Math.PI * 2);
       ctx.fill();
+      // Headband
+      ctx.strokeStyle = COLORS.accentLight;
+      ctx.lineWidth = 9;
+      ctx.beginPath();
+      ctx.arc(cx, headY + 4, HEAD_R - 1, Math.PI * 1.08, Math.PI * 1.92);
+      ctx.stroke();
+    } else {
+      // Short textured hair: a quiff swept up at the front plus sideburns.
+      ctx.beginPath();
+      ctx.moveTo(cx - HEAD_R * 0.85, headY - HEAD_R * 0.45);
+      ctx.quadraticCurveTo(cx - HEAD_R * 0.6, headY - HEAD_R * 1.35, cx + HEAD_R * 0.15, headY - HEAD_R * 1.3);
+      ctx.quadraticCurveTo(cx + HEAD_R * 0.75, headY - HEAD_R * 1.28, cx + HEAD_R * 0.92, headY - HEAD_R * 0.55);
+      ctx.quadraticCurveTo(cx + HEAD_R * 0.2, headY - HEAD_R * 0.85, cx - HEAD_R * 0.85, headY - HEAD_R * 0.45);
+      ctx.fill();
+      for (const side of [-1, 1]) {
+        roundRect(ctx, cx + side * (HEAD_R - 8) - 6, headY - 14, 12, 26, 6);
+        ctx.fill();
+      }
     }
-    // Headband
-    ctx.strokeStyle = COLORS.accentLight;
-    ctx.lineWidth = 9;
-    ctx.beginPath();
-    ctx.arc(cx, headY + 4, HEAD_R - 1, Math.PI * 1.08, Math.PI * 1.92);
-    ctx.stroke();
   }
 
   // Face: open eyes while walking, happy squint once the load is up
@@ -403,14 +416,6 @@ function drawLifter(
       ctx.beginPath();
       ctx.arc(exx, faceY, 6.5, 0, Math.PI * 2);
       ctx.fill();
-      if (female) {
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(exx + side * 5, faceY - 5);
-        ctx.lineTo(exx + side * 11, faceY - 10);
-        ctx.stroke();
-        ctx.lineWidth = 6;
-      }
     }
   }
   ctx.beginPath();
