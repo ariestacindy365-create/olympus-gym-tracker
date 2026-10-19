@@ -17,6 +17,8 @@ import {
 import { parseWeightInput } from "@/lib/parseWeight";
 import { EditIcon, TrashIcon } from "@/components/ui/Icons";
 import { PRShareButton } from "@/components/member/PRShareButton";
+import { VolumeStoryModal } from "@/components/member/VolumeStoryModal";
+import { formatKg, totalVolume, type VolumeStoryData } from "@/lib/volumeStory";
 import { epley1RM } from "@/lib/oneRepMax";
 
 interface ExerciseOption {
@@ -68,6 +70,7 @@ export function TopSetForm({
   const [error, setError] = useState<string | null>(null);
   const [justSavedPR, setJustSavedPR] = useState(false);
   const [celebration, setCelebration] = useState<PRCelebrationData | null>(null);
+  const [volumeCard, setVolumeCard] = useState<VolumeStoryData | null>(null);
   const [achievementCelebration, setAchievementCelebration] = useState<AchievementCelebrationData | null>(null);
   const [queuedAchievements, setQueuedAchievements] = useState<UnlockedBadge[] | null>(null);
 
@@ -349,6 +352,25 @@ export function TopSetForm({
               )
             )}
             {rowError && <p className="text-sm text-danger">{rowError}</p>}
+            <button
+              type="button"
+              onClick={() =>
+                setVolumeCard({
+                  memberName,
+                  exerciseName: exercises.find((ex) => ex.id === exerciseId)?.name ?? "",
+                  sets: currentSets.map((s) => ({ weight: s.weight, reps: s.reps })),
+                })
+              }
+              className="mt-1 flex items-center justify-between gap-3 rounded-lg border border-accent/30 bg-accent/10 px-3 py-2.5 text-left text-sm transition hover:bg-accent/15 active:scale-[0.99]"
+            >
+              <span>
+                <span className="block font-semibold text-accent">🎉 Gerakan selesai? Bagikan volume</span>
+                <span className="text-xs text-muted">
+                  Total {formatKg(totalVolume(currentSets))} kg dari {currentSets.length} set — kartu untuk Instagram Story
+                </span>
+              </span>
+              <span aria-hidden className="text-accent">→</span>
+            </button>
           </div>
         )}
 
@@ -402,6 +424,7 @@ export function TopSetForm({
           }}
         />
       )}
+      {volumeCard && <VolumeStoryModal data={volumeCard} onClose={() => setVolumeCard(null)} />}
       {achievementCelebration && (
         <AchievementCelebrationModal
           data={achievementCelebration}

@@ -6,6 +6,7 @@ import confetti from "canvas-confetti";
 import fixWebmDuration from "fix-webm-duration";
 import { Button } from "@/components/ui/Button";
 import { fetchAsDataUrl, compositeLogoOntoDataUrl } from "@/lib/imageDataUrl";
+import { shareOrDownload } from "@/lib/shareFile";
 
 export interface PRCelebrationData {
   memberName: string;
@@ -75,30 +76,6 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
       : `Baru aja PR ${data.exerciseName} ${data.weight}kg x ${data.reps} di OLYMPUS Lifting Club! 💪`;
   }
 
-  async function shareOrDownload(file: File) {
-    if (navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: "OLYMPUS Lifting Club", text: shareText() });
-        return;
-      } catch (e) {
-        // User closed the share sheet themselves — respect that, don't
-        // fall back to a surprise download they didn't ask for.
-        if ((e as { name?: string }).name === "AbortError") throw e;
-        // Any other failure (seen in the wild: "Permission denied" — some
-        // Android/OEM builds block passing files to other apps via the
-        // share sheet even though canShare() said it should work) — fall
-        // through to a plain download so the file still reaches the user.
-        console.error("navigator.share failed, falling back to download:", e);
-      }
-    }
-    const url = URL.createObjectURL(file);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = file.name;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
   async function buildImageFile(): Promise<File> {
     if (!cardRef.current) throw new Error("card not ready");
     let dataUrl = await toPng(cardRef.current, { pixelRatio: 3 });
@@ -114,7 +91,7 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
     setImagePending(true);
     try {
       const file = await buildImageFile();
-      await shareOrDownload(file);
+      await shareOrDownload(file, shareText());
     } catch (e) {
       if ((e as { name?: string }).name !== "AbortError") {
         console.error("PR image share failed:", e);
@@ -243,7 +220,7 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
       // share/download call happens synchronously within it.
       setVideoPending(true);
       try {
-        await shareOrDownload(videoReady);
+        await shareOrDownload(videoReady, shareText());
         setVideoReady(null);
       } catch (e) {
         if ((e as { name?: string }).name !== "AbortError") {
