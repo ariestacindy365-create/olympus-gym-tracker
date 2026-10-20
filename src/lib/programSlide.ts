@@ -1,6 +1,8 @@
 // Turns program slots into the "Round 1 / E3MOM (3 set) / A1. ..." layout
 // coaches used to retype into Canva. Client-safe (no DB access).
 
+import { schemeLine } from "@/lib/roundScheme";
+
 export interface SlideSlot {
   slotLabel: string | null;
   movementName: string;
@@ -50,7 +52,7 @@ export function buildSlideRounds(slots: SlideSlot[]): SlideRound[] {
   }
   return rounds.map((r, i) => ({
     number: i + 1,
-    schemeLine: r.scheme && r.sets ? `${r.scheme} (${r.sets} set)` : r.scheme || (r.sets ? `${r.sets} set` : ""),
+    schemeLine: schemeLine(r.scheme, r.sets),
     items: r.items,
   }));
 }

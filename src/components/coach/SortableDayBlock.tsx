@@ -5,6 +5,8 @@ import { CSS } from "@dnd-kit/utilities";
 import { SortableSlotRow, type SlotState } from "@/components/coach/SortableSlotRow";
 import { type MovementOption } from "@/components/coach/MovementCombobox";
 import { computeRoundStarts } from "@/lib/programRounds";
+import { RoundSchemeRow } from "@/components/coach/RoundSchemeRow";
+import { Fragment } from "react";
 
 export interface DayState {
   id: string;
@@ -111,16 +113,27 @@ export function SortableDayBlock({
       </tr>
       <SortableContext items={day.slots.map((s) => s.id)} strategy={verticalListSortingStrategy}>
         {day.slots.map((slot, slotIndex) => (
-          <SortableSlotRow
-            key={slot.id}
-            slot={slot}
-            striped={slotIndex % 2 === 0}
-            movements={movements}
-            isRoundStart={roundStarts[slotIndex]}
-            onChange={(patch) => onChangeSlot(slotIndex, patch)}
-            onRemove={() => onRemoveSlot(slotIndex)}
-            onMovementCreated={onMovementCreated}
-          />
+          <Fragment key={slot.id}>
+            {roundStarts[slotIndex] && (
+              // The round's scheme lives on its first slot; keyed by that slot
+              // so the inputs reset if a drag makes another slot the first.
+              <RoundSchemeRow
+                key={`scheme-${slot.id}`}
+                roundNumber={roundStarts.slice(0, slotIndex + 1).filter(Boolean).length}
+                scheme={slot.roundScheme}
+                sets={slot.sets}
+                onChange={(patch) => onChangeSlot(slotIndex, patch)}
+              />
+            )}
+            <SortableSlotRow
+              slot={slot}
+              striped={slotIndex % 2 === 0}
+              movements={movements}
+              onChange={(patch) => onChangeSlot(slotIndex, patch)}
+              onRemove={() => onRemoveSlot(slotIndex)}
+              onMovementCreated={onMovementCreated}
+            />
+          </Fragment>
         ))}
       </SortableContext>
       <tr>
