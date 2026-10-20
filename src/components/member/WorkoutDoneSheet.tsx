@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import {
   DEFAULT_SKIN_TONE,
@@ -144,9 +145,9 @@ export function WorkoutDoneSheet({
             <p className="text-sm font-semibold text-white">
               Setara mengangkat {formatKg(eq.factor)}× {eq.name} {eq.emoji}
             </p>
-            <button type="button" onClick={onShareVolume} className="mt-1 text-xs text-nav-muted underline-offset-2 hover:underline">
-              {character ? "Ganti karakter" : "Pilih karakter kamu"}
-            </button>
+            <Link href="/member/account#karakter" className="mt-1 inline-block text-xs text-nav-muted underline-offset-2 hover:underline">
+              {character ? "Ganti karakter di Akun" : "Pilih karakter kamu di Akun"}
+            </Link>
           </div>
         </div>
 

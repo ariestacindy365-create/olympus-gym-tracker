@@ -134,7 +134,7 @@ export function StoryCharacterSetting({
         {status === "saved" && "Tersimpan. Kartu share berikutnya pakai pilihan ini."}
         {status === "error" && "Gagal menyimpan. Coba lagi."}
         {status === "idle" &&
-          (character ? "Bisa diganti kapan saja." : "Belum dipilih — kamu akan diminta memilih saat pertama kali membuka kartu.")}
+          (character ? "Bisa diganti kapan saja." : "Belum dipilih — pilih dulu supaya bisa membagikan kartu volume.")}
       </p>
     </div>
   );

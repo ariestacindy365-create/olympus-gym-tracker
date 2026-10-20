@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -17,11 +17,9 @@ import { EditIcon, TrashIcon } from "@/components/ui/Icons";
 import { VolumeStoryModal } from "@/components/member/VolumeStoryModal";
 import { formatKg, totalVolume, type LifterCharacter, type SkinTone, type VolumeStoryData } from "@/lib/volumeStory";
 import { epley1RM } from "@/lib/oneRepMax";
-import { RestTimer } from "@/components/member/RestTimer";
 import { StepperInput } from "@/components/member/StepperInput";
 import { ExercisePicker } from "@/components/member/ExercisePicker";
 import { WorkoutDoneSheet } from "@/components/member/WorkoutDoneSheet";
-import { primeFeedbackAudio } from "@/lib/scanFeedback";
 
 const WEIGHT_STEP = 2.5;
 const SAVED_FLASH_MS = 1400;
@@ -84,8 +82,8 @@ export function TopSetForm({
   const [justSavedPR, setJustSavedPR] = useState(false);
   const [celebration, setCelebration] = useState<PRCelebrationData | null>(null);
   const [volumeCard, setVolumeCard] = useState<VolumeStoryData | null>(null);
-  const [character, setCharacter] = useState(storyCharacter);
-  const [skinTone, setSkinTone] = useState(storySkinTone);
+  const character = storyCharacter;
+  const skinTone = storySkinTone;
   const [achievementCelebration, setAchievementCelebration] = useState<AchievementCelebrationData | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
   const [doneSheet, setDoneSheet] = useState(false);
@@ -95,8 +93,6 @@ export function TopSetForm({
   const [editReps, setEditReps] = useState("");
   const [rowPendingId, setRowPendingId] = useState<string | null>(null);
   const [rowError, setRowError] = useState<string | null>(null);
-  const [restStartedAt, setRestStartedAt] = useState<number | null>(null);
-  const dismissRest = useCallback(() => setRestStartedAt(null), []);
 
   function handleExerciseChange(id: string) {
     setExerciseId(id);
@@ -121,7 +117,6 @@ export function TopSetForm({
     }
 
     setPending(true);
-    primeFeedbackAudio();
     try {
       const res = await fetch("/api/member/sets", {
         method: "POST",
@@ -156,7 +151,6 @@ export function TopSetForm({
       // Keep beban/reps filled: the next set is usually the same or one
       // small step away, so members only tap "Log Set" again.
       setNote("");
-      setRestStartedAt(Date.now());
     } catch {
       setError("Terjadi kesalahan. Coba lagi.");
     } finally {
@@ -463,9 +457,6 @@ export function TopSetForm({
         )}
       </form>
 
-      {restStartedAt !== null && (
-        <RestTimer key={restStartedAt} startedAt={restStartedAt} onDismiss={dismissRest} />
-      )}
       {doneSheet && currentSets.length > 0 && (
         <WorkoutDoneSheet
           memberName={memberName}
@@ -489,10 +480,8 @@ export function TopSetForm({
       {volumeCard && (
         <VolumeStoryModal
           data={volumeCard}
-          initialCharacter={character}
-          initialSkinTone={skinTone}
-          onCharacterChange={setCharacter}
-          onSkinToneChange={setSkinTone}
+          character={character}
+          skinTone={skinTone}
           onClose={() => setVolumeCard(null)}
         />
       )}
