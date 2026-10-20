@@ -10,6 +10,11 @@ const ITEMS = [
     icon: "M4 10h2m12 0h2M6 7v6m12-6v6M8 10h8M9 5v10m6-10v10",
   },
   {
+    href: "/member/program",
+    label: "Program",
+    icon: "M9 4h6v3H9zM7 5.5H5.5v15h13v-15H17M8.5 11h7M8.5 14.5h7M8.5 18h4",
+  },
+  {
     href: "/member/body",
     label: "Body",
     icon: "M12 4a2 2 0 110 4 2 2 0 010-4zM7 10h10l-1.5 4H14v6h-4v-6H8.5L7 10z",
@@ -53,7 +58,7 @@ export function MemberBottomNav() {
                 }`}
               >
                 <span
-                  className={`flex h-8 w-14 items-center justify-center rounded-full transition ${active ? "bg-accent" : ""}`}
+                  className={`flex h-8 w-12 items-center justify-center rounded-full transition ${active ? "bg-accent" : ""}`}
                 >
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                     <path d={item.icon} />

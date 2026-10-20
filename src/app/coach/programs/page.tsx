@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { ProgramEditor } from "@/components/coach/ProgramEditor";
+import { SlideShowButton } from "@/components/coach/SlideShowButton";
+import { getThisWeekProgram } from "@/lib/weekProgram";
 
 export default async function CoachProgramsPage() {
-  const [programs, movements] = await Promise.all([
+  const [programs, movements, thisWeek] = await Promise.all([
     prisma.trainingProgram.findMany({
       include: {
         days: {
@@ -16,6 +18,7 @@ export default async function CoachProgramsPage() {
       orderBy: { name: "asc" },
       select: { id: true, name: true, category: true, equipment: true, primaryMuscle: true },
     }),
+    getThisWeekProgram(),
   ]);
 
   const initialWeeks: Record<number, ReturnType<typeof mapDays>> = {};
@@ -31,12 +34,15 @@ export default async function CoachProgramsPage() {
           <h1 className="font-display text-2xl font-bold">Program Latihan</h1>
           <p className="text-sm text-muted">Program bootcamp class mingguan, berlaku untuk semua member.</p>
         </div>
-        <Link
-          href="/coach/programs/riwayat"
-          className="shrink-0 whitespace-nowrap text-sm font-semibold text-accent hover:underline"
-        >
-          📅 Riwayat
-        </Link>
+        <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
+          <SlideShowButton slides={thisWeek.days} label={`▶ Slideshow Minggu ${thisWeek.weekNumber}`} />
+          <Link
+            href="/coach/programs/riwayat"
+            className="whitespace-nowrap text-sm font-semibold text-accent hover:underline"
+          >
+            📅 Riwayat
+          </Link>
+        </div>
       </div>
 
       <ProgramEditor movements={movements} initialWeeks={initialWeeks} />

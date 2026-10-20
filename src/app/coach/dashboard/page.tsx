@@ -9,6 +9,8 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { todayLabel } from "@/lib/dateLabel";
+import { SlideShowButton } from "@/components/coach/SlideShowButton";
+import { getThisWeekProgram } from "@/lib/weekProgram";
 
 // Members who haven't logged a set for this many days show up under
 // "Perlu Disapa" so a coach can reach out before they drop off.
@@ -16,7 +18,7 @@ const INACTIVE_DAYS = 14;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export default async function CoachDashboardPage() {
-  const [coach, members, exercises, dailyWorkout, todaysSets, recentPRs, lastSets] = await Promise.all([
+  const [coach, members, exercises, dailyWorkout, todaysSets, recentPRs, lastSets, thisWeek] = await Promise.all([
     getCurrentUser(),
     prisma.user.findMany({ where: { role: Role.MEMBER } }),
     prisma.exercise.findMany({ orderBy: { name: "asc" } }),
@@ -31,6 +33,7 @@ export default async function CoachDashboardPage() {
       include: { member: { select: { name: true } }, exercise: true },
     }),
     prisma.setEntry.groupBy({ by: ["memberId"], _max: { workoutDate: true } }),
+    getThisWeekProgram(),
   ]);
 
   const today = todayDateKey();
@@ -55,6 +58,8 @@ export default async function CoachDashboardPage() {
         title={coach ? `Halo, ${/^coach\b/i.test(coach.name) ? coach.name : `Coach ${coach.name}`}` : "Coach Dashboard"}
         subtitle="Atur gerakan hari ini dan pantau member yang sedang latihan."
         actions={
+          <div className="flex flex-wrap gap-2">
+          <SlideShowButton slides={thisWeek.days} label="▶ Slideshow Program" />
           <Link
             href="/coach/board"
             className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-accent/25 transition hover:bg-accent-2"
@@ -62,6 +67,7 @@ export default async function CoachDashboardPage() {
             <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" aria-hidden />
             Buka Live Board
           </Link>
+          </div>
         }
       />
 

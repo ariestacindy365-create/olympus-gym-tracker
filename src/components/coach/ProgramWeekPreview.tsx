@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/Button";
 import { type MovementOption } from "@/components/coach/MovementCombobox";
 import { type SlotState } from "@/components/coach/SortableSlotRow";
 import { ProgramDaySlide } from "@/components/coach/ProgramDaySlide";
+import { SlideShowButton } from "@/components/coach/SlideShowButton";
+import { buildSlideRounds } from "@/lib/programSlide";
 
 interface DayState {
   dayLabel: string;
@@ -51,6 +53,23 @@ export function ProgramWeekPreview({ weekNumber, days, movements, onEdit }: Prog
   const [copied, setCopied] = useState(false);
   const [slideDay, setSlideDay] = useState<number | null>(null);
   const movementById = new Map(movements.map((m) => [m.id, m]));
+  const slides = days
+    .map((d) => ({
+      dayLabel: d.dayLabel,
+      title: d.focusLabel.trim() || d.dayLabel,
+      rounds: buildSlideRounds(
+        d.slots
+          .filter((s) => s.movementId)
+          .map((s) => ({
+            slotLabel: s.slotLabel,
+            movementName: movementById.get(s.movementId)?.name ?? "",
+            sets: s.sets,
+            repTarget: s.repTarget,
+            roundScheme: s.roundScheme,
+          }))
+      ),
+    }))
+    .filter((s) => s.rounds.length > 0);
 
   async function handleCopy() {
     const text = buildProgramText(weekNumber, days, movementById);
@@ -71,7 +90,8 @@ export function ProgramWeekPreview({ weekNumber, days, movements, onEdit }: Prog
         <span className="font-display text-lg font-bold uppercase tracking-wide text-white">
           Program Minggu {weekNumber}
         </span>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <SlideShowButton slides={slides} className="px-3 py-1.5 text-xs" />
           <Button onClick={handleCopy} className="px-3 py-1.5 text-xs">
             {copied ? "✅ Tersalin!" : "📋 Salin Program"}
           </Button>
@@ -98,7 +118,7 @@ export function ProgramWeekPreview({ weekNumber, days, movements, onEdit }: Prog
                     onClick={() => setSlideDay(slideDay === dayIndex ? null : dayIndex)}
                     className="shrink-0 text-xs font-semibold text-accent hover:underline"
                   >
-                    {slideDay === dayIndex ? "Tutup gambar" : "🖼️ Buat Gambar Round"}
+                    {slideDay === dayIndex ? "Tutup gambar" : "🖼️ Lihat Slide"}
                   </button>
                 )}
               </div>
