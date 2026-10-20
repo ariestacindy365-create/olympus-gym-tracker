@@ -10,6 +10,8 @@ import { lifterFromStored, skinToneFromStored } from "@/lib/volumeStory";
 import { todayLabel } from "@/lib/dateLabel";
 import { CoachNotesCard } from "@/components/member/CoachNotesCard";
 import { getCoachNotes } from "@/lib/coachNotes";
+import { getThisWeekProgram } from "@/lib/weekProgram";
+import { ProgramTodayCard } from "@/components/member/ProgramTodayCard";
 import { computeTrainingSummary } from "@/lib/trainingSummary";
 import { TrainingHeatmap, TrainingStats } from "@/components/member/TrainingSummary";
 
@@ -25,7 +27,7 @@ export default async function MemberDashboardPage() {
 
   // One query for every set the member has logged; today's sets and each
   // exercise's previous session are derived from it below.
-  const [dailyWorkout, exercises, personalRecords, allSets, coachNotes] = await Promise.all([
+  const [dailyWorkout, exercises, personalRecords, allSets, coachNotes, weekProgram] = await Promise.all([
     getTodayDailyWorkout(),
     prisma.exercise.findMany({ orderBy: { name: "asc" } }),
     prisma.personalRecord.findMany({ where: { memberId: user.id } }),
@@ -35,7 +37,9 @@ export default async function MemberDashboardPage() {
       orderBy: [{ workoutDate: "asc" }, { setNumber: "asc" }],
     }),
     getCoachNotes(user.id, 10),
+    getThisWeekProgram(),
   ]);
+  const programToday = weekProgram.days.find((d) => d.isToday) ?? null;
   const todayTs = todayDateKey().getTime();
   const todaysSets = allSets.filter((s) => s.workoutDate.getTime() === todayTs);
 
@@ -146,6 +150,8 @@ export default async function MemberDashboardPage() {
       <TrainingStats summary={summary} />
 
       <CoachNotesCard notes={coachNotes} />
+
+      {programToday && <ProgramTodayCard day={programToday} />}
 
       {dailyWorkout && (
         <div className="relative overflow-hidden rounded-xl bg-nav-bg p-5 text-nav-foreground shadow-raised [background-image:radial-gradient(28rem_10rem_at_100%_0%,rgb(37_99_235/0.45),transparent)]">
