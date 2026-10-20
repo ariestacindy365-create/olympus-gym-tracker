@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import fixWebmDuration from "fix-webm-duration";
 import { Button } from "@/components/ui/Button";
 import { shareOrDownload } from "@/lib/shareFile";
@@ -16,18 +17,14 @@ import {
   type VolumeStoryAssets,
   type VolumeStoryData,
   DEFAULT_SKIN_TONE,
-  saveStoryPrefs,
   type SkinTone,
 } from "@/lib/volumeStory";
-import { SkinTonePicker, StoryCharacterPicker } from "@/components/member/StoryCharacterPicker";
 
 interface VolumeStoryModalProps {
   data: VolumeStoryData;
-  /** From the member's account; null = never picked, so ask first. */
-  initialCharacter: LifterCharacter | null;
-  initialSkinTone: SkinTone | null;
-  onCharacterChange?: (character: LifterCharacter) => void;
-  onSkinToneChange?: (skinTone: SkinTone) => void;
+  /** Picked on the Akun page; null = not picked yet, so point there. */
+  character: LifterCharacter | null;
+  skinTone: SkinTone | null;
   onClose: () => void;
 }
 
@@ -39,17 +36,12 @@ interface VolumeStoryModalProps {
  */
 export function VolumeStoryModal({
   data: baseData,
-  initialCharacter,
-  initialSkinTone,
-  onCharacterChange,
-  onSkinToneChange,
+  character,
+  skinTone,
   onClose,
 }: VolumeStoryModalProps) {
-  // The member picks which lifter appears and its skin tone; saved on their account.
-  const [character, setCharacter] = useState<LifterCharacter | null>(initialCharacter);
-  const [skinTone, setSkinTone] = useState<SkinTone>(initialSkinTone ?? DEFAULT_SKIN_TONE);
   const data = useMemo(
-    () => ({ ...baseData, character: character ?? "pria", skinTone }),
+    () => ({ ...baseData, character: character ?? "pria", skinTone: skinTone ?? DEFAULT_SKIN_TONE }),
     [baseData, character, skinTone]
   );
 
@@ -67,22 +59,6 @@ export function VolumeStoryModal({
   const [videoSupported, setVideoSupported] = useState(false);
   const [videoProgress, setVideoProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  function pickCharacter(c: LifterCharacter) {
-    setCharacter(c);
-    setVideoReady(null);
-    onCharacterChange?.(c);
-    // Fire-and-forget: the card works the same even if saving fails. The
-    // skin tone goes along so a first-time pick stores both.
-    void saveStoryPrefs({ character: c, skinTone });
-  }
-
-  function pickSkinTone(t: SkinTone) {
-    setSkinTone(t);
-    setVideoReady(null);
-    onSkinToneChange?.(t);
-    void saveStoryPrefs(character ? { character, skinTone: t } : { skinTone: t });
-  }
 
   useEffect(() => {
     let cancelled = false;
@@ -258,13 +234,18 @@ export function VolumeStoryModal({
             </button>
             <p className="text-3xl">🏋️</p>
             <div>
-              <h2 className="font-display text-xl font-bold text-white">Pilih karakter kamu</h2>
+              <h2 className="font-display text-xl font-bold text-white">Pilih karakter dulu</h2>
               <p className="mt-1 text-sm text-white/70">
-                Karakter ini yang akan mengangkat beban di kartumu. Bisa diganti kapan saja di halaman Akun.
+                Karakter yang mengangkat beban di kartumu dipilih di halaman Akun (cowok, cewek, atau cewek berhijab,
+                plus warna kulit).
               </p>
             </div>
-            <SkinTonePicker value={skinTone} onChange={pickSkinTone} tone="dark" />
-            <StoryCharacterPicker value={null} onChange={pickCharacter} tone="dark" />
+            <Link
+              href="/member/account#karakter"
+              className="w-full rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-2"
+            >
+              Pilih karakter di Akun
+            </Link>
           </div>
         ) : (
           <>
@@ -300,8 +281,9 @@ export function VolumeStoryModal({
                 ↻ Putar ulang
               </button>
             </div>
-            <StoryCharacterPicker value={character} onChange={pickCharacter} tone="dark" disabled={videoPending} />
-            <SkinTonePicker value={skinTone} onChange={pickSkinTone} tone="dark" disabled={videoPending} />
+            <Link href="/member/account#karakter" className="text-xs text-white/60 underline-offset-2 hover:text-white hover:underline">
+              Ganti karakter di halaman Akun
+            </Link>
           </>
         )}
 

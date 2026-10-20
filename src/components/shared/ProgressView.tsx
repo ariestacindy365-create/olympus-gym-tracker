@@ -102,8 +102,8 @@ export function ProgressView({
   const [chartMode, setChartMode] = useState<ChartMode>("weight");
   const [volumeCard, setVolumeCard] = useState<VolumeStoryData | null>(null);
   const [progressCard, setProgressCard] = useState<ProgressStoryData | null>(null);
-  const [character, setCharacter] = useState(storyCharacter);
-  const [skinTone, setSkinTone] = useState(storySkinTone);
+  const character = storyCharacter;
+  const skinTone = storySkinTone;
   const [showAllDays, setShowAllDays] = useState(false);
   const current = data.find((e) => e.exerciseId === selectedId) ?? data[0] ?? null;
 
@@ -527,10 +527,8 @@ export function ProgressView({
       {volumeCard && (
         <VolumeStoryModal
           data={volumeCard}
-          initialCharacter={character}
-          initialSkinTone={skinTone}
-          onCharacterChange={setCharacter}
-          onSkinToneChange={setSkinTone}
+          character={character}
+          skinTone={skinTone}
           onClose={() => setVolumeCard(null)}
         />
       )}

@@ -23,7 +23,7 @@ export default async function MemberAccountPage() {
         <ChangeEmailForm currentEmail={user.email} />
       </Card>
 
-      <Card>
+      <Card id="karakter" className="scroll-mt-24">
         <h2 className="mb-1 font-display text-lg font-semibold">Karakter Kartu Share</h2>
         <p className="mb-4 text-xs text-muted">
           Karakter yang mengangkat beban di kartu volume yang kamu bagikan ke Instagram Story atau WhatsApp.
