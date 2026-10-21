@@ -3,7 +3,7 @@
 //   EMOM   → "E3MOM"            (+ the round's set count → "E3MOM (3 set)")
 //   AMRAP  → "AMRAP 7 min"
 //   TABATA → "TABATA 8 SECTION"
-//   FOR TIME → "FOR TIME"
+//   FOR TIME → "FOR TIME 12 min" (time cap)
 // Anything else is kept as free text ("Lainnya").
 
 export type SchemeKind = "NONE" | "EMOM" | "AMRAP" | "TABATA" | "FOR_TIME" | "CUSTOM";
@@ -29,7 +29,7 @@ export const SCHEME_DEFAULTS: Record<SchemeKind, string> = {
   EMOM: "3",
   AMRAP: "7",
   TABATA: "8",
-  FOR_TIME: "",
+  FOR_TIME: "12",
   CUSTOM: "",
 };
 
@@ -43,7 +43,8 @@ export function parseScheme(raw: string | null | undefined): ParsedScheme {
   if (m) return { kind: "AMRAP", value: m[1], custom: "" };
   m = s.match(/^TABATA\s*(\d+)\s*(section|sections|sesi)?$/i);
   if (m) return { kind: "TABATA", value: m[1], custom: "" };
-  if (/^FOR\s*TIME$/i.test(s)) return { kind: "FOR_TIME", value: "", custom: "" };
+  m = s.match(/^FOR\s*TIME(?:\s*(\d+)\s*(min|menit|mins|minutes)?)?$/i);
+  if (m) return { kind: "FOR_TIME", value: m[1] ?? "", custom: "" };
   return { kind: "CUSTOM", value: "", custom: s };
 }
 
@@ -57,7 +58,7 @@ export function formatScheme(p: ParsedScheme): string {
     case "TABATA":
       return `TABATA ${v || SCHEME_DEFAULTS.TABATA} SECTION`;
     case "FOR_TIME":
-      return "FOR TIME";
+      return v ? `FOR TIME ${v} min` : "FOR TIME";
     case "CUSTOM":
       return p.custom.trim();
     default:

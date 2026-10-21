@@ -14,6 +14,9 @@ export interface SlideSlot {
 export interface SlideRound {
   number: number;
   schemeLine: string;
+  /** Raw scheme + set count, for presetting the class timer. */
+  scheme: string;
+  sets: string;
   items: string[];
 }
 
@@ -53,6 +56,8 @@ export function buildSlideRounds(slots: SlideSlot[]): SlideRound[] {
   return rounds.map((r, i) => ({
     number: i + 1,
     schemeLine: schemeLine(r.scheme, r.sets),
+    scheme: r.scheme,
+    sets: r.sets,
     items: r.items,
   }));
 }

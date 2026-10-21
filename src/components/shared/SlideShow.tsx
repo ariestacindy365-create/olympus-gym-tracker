@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ProgramSlide, useAppQrCode } from "@/components/shared/ProgramSlide";
 import type { ProgramSlideData } from "@/lib/programSlide";
+import { ClassTimer } from "@/components/shared/ClassTimer";
+import { timerFromScheme, type TimerConfig } from "@/lib/classTimer";
 
 interface SlideShowProps {
   slides: (ProgramSlideData & { isToday?: boolean })[];
@@ -24,6 +26,7 @@ export function SlideShow({ slides, startIndex = 0, onClose }: SlideShowProps) {
   const [index, setIndex] = useState(Math.min(Math.max(0, startIndex), slides.length - 1));
   const [controls, setControls] = useState(true);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [timer, setTimer] = useState<{ config: TimerConfig; subtitle: string } | null>(null);
 
   const showControls = useCallback(() => {
     setControls(true);
@@ -68,6 +71,8 @@ export function SlideShow({ slides, startIndex = 0, onClose }: SlideShowProps) {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      // The class timer owns the keyboard while it's open.
+      if (timer) return;
       if (["ArrowRight", "ArrowDown", "PageDown", " ", "Enter"].includes(e.key)) {
         e.preventDefault();
         go(1);
@@ -81,7 +86,7 @@ export function SlideShow({ slides, startIndex = 0, onClose }: SlideShowProps) {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [go, close, showControls, slides.length]);
+  }, [go, close, showControls, slides.length, timer]);
 
   const slide = slides[index];
   if (!slide) return null;
@@ -121,7 +126,22 @@ export function SlideShow({ slides, startIndex = 0, onClose }: SlideShowProps) {
             {index + 1} / {slides.length}
           </span>
         </span>
-        <div className="pointer-events-auto flex items-center gap-2">
+        <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-2">
+          {slide.rounds.map((r) => {
+            const cfg = timerFromScheme(r.scheme, r.sets);
+            if (!cfg) return null;
+            return (
+              <button
+                key={r.number}
+                type="button"
+                onClick={() => setTimer({ config: cfg, subtitle: `Round ${r.number} · ${slide.title}` })}
+                className="rounded-full bg-[#22c55e] px-3 py-2 text-xs font-bold text-black hover:brightness-110"
+                title={r.schemeLine}
+              >
+                ⏱ R{r.number}
+              </button>
+            );
+          })}
           <button type="button" onClick={() => go(-1)} disabled={index === 0} className="rounded-full bg-black/70 px-4 py-2 text-sm font-semibold ring-1 ring-white/30 hover:bg-black/85 disabled:opacity-30">
             ‹
           </button>
@@ -133,6 +153,9 @@ export function SlideShow({ slides, startIndex = 0, onClose }: SlideShowProps) {
           </button>
         </div>
       </div>
+      {timer && (
+        <ClassTimer variant="overlay" initial={timer.config} subtitle={timer.subtitle} onClose={() => setTimer(null)} />
+      )}
     </div>
   );
 }

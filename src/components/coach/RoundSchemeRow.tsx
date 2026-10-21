@@ -123,6 +123,24 @@ export function RoundSchemeRow({ roundNumber, scheme, sets, onChange }: RoundSch
               SECTION
             </label>
           )}
+          {kind === "FOR_TIME" && (
+            <label className="flex items-center gap-1 font-semibold">
+              FOR TIME
+              <input
+                type="number"
+                min={1}
+                inputMode="numeric"
+                value={value}
+                onChange={(e) => {
+                  setValue(e.target.value);
+                  emit({ value: e.target.value });
+                }}
+                aria-label="Menit FOR TIME"
+                className={numInput}
+              />
+              min
+            </label>
+          )}
           {kind === "CUSTOM" && (
             <input
               value={custom}
