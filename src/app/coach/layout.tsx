@@ -6,6 +6,7 @@ const LINKS = [
   { href: "/coach/members", label: "Members" },
   { href: "/coach/exercises", label: "Gerakan" },
   { href: "/coach/programs", label: "Program" },
+  { href: "/coach/jadwal", label: "Jadwal" },
   { href: "/coach/board", label: "Live Board" },
   { href: "/coach/timer", label: "Timer" },
   { href: "/coach/import", label: "Import" },

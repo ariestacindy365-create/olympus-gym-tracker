@@ -26,13 +26,14 @@ export function effectiveWeek(
 // that week has a day matching the date's weekday — the program for that day.
 // Also reports the current week so the calendar can offer "use this program
 // for this week".
-export async function computeMonthProgramDays(year: number, month: number) {
+export async function computeMonthProgramDays(year: number, month: number, coachId: string) {
   const today = new Date();
   const rangeStart = mondayOf(new Date(Math.min(new Date(year, month, 1).getTime(), today.getTime())));
   const rangeEnd = new Date(Math.max(new Date(year, month + 1, 1).getTime(), today.getTime()));
   const [rotation, programs, overrideRows] = await Promise.all([
     getOrCreateRotation(),
     prisma.trainingProgram.findMany({
+      where: { coachId },
       include: {
         days: {
           orderBy: { order: "asc" },

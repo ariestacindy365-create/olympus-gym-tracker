@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { ProgramHistoryCalendar } from "@/components/coach/ProgramHistoryCalendar";
 import { computeMonthProgramDays } from "@/lib/programHistory";
+import { getCurrentUser } from "@/lib/auth";
 
 export default async function ProgramHistoryPage() {
+  const coach = await getCurrentUser();
+  if (!coach) return null;
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
 
-  const { rotation, days, currentWeek } = await computeMonthProgramDays(year, month);
+  const { rotation, days, currentWeek } = await computeMonthProgramDays(year, month, coach.id);
 
   return (
     <div className="flex flex-col gap-4">

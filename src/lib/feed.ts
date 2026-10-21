@@ -15,6 +15,7 @@ export interface FeedPost {
   mine: boolean;
   title: string;
   note: string | null;
+  classLabel: string | null;
   createdAt: string;
   durationSec: number;
   totalVolume: number;
@@ -53,6 +54,7 @@ export async function getFeed(viewer: { id: string; role: Role }, take = 30): Pr
         mine: w.memberId === viewer.id,
         title: w.title,
         note: w.note,
+        classLabel: w.classLabel,
         createdAt: w.createdAt.toISOString(),
         durationSec: w.durationSec,
         totalVolume: w.totalVolume,

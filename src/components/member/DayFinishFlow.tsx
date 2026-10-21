@@ -30,6 +30,8 @@ interface DayFinishFlowProps {
   storyCharacter: LifterCharacter | null;
   storySkinTone: SkinTone | null;
   defaultVisibility: Visibility;
+  /** "Coach Ari · 09:00", saved with the workout. */
+  classLabel: string | null;
   onClose: () => void;
 }
 
@@ -52,6 +54,7 @@ export function DayFinishFlow({
   storyCharacter,
   storySkinTone,
   defaultVisibility,
+  classLabel,
   onClose,
 }: DayFinishFlowProps) {
   const [step, setStep] = useState<"summary" | "save" | "done">("summary");
@@ -83,7 +86,12 @@ export function DayFinishFlow({
       const res = await fetch("/api/member/workouts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title.trim() || defaultTitle, note: note.trim() || undefined, visibility }),
+        body: JSON.stringify({
+          title: title.trim() || defaultTitle,
+          note: note.trim() || undefined,
+          visibility,
+          classLabel: classLabel ?? undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Gagal menyimpan latihan.");

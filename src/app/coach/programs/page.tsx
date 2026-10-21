@@ -3,10 +3,15 @@ import { prisma } from "@/lib/prisma";
 import { ProgramEditor } from "@/components/coach/ProgramEditor";
 import { SlideShowButton } from "@/components/coach/SlideShowButton";
 import { getThisWeekProgram } from "@/lib/weekProgram";
+import { getCurrentUser } from "@/lib/auth";
+import { CopyProgramButton } from "@/components/coach/CopyProgramButton";
 
 export default async function CoachProgramsPage() {
-  const [programs, movements, thisWeek] = await Promise.all([
+  const coach = await getCurrentUser();
+  if (!coach) return null;
+  const [programs, movements, thisWeek, others] = await Promise.all([
     prisma.trainingProgram.findMany({
+      where: { coachId: coach.id },
       include: {
         days: {
           orderBy: { order: "asc" },
@@ -18,8 +23,19 @@ export default async function CoachProgramsPage() {
       orderBy: { name: "asc" },
       select: { id: true, name: true, category: true, equipment: true, primaryMuscle: true },
     }),
-    getThisWeekProgram(),
+    getThisWeekProgram(coach.id),
+    prisma.trainingProgram.findMany({
+      where: { coachId: { not: coach.id }, days: { some: { slots: { some: {} } } } },
+      select: { weekNumber: true, coach: { select: { id: true, name: true } } },
+    }),
   ]);
+  const otherCoaches = new Map<string, { id: string; name: string; weeks: number[] }>();
+  for (const p of others) {
+    const c = otherCoaches.get(p.coach.id) ?? { ...p.coach, weeks: [] };
+    c.weeks.push(p.weekNumber);
+    otherCoaches.set(p.coach.id, c);
+  }
+  for (const c of otherCoaches.values()) c.weeks.sort();
 
   const initialWeeks: Record<number, ReturnType<typeof mapDays>> = {};
   for (let w = 1; w <= 4; w++) {
@@ -31,8 +47,14 @@ export default async function CoachProgramsPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h1 className="font-display text-2xl font-bold">Program Latihan</h1>
-          <p className="text-sm text-muted">Program bootcamp class mingguan, berlaku untuk semua member.</p>
+          <h1 className="font-display text-2xl font-bold">Program Latihan {coach.name}</h1>
+          <p className="text-sm text-muted">
+            Program mingguan untuk kelas yang kamu ajar. Member di kelasmu otomatis melihat program ini sesuai{" "}
+            <Link href="/coach/jadwal" className="font-semibold text-accent hover:underline">
+              jadwal kelas
+            </Link>
+            .
+          </p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
           <SlideShowButton slides={thisWeek.days} label={`▶ Slideshow Minggu ${thisWeek.weekNumber}`} />
@@ -44,6 +66,8 @@ export default async function CoachProgramsPage() {
           </Link>
         </div>
       </div>
+
+      {otherCoaches.size > 0 && <CopyProgramButton coaches={[...otherCoaches.values()]} />}
 
       <ProgramEditor movements={movements} initialWeeks={initialWeeks} />
     </div>

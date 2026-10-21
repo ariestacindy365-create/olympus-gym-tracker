@@ -67,11 +67,11 @@ export async function PUT(
   }
 
   const days = await prisma.$transaction(async (tx) => {
-    const program = await tx.trainingProgram.upsert({
-      where: { weekNumber },
-      create: { weekNumber, coachId: coach.id },
-      update: { coachId: coach.id },
-    });
+    // Each coach saves only their own Minggu N.
+    const program =
+      (await tx.trainingProgram.findFirst({ where: { weekNumber, coachId: coach.id } })) ??
+      (await tx.trainingProgram.create({ data: { weekNumber, coachId: coach.id } }));
+    await tx.trainingProgram.update({ where: { id: program.id }, data: { updatedAt: new Date() } });
 
     await tx.programDay.deleteMany({ where: { programId: program.id } });
 

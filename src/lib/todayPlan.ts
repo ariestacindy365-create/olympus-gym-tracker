@@ -1,9 +1,11 @@
 import { prisma } from "@/lib/prisma";
+import { todayDateKey } from "@/lib/workout";
 import { getThisWeekProgramRaw } from "@/lib/weekProgram";
 import { matchesWeekday, weekdayLabelForDate } from "@/lib/programRotation";
 import { formatRepTarget } from "@/lib/programSlide";
 import { schemeLine } from "@/lib/roundScheme";
 import { musclesFor, type MuscleWeights } from "@/lib/muscles";
+import { classLabel, type TodayClasses } from "@/lib/classSchedule";
 
 export interface PlanItem {
   label: string;
@@ -24,10 +26,21 @@ export interface PlanRound {
   items: PlanItem[];
 }
 
+export interface PlanClass {
+  sessionId: string;
+  /** "Coach Ari · 09:00" */
+  label: string;
+}
+
 export interface TodayPlan {
   dayLabel: string;
   title: string;
   rounds: PlanRound[];
+  /** The member's class today, and today's other classes to switch to. */
+  klass: PlanClass | null;
+  classOptions: PlanClass[];
+  /** Whose program this is, when it isn't the class coach's own (they haven't written this week). */
+  borrowedFrom: string | null;
 }
 
 function roundKey(label: string): string {
@@ -48,9 +61,11 @@ function repDefaultOf(rep: string | null): number | null {
  * by name (created when missing) so the sets land in the normal history,
  * PRs and leaderboard.
  */
-export async function getTodayPlan(): Promise<TodayPlan | null> {
-  const { today, program } = await getThisWeekProgramRaw();
-  const weekday = weekdayLabelForDate(today);
+export async function getTodayPlan(classes: TodayClasses): Promise<TodayPlan | null> {
+  const coach = classes.current?.coach ?? null;
+  const key = todayDateKey();
+  const weekday = weekdayLabelForDate(new Date(key.getUTCFullYear(), key.getUTCMonth(), key.getUTCDate()));
+  const { program } = await getThisWeekProgramRaw(coach?.id ?? null, weekday);
   const day = program?.days.find((d) => matchesWeekday(d.dayLabel, weekday));
   if (!day || day.slots.length === 0) return null;
 
@@ -94,5 +109,8 @@ export async function getTodayPlan(): Promise<TodayPlan | null> {
     rounds: rounds
       .filter((r) => r.items.length > 0)
       .map((r, i) => ({ number: i + 1, schemeLine: schemeLine(r.scheme, r.sets), items: r.items })),
+    klass: classes.current ? { sessionId: classes.current.session.id, label: classLabel(classes.current) } : null,
+    classOptions: classes.options.map((o) => ({ sessionId: o.session.id, label: classLabel(o) })),
+    borrowedFrom: coach && program && program.coachId !== coach.id ? program.coach.name : null,
   };
 }
