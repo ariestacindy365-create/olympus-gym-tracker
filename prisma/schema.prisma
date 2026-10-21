@@ -61,6 +61,7 @@ model User {
   bodyMetrics          BodyMetric[]
   dailyWorkoutsCreated DailyWorkout[]      @relation("CoachDailyWorkouts")
   programsAsCoach      TrainingProgram[]   @relation("CoachPrograms")
+  classSlots           ClassSlot[]         @relation("CoachClassSlots")
   programSnapshots     ProgramSnapshot[]   @relation("CoachProgramSnapshots")
   programWeekOverrides ProgramWeekOverride[] @relation("CoachProgramWeekOverrides")
   achievementUnlocks   AchievementUnlock[]
@@ -207,17 +208,32 @@ model Movement {
   slots ProgramSlot[]
 }
 
-// A single shared weekly bootcamp-class program, visible to every coach —
-// not tied to an individual member.
+// A coach's weekly bootcamp-class program (Minggu 1-4). Each coach has
+// their own; members see the program of the coach teaching their class
+// (see ClassSlot). One row per coach + week, kept unique in code.
 model TrainingProgram {
   id         String   @id @default(cuid())
-  weekNumber Int      @unique
+  weekNumber Int
   coachId    String
   coach      User     @relation("CoachPrograms", fields: [coachId], references: [id])
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   days ProgramDay[]
+
+  @@index([coachId, weekNumber])
+}
+
+// The class timetable: who teaches each class time (lib/classSessions) on
+// each weekday. weekday follows Date.getDay(): 1 = Senin … 6 = Sabtu.
+model ClassSlot {
+  weekday   Int
+  sessionId String
+  coachId   String?
+  coach     User?    @relation("CoachClassSlots", fields: [coachId], references: [id], onDelete: SetNull)
+  updatedAt DateTime @updatedAt
+
+  @@id([weekday, sessionId])
 }
 
 model ProgramDay {
@@ -647,6 +663,8 @@ model Workout {
   totalSets   Int
   prCount     Int
   visibility  WorkoutVisibility @default(ALL)
+  // e.g. "Coach Ari · 09:00", the class the member followed.
+  classLabel  String?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 

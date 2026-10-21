@@ -96,6 +96,7 @@ function PostCard({ post }: { post: FeedPost }) {
           </p>
           <p className="text-xs text-muted">
             {timeAgo(post.createdAt)}
+            {post.classLabel && ` · Kelas ${post.classLabel}`}
             {VISIBILITY_NOTE[post.visibility] && ` · ${VISIBILITY_NOTE[post.visibility]}`}
           </p>
         </div>

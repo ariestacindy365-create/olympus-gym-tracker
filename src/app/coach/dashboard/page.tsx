@@ -33,7 +33,7 @@ export default async function CoachDashboardPage() {
       include: { member: { select: { name: true } }, exercise: true },
     }),
     prisma.setEntry.groupBy({ by: ["memberId"], _max: { workoutDate: true } }),
-    getThisWeekProgram(),
+    getCurrentUser().then((u) => getThisWeekProgram(u?.id ?? null)),
   ]);
 
   const today = todayDateKey();

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { MuscleMap } from "@/components/shared/MuscleMap";
 import { DayFinishFlow } from "@/components/member/DayFinishFlow";
 import {
@@ -13,6 +14,7 @@ import { formatKg, type LifterCharacter, type SkinTone } from "@/lib/volumeStory
 import { parseWeightInput } from "@/lib/parseWeight";
 import { mainMuscles, muscleLoad, muscleLevels, type MuscleKey } from "@/lib/muscles";
 import type { TodayPlan } from "@/lib/todayPlan";
+import { CLASS_COOKIE } from "@/lib/classCookie";
 
 export interface LoggedSet {
   id: string;
@@ -54,6 +56,7 @@ export function TodayWorkoutPlan({
   storySkinTone,
   defaultVisibility,
 }: TodayWorkoutPlanProps) {
+  const router = useRouter();
   const items = useMemo(() => plan.rounds.flatMap((r) => r.items), [plan]);
   const [rows, setRows] = useState<Row[][]>(() =>
     items.map((it) => {
@@ -131,8 +134,37 @@ export function TodayWorkoutPlan({
   return (
     <section className="flex flex-col gap-3">
       <div className="rounded-2xl bg-nav-bg p-4 text-white shadow-raised [background-image:radial-gradient(28rem_10rem_at_100%_0%,rgb(37_99_235/0.5),transparent)]">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-nav-muted">{plan.dayLabel} · Program dari pelatih</p>
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-nav-muted">
+            {plan.dayLabel} · {plan.klass ? `Kelas ${plan.klass.label}` : "Program dari pelatih"}
+          </p>
+          {plan.classOptions.length > 1 && (
+            <label className="flex items-center gap-1 text-[11px] text-white/70">
+              Ganti kelas
+              <select
+                value={plan.klass?.sessionId ?? ""}
+                onChange={(e) => {
+                  // Remembered for today only; the server reads it on refresh.
+                  const day = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
+                  document.cookie = `${CLASS_COOKIE}=${encodeURIComponent(`${day}|${e.target.value}`)}; path=/; max-age=86400; samesite=lax`;
+                  router.refresh();
+                }}
+                aria-label="Ganti kelas"
+                className="h-7 rounded-md border border-white/20 bg-white/10 px-1.5 text-[12px] font-semibold text-white focus:outline-none [&>option]:text-foreground"
+              >
+                {plan.classOptions.map((o) => (
+                  <option key={o.sessionId} value={o.sessionId}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
         <h2 className="mt-0.5 font-display text-2xl font-bold uppercase tracking-wide">{plan.title}</h2>
+        {plan.borrowedFrom && (
+          <p className="text-[12px] text-white/65">Coach kelas ini belum mengisi program minggu ini, jadi yang tampil program {plan.borrowedFrom}.</p>
+        )}
         <div className="mt-2 flex justify-between text-sm text-white/75">
           <span>
             {done.length} / {total} set
@@ -260,6 +292,7 @@ export function TodayWorkoutPlan({
           storyCharacter={storyCharacter}
           storySkinTone={storySkinTone}
           defaultVisibility={defaultVisibility}
+          classLabel={plan.klass?.label ?? null}
           onClose={() => setFinishing(false)}
         />
       )}

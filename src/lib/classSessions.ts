@@ -27,7 +27,7 @@ const jakartaTimeFormatter = new Intl.DateTimeFormat("en-US", {
   hourCycle: "h23",
 });
 
-function minuteOfDay(date: Date): number {
+export function minuteOfDay(date: Date): number {
   const parts = jakartaTimeFormatter.formatToParts(date);
   const hour = Number(parts.find((p) => p.type === "hour")?.value ?? "0");
   const minute = Number(parts.find((p) => p.type === "minute")?.value ?? "0");

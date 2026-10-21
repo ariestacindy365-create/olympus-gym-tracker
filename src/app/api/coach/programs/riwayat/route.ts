@@ -16,6 +16,6 @@ export async function GET(request: NextRequest) {
   const year = match ? Number(match[1]) : now.getFullYear();
   const month = match ? Number(match[2]) - 1 : now.getMonth();
 
-  const { rotation, days, currentWeek } = await computeMonthProgramDays(year, month);
+  const { rotation, days, currentWeek } = await computeMonthProgramDays(year, month, coach.id);
   return NextResponse.json({ rotation, days, currentWeek });
 }

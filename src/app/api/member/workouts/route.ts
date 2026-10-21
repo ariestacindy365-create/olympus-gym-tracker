@@ -12,6 +12,7 @@ const saveSchema = z.object({
   title: z.string().trim().min(1).max(80),
   note: z.string().trim().max(500).optional(),
   visibility: z.enum(["ALL", "COACH", "PRIVATE"]),
+  classLabel: z.string().trim().max(80).optional(),
 });
 
 // "Simpan latihan": records today's workout for the feed (one per day —
@@ -34,6 +35,7 @@ export async function POST(request: NextRequest) {
   const data = {
     title: parsed.data.title,
     note: parsed.data.note || null,
+    classLabel: parsed.data.classLabel || null,
     durationSec: summary.durationSec,
     totalVolume: summary.totalVolume,
     totalSets: summary.totalSets,

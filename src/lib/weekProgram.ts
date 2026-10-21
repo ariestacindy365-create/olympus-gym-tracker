@@ -8,13 +8,27 @@ export interface WeekProgramDay extends ProgramSlideData {
   isToday: boolean;
 }
 
+const programInclude = {
+  coach: { select: { name: true } },
+  days: {
+    orderBy: { order: "asc" as const },
+    include: {
+      slots: {
+        orderBy: { order: "asc" as const },
+        include: { movement: { select: { name: true, primaryMuscle: true, secondaryMuscle: true } } },
+      },
+    },
+  },
+};
+
 /**
- * This week's class program (rotation Minggu, or a coach's one-off
- * override), one slide per day. "Today" uses the gym's Jakarta date, not
- * the server clock.
+ * This week's program (rotation Minggu, or a one-off override) of one
+ * coach, with full slot + movement data. When that coach hasn't written
+ * this week (or, with `needWeekday`, that day) yet, another coach's program
+ * for the week is used instead (program.coach says whose it is). "Today"
+ * uses the gym's Jakarta date.
  */
-/** This week's program (rotation or one-off override) with full slot + movement data. */
-export async function getThisWeekProgramRaw() {
+export async function getThisWeekProgramRaw(coachId: string | null, needWeekday?: string) {
   const key = todayDateKey();
   const today = new Date(key.getUTCFullYear(), key.getUTCMonth(), key.getUTCDate());
   const [rotation, override] = await Promise.all([
@@ -24,25 +38,23 @@ export async function getThisWeekProgramRaw() {
   const overrides = new Map(override ? [[override.weekStart.getTime(), override.weekNumber]] : []);
   const { weekNumber } = effectiveWeek(today, rotation, overrides);
 
-  const program = await prisma.trainingProgram.findUnique({
+  const all = await prisma.trainingProgram.findMany({
     where: { weekNumber },
-    include: {
-      days: {
-        orderBy: { order: "asc" },
-        include: {
-          slots: {
-            orderBy: { order: "asc" },
-            include: { movement: { select: { name: true, primaryMuscle: true, secondaryMuscle: true } } },
-          },
-        },
-      },
-    },
+    orderBy: { updatedAt: "desc" },
+    include: programInclude,
   });
+  const usable = (p: (typeof all)[number]) =>
+    p.days.some((d) => d.slots.length > 0 && (!needWeekday || matchesWeekday(d.dayLabel, needWeekday)));
+  const own = all.find((p) => p.coachId === coachId) ?? null;
+  const program = own && usable(own) ? own : (all.find(usable) ?? own);
   return { weekNumber, today, program };
 }
 
-export async function getThisWeekProgram(): Promise<{ weekNumber: number; days: WeekProgramDay[] }> {
-  const { weekNumber, today, program } = await getThisWeekProgramRaw();
+/** This week's program for one coach, one slide per day. */
+export async function getThisWeekProgram(
+  coachId: string | null
+): Promise<{ weekNumber: number; coachName: string | null; days: WeekProgramDay[] }> {
+  const { weekNumber, today, program } = await getThisWeekProgramRaw(coachId);
   const weekday = weekdayLabelForDate(today);
   const days = (program?.days ?? []).map((d) => ({
     dayLabel: d.dayLabel,
@@ -58,5 +70,5 @@ export async function getThisWeekProgram(): Promise<{ weekNumber: number; days: 
       }))
     ),
   }));
-  return { weekNumber, days: days.filter((d) => d.rounds.length > 0) };
+  return { weekNumber, coachName: program?.coach.name ?? null, days: days.filter((d) => d.rounds.length > 0) };
 }

@@ -15,6 +15,7 @@ import { ProgramTodayCard } from "@/components/member/ProgramTodayCard";
 import { computeTrainingSummary } from "@/lib/trainingSummary";
 import { TrainingHeatmap, TrainingStats } from "@/components/member/TrainingSummary";
 import { getTodayPlan } from "@/lib/todayPlan";
+import { getMemberTodayClass } from "@/lib/memberClass";
 import { TodayWorkoutPlan, type LoggedSet } from "@/components/member/TodayWorkoutPlan";
 
 export default async function MemberDashboardPage() {
@@ -29,6 +30,7 @@ export default async function MemberDashboardPage() {
 
   // One query for every set the member has logged; today's sets and each
   // exercise's previous session are derived from it below.
+  const todayClass = await getMemberTodayClass(user.id);
   const [dailyWorkout, exercises, personalRecords, allSets, coachNotes, weekProgram, todayPlan] = await Promise.all([
     getTodayDailyWorkout(),
     prisma.exercise.findMany({ orderBy: { name: "asc" } }),
@@ -39,8 +41,8 @@ export default async function MemberDashboardPage() {
       orderBy: [{ workoutDate: "asc" }, { setNumber: "asc" }],
     }),
     getCoachNotes(user.id, 10),
-    getThisWeekProgram(),
-    getTodayPlan(),
+    getThisWeekProgram(todayClass.current?.coach?.id ?? null),
+    getTodayPlan(todayClass),
   ]);
   const programToday = weekProgram.days.find((d) => d.isToday) ?? null;
   const todayTs = todayDateKey().getTime();
@@ -165,6 +167,7 @@ export default async function MemberDashboardPage() {
 
       {todayPlan ? (
         <TodayWorkoutPlan
+          key={todayPlan.klass?.sessionId ?? "plan"}
           plan={todayPlan}
           todaysSets={planSets}
           lastWeights={lastWeights}
