@@ -14,6 +14,8 @@ import { getThisWeekProgram } from "@/lib/weekProgram";
 import { ProgramTodayCard } from "@/components/member/ProgramTodayCard";
 import { computeTrainingSummary } from "@/lib/trainingSummary";
 import { TrainingHeatmap, TrainingStats } from "@/components/member/TrainingSummary";
+import { getTodayPlan } from "@/lib/todayPlan";
+import { TodayWorkoutPlan, type LoggedSet } from "@/components/member/TodayWorkoutPlan";
 
 export default async function MemberDashboardPage() {
   const user = await getCurrentUser();
@@ -27,7 +29,7 @@ export default async function MemberDashboardPage() {
 
   // One query for every set the member has logged; today's sets and each
   // exercise's previous session are derived from it below.
-  const [dailyWorkout, exercises, personalRecords, allSets, coachNotes, weekProgram] = await Promise.all([
+  const [dailyWorkout, exercises, personalRecords, allSets, coachNotes, weekProgram, todayPlan] = await Promise.all([
     getTodayDailyWorkout(),
     prisma.exercise.findMany({ orderBy: { name: "asc" } }),
     prisma.personalRecord.findMany({ where: { memberId: user.id } }),
@@ -38,6 +40,7 @@ export default async function MemberDashboardPage() {
     }),
     getCoachNotes(user.id, 10),
     getThisWeekProgram(),
+    getTodayPlan(),
   ]);
   const programToday = weekProgram.days.find((d) => d.isToday) ?? null;
   const todayTs = todayDateKey().getTime();
@@ -84,6 +87,15 @@ export default async function MemberDashboardPage() {
     if (s.workoutDate.getTime() >= todayTs) continue;
     priorBestWeights[s.exerciseId] = Math.max(priorBestWeights[s.exerciseId] ?? 0, s.weight);
   }
+
+  // For the plan's set rows: today's logged sets, and the heaviest weight of
+  // the last session as the prefill.
+  const planSets: Record<string, LoggedSet[]> = {};
+  for (const [id, rows] of Object.entries(todaysSetsMap)) {
+    planSets[id] = rows.map(({ id: setId, setNumber, weight, reps, isPR }) => ({ id: setId, setNumber, weight, reps, isPR }));
+  }
+  const lastWeights: Record<string, number> = {};
+  for (const [id, rows] of Object.entries(lastSetsMap)) lastWeights[id] = Math.max(...rows.map((r) => r.weight));
 
   const personalRecordsByExercise: Record<string, { maxWeight: number | null; maxEstimated1RM: number | null }> = {};
   for (const pr of personalRecords) {
@@ -151,7 +163,19 @@ export default async function MemberDashboardPage() {
 
       <CoachNotesCard notes={coachNotes} />
 
-      {programToday && <ProgramTodayCard day={programToday} />}
+      {todayPlan ? (
+        <TodayWorkoutPlan
+          plan={todayPlan}
+          todaysSets={planSets}
+          lastWeights={lastWeights}
+          memberName={user.name}
+          storyCharacter={lifterFromStored(user.storyCharacter)}
+          storySkinTone={skinToneFromStored(user.storySkinTone)}
+          defaultVisibility={user.feedVisibility}
+        />
+      ) : (
+        programToday && <ProgramTodayCard day={programToday} />
+      )}
 
       {dailyWorkout && (
         <div className="relative overflow-hidden rounded-xl bg-nav-bg p-5 text-nav-foreground shadow-raised [background-image:radial-gradient(28rem_10rem_at_100%_0%,rgb(37_99_235/0.45),transparent)]">
@@ -165,17 +189,20 @@ export default async function MemberDashboardPage() {
           Belum ada gerakan yang ditambahkan pelatih. Coba lagi nanti.
         </p>
       ) : (
-        <DashboardClient
-          exercises={exercises}
-          defaultExerciseId={dailyWorkout?.exerciseId ?? null}
-          todaysSets={todaysSetsMap}
-          lastSets={lastSetsMap}
-          personalRecordsByExercise={personalRecordsByExercise}
-          memberName={user.name}
-          storyCharacter={lifterFromStored(user.storyCharacter)}
-          storySkinTone={skinToneFromStored(user.storySkinTone)}
-          priorBestWeights={priorBestWeights}
-        />
+        <>
+          {todayPlan && <h2 className="-mb-3 font-display text-lg font-bold uppercase tracking-wide">Catat gerakan lain</h2>}
+          <DashboardClient
+            exercises={exercises}
+            defaultExerciseId={dailyWorkout?.exerciseId ?? null}
+            todaysSets={todaysSetsMap}
+            lastSets={lastSetsMap}
+            personalRecordsByExercise={personalRecordsByExercise}
+            memberName={user.name}
+            storyCharacter={lifterFromStored(user.storyCharacter)}
+            storySkinTone={skinToneFromStored(user.storySkinTone)}
+            priorBestWeights={priorBestWeights}
+          />
+        </>
       )}
 
       <TrainingHeatmap summary={summary} />
