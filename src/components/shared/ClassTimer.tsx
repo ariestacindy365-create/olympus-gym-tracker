@@ -17,8 +17,14 @@ interface ClassTimerProps {
   initial?: TimerConfig | null;
   /** e.g. "Round 4 · Upper Body Pull" when opened from a slide. */
   subtitle?: string;
-  /** "overlay" covers the screen (from the slideshow); "page" fills its container. */
-  variant?: "overlay" | "page";
+  /**
+   * "overlay" covers the screen, "page" fills its container, "side" is the
+   * right-hand quarter next to the slideshow so the program stays visible.
+   * Switching between side and overlay on the same instance keeps the time.
+   */
+  variant?: "overlay" | "page" | "side";
+  /** Side panel ⇄ full-screen toggle (slideshow only). */
+  onToggleSize?: () => void;
   onClose?: () => void;
 }
 
@@ -60,7 +66,7 @@ const numCls =
  * countdown, round counter, green for work / red for rest, and beeps on the
  * last 3 seconds of every interval.
  */
-export function ClassTimer({ initial, subtitle, variant = "page", onClose }: ClassTimerProps) {
+export function ClassTimer({ initial, subtitle, variant = "page", onToggleSize, onClose }: ClassTimerProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [config, setConfig] = useState<TimerConfig>(initial ?? DEFAULT_TIMER);
   const [running, setRunning] = useState(false);
@@ -180,6 +186,76 @@ export function ClassTimer({ initial, subtitle, variant = "page", onClose }: Cla
 
   const style = PHASE_STYLE[phase];
   const showRounds = config.mode === "EMOM" || config.mode === "TABATA";
+  const clockText = formatClock(shownClock, countDown);
+
+  if (variant === "side") {
+    return (
+      <div
+        ref={rootRef}
+        className="relative flex w-full shrink-0 flex-col items-center justify-center gap-3 overflow-hidden border-t border-white/10 bg-[#05080f] px-3 py-4 text-center text-white landscape:h-full landscape:w-1/4 landscape:border-l landscape:border-t-0"
+        style={{ backgroundImage: "radial-gradient(30rem 20rem at 50% 0%, rgb(37 99 235 / 0.18), transparent)" }}
+      >
+        <div className="absolute inset-x-0 top-0 h-1.5 bg-white/10">
+          <div className="h-full transition-[width] duration-150" style={{ width: `${(started ? frame.phaseProgress : 0) * 100}%`, background: style.color }} />
+        </div>
+        <div className="flex w-full flex-col items-center gap-0.5">
+          {subtitle && <p className="w-full truncate text-[11px] text-white/50 lg:text-sm">{subtitle}</p>}
+          <p className="w-full font-display text-sm font-bold tracking-[0.12em] text-white/80 lg:text-xl">{timerTitle(config)}</p>
+        </div>
+        <p className="font-display text-2xl font-bold tracking-[0.25em] lg:text-4xl" style={{ color: style.color }}>
+          {style.label}
+        </p>
+        <p
+          className="tabular font-display font-bold leading-none"
+          style={{ color: style.color, fontSize: "max(52px, min(9vw, 26dvh))", textShadow: `0 0 50px ${style.color}33` }}
+          data-clock
+        >
+          {clockText}
+        </p>
+        <p className="text-sm font-semibold text-white/80 lg:text-xl">
+          {showRounds ? (
+            <>
+              ROUND <span className="text-white">{started ? frame.round : 1}</span> / {frame.rounds}
+            </>
+          ) : config.mode === "FOR_TIME" ? (
+            <>CAP {formatClock(config.minutes * 60, false)}</>
+          ) : (
+            <span className="text-white/60">Total {formatClock(workoutSeconds(config), false)}</span>
+          )}
+        </p>
+        <div className="flex w-full flex-col items-stretch gap-2 px-1 lg:px-3">
+          <button
+            type="button"
+            onClick={toggle}
+            disabled={phase === "done"}
+            className="rounded-xl bg-[#22c55e] px-4 py-2.5 text-base font-bold text-black hover:brightness-110 disabled:opacity-40 lg:py-3 lg:text-lg"
+          >
+            {running ? "⏸ Jeda" : started ? "▶ Lanjut" : "▶ Mulai"}
+          </button>
+          {config.mode === "FOR_TIME" && running && frame.phase === "work" && (
+            <button type="button" onClick={finishNow} className="rounded-xl bg-white px-3 py-2 text-sm font-bold text-black">
+              🏁 Selesai
+            </button>
+          )}
+          <div className="flex justify-center gap-2">
+            <button type="button" onClick={reset} aria-label="Reset timer" className="flex-1 rounded-xl bg-white/10 px-3 py-2 text-sm font-bold hover:bg-white/20">
+              ↺
+            </button>
+            {onToggleSize && (
+              <button type="button" onClick={onToggleSize} aria-label="Perbesar timer" className="flex-1 rounded-xl bg-white/10 px-3 py-2 text-sm font-bold hover:bg-white/20">
+                ⛶
+              </button>
+            )}
+            {onClose && (
+              <button type="button" onClick={onClose} aria-label="Tutup timer" className="flex-1 rounded-xl bg-white/10 px-3 py-2 text-sm font-bold hover:bg-white/20">
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -215,6 +291,11 @@ export function ClassTimer({ initial, subtitle, variant = "page", onClose }: Cla
           >
             ⛶ Layar penuh
           </button>
+          )}
+          {onToggleSize && (
+            <button type="button" onClick={onToggleSize} className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold hover:bg-white/20">
+              ▭ Tampilkan program
+            </button>
           )}
           {onClose && (
             <button type="button" onClick={onClose} className="rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-black">
@@ -254,7 +335,7 @@ export function ClassTimer({ initial, subtitle, variant = "page", onClose }: Cla
           aria-live="off"
           data-clock
         >
-          {formatClock(shownClock, countDown)}
+          {clockText}
         </p>
         <div className="mt-3 flex flex-wrap items-center justify-center gap-4 text-lg font-semibold text-white/80 sm:text-2xl">
           {showRounds && (
