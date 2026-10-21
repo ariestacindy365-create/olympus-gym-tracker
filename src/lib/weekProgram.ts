@@ -13,7 +13,8 @@ export interface WeekProgramDay extends ProgramSlideData {
  * override), one slide per day. "Today" uses the gym's Jakarta date, not
  * the server clock.
  */
-export async function getThisWeekProgram(): Promise<{ weekNumber: number; days: WeekProgramDay[] }> {
+/** This week's program (rotation or one-off override) with full slot + movement data. */
+export async function getThisWeekProgramRaw() {
   const key = todayDateKey();
   const today = new Date(key.getUTCFullYear(), key.getUTCMonth(), key.getUTCDate());
   const [rotation, override] = await Promise.all([
@@ -28,11 +29,20 @@ export async function getThisWeekProgram(): Promise<{ weekNumber: number; days: 
     include: {
       days: {
         orderBy: { order: "asc" },
-        include: { slots: { orderBy: { order: "asc" }, include: { movement: { select: { name: true } } } } },
+        include: {
+          slots: {
+            orderBy: { order: "asc" },
+            include: { movement: { select: { name: true, primaryMuscle: true, secondaryMuscle: true } } },
+          },
+        },
       },
     },
   });
+  return { weekNumber, today, program };
+}
 
+export async function getThisWeekProgram(): Promise<{ weekNumber: number; days: WeekProgramDay[] }> {
+  const { weekNumber, today, program } = await getThisWeekProgramRaw();
   const weekday = weekdayLabelForDate(today);
   const days = (program?.days ?? []).map((d) => ({
     dayLabel: d.dayLabel,

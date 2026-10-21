@@ -4,9 +4,9 @@ import { MemberBottomNav } from "@/components/member/MemberBottomNav";
 
 const LINKS = [
   { href: "/member/dashboard", label: "Dashboard" },
+  { href: "/member/feed", label: "Feed" },
   { href: "/member/program", label: "Program" },
   { href: "/member/body", label: "Body Metrics" },
-  { href: "/member/leaderboard", label: "Peringkat" },
   { href: "/member/achievements", label: "Achievement" },
   { href: "/member/account", label: "Akun" },
 ];

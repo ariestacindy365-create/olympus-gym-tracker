@@ -4,6 +4,7 @@ import { ChangeEmailForm } from "@/components/member/ChangeEmailForm";
 import { ChangePinForm } from "@/components/member/ChangePinForm";
 import { StoryCharacterSetting } from "@/components/member/StoryCharacterPicker";
 import { LeaderboardOptOutToggle } from "@/components/member/LeaderboardOptOutToggle";
+import { FeedVisibilitySetting } from "@/components/member/FeedVisibilitySetting";
 import { lifterFromStored, skinToneFromStored } from "@/lib/volumeStory";
 
 export default async function MemberAccountPage() {
@@ -35,8 +36,11 @@ export default async function MemberAccountPage() {
       </Card>
 
       <Card>
-        <h2 className="mb-3 font-display text-lg font-semibold">Peringkat Bulanan</h2>
-        <LeaderboardOptOutToggle initialOptOut={user.leaderboardOptOut} />
+        <h2 className="mb-3 font-display text-lg font-semibold">Feed &amp; Peringkat</h2>
+        <div className="flex flex-col gap-4">
+          <FeedVisibilitySetting initial={user.feedVisibility} />
+          <LeaderboardOptOutToggle initialOptOut={user.leaderboardOptOut} />
+        </div>
       </Card>
 
       <Card>

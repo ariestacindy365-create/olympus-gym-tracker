@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import confetti from "canvas-confetti";
+import { Emblem } from "@/components/shared/Emblem";
+import { TIER_LABEL, emblemFor } from "@/lib/emblems";
 import { Button } from "@/components/ui/Button";
 import { fetchAsDataUrl, compositeLogoOntoDataUrl } from "@/lib/imageDataUrl";
 
@@ -138,8 +140,11 @@ export function AchievementCelebrationModal({ data, onClose }: AchievementCelebr
                   className="flex items-center gap-3 rounded-xl px-4 py-3 text-left"
                   style={{ background: ACCENT_SOFT, border: `1px solid ${ACCENT_SOFT_BORDER}` }}
                 >
-                  <span className="text-3xl leading-none">{badge.icon}</span>
+                  <Emblem code={badge.code} size={multiple ? 56 : 76} className="shrink-0" />
                   <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: ACCENT_MUTED }}>
+                      {emblemFor(badge.code).series} · {TIER_LABEL[emblemFor(badge.code).tier]}
+                    </p>
                     <p className="font-display text-base font-bold" style={{ color: ACCENT }}>
                       {badge.name}
                     </p>

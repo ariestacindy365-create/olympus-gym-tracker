@@ -51,6 +51,8 @@ model User {
   storySkinTone  StorySkinTone?
   // Members can hide themselves from the monthly leaderboard.
   leaderboardOptOut Boolean @default(false)
+  // Default "Dilihat oleh" for workouts the member saves to the feed.
+  feedVisibility WorkoutVisibility @default(ALL)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -64,6 +66,9 @@ model User {
   achievementUnlocks   AchievementUnlock[]
   coachNotesReceived   CoachNote[]         @relation("MemberCoachNotes")
   coachNotesWritten    CoachNote[]         @relation("CoachNotesWritten")
+  workouts             Workout[]
+  workoutKudos         WorkoutKudo[]
+  workoutComments      WorkoutComment[]
 
   // CRM (lead capture / follow-up) — used by ADMIN and OWNER roles only.
   capturedLeads      Lead[]     @relation("CapturedLeads")
@@ -617,4 +622,59 @@ model CoachNote {
   createdAt DateTime  @default(now())
 
   @@index([memberId, createdAt])
+}
+
+enum WorkoutVisibility {
+  ALL
+  COACH
+  PRIVATE
+}
+
+// A finished training day ("Selesai latihan hari ini"), shown on the member
+// feed. The sets themselves stay in SetEntry; this records the wrap-up
+// (title, duration, note, who can see it) and snapshots the day's totals so
+// the feed doesn't recompute them. One per member per day: finishing again
+// updates it.
+model Workout {
+  id          String            @id @default(cuid())
+  memberId    String
+  member      User              @relation(fields: [memberId], references: [id])
+  workoutDate DateTime
+  title       String
+  note        String?
+  durationSec Int
+  totalVolume Float
+  totalSets   Int
+  prCount     Int
+  visibility  WorkoutVisibility @default(ALL)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  kudos    WorkoutKudo[]
+  comments WorkoutComment[]
+
+  @@unique([memberId, workoutDate])
+  @@index([createdAt])
+}
+
+model WorkoutKudo {
+  workoutId String
+  workout   Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  memberId  String
+  member    User     @relation(fields: [memberId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@id([workoutId, memberId])
+}
+
+model WorkoutComment {
+  id        String   @id @default(cuid())
+  workoutId String
+  workout   Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  memberId  String
+  member    User     @relation(fields: [memberId], references: [id])
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([workoutId, createdAt])
 }
