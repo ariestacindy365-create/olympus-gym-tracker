@@ -12,6 +12,7 @@ import {
   type TimerConfig,
   type TimerMode,
 } from "@/lib/classTimer";
+import { formatMinutes, parseMinutes } from "@/lib/roundScheme";
 
 interface ClassTimerProps {
   initial?: TimerConfig | null;
@@ -26,6 +27,30 @@ interface ClassTimerProps {
   /** Side panel ⇄ full-screen toggle (slideshow only). */
   onToggleSize?: () => void;
   onClose?: () => void;
+}
+
+/** EMOM interval: accepts 2,5 / 2.5 as well as whole minutes. */
+function MinutesField({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  const [text, setText] = useState(formatMinutes(value));
+  return (
+    <label className="flex items-center gap-1.5 text-sm font-semibold text-white/80">
+      Setiap
+      <input
+        type="text"
+        inputMode="decimal"
+        value={text}
+        onChange={(e) => {
+          const v = e.target.value.replace(/[^\d.,]/g, "");
+          setText(v);
+          const n = parseMinutes(v);
+          if (n) onChange(n);
+        }}
+        className={numCls}
+        aria-label="Setiap min"
+      />
+      min
+    </label>
+  );
 }
 
 let audioCtx: AudioContext | null = null;
@@ -310,7 +335,7 @@ export function ClassTimer({ initial, subtitle, variant = "page", onToggleSize, 
         {config.mode === "AMRAP" && num("minutes", "Durasi", "min")}
         {config.mode === "EMOM" && (
           <>
-            {num("intervalMin", "Setiap", "min")}
+            <MinutesField value={config.intervalMin} onChange={(n) => set("intervalMin", n)} />
             {num("rounds", "Jumlah", "set")}
           </>
         )}

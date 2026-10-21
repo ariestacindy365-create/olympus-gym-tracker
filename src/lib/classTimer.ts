@@ -2,7 +2,7 @@
 // display just asks "what does the clock show at second X?". A 10-second
 // "siap-siap" countdown always runs first.
 
-import { parseScheme } from "@/lib/roundScheme";
+import { formatMinutes, parseMinutes, parseScheme } from "@/lib/roundScheme";
 
 export type TimerMode = "FOR_TIME" | "AMRAP" | "EMOM" | "TABATA";
 
@@ -10,7 +10,7 @@ export interface TimerConfig {
   mode: TimerMode;
   /** FOR TIME cap / AMRAP length, in minutes. */
   minutes: number;
-  /** EMOM: every N minutes. */
+  /** EMOM: every N minutes (may be 2.5 for E2,5MOM). */
   intervalMin: number;
   /** EMOM sets / TABATA sections. */
   rounds: number;
@@ -41,7 +41,7 @@ export function timerFromScheme(scheme: string | null | undefined, sets: string 
   const v = toInt(p.value, 0);
   switch (p.kind) {
     case "EMOM":
-      return { ...DEFAULT_TIMER, mode: "EMOM", intervalMin: v || 1, rounds: toInt(sets, 3) };
+      return { ...DEFAULT_TIMER, mode: "EMOM", intervalMin: parseMinutes(p.value) ?? 1, rounds: toInt(sets, 3) };
     case "AMRAP":
       return { ...DEFAULT_TIMER, mode: "AMRAP", minutes: v || 7 };
     case "TABATA":
@@ -134,7 +134,7 @@ export function timerTitle(c: TimerConfig): string {
     case "AMRAP":
       return `AMRAP ${c.minutes} min`;
     case "EMOM":
-      return `E${c.intervalMin}MOM × ${c.rounds} set`;
+      return `E${formatMinutes(c.intervalMin)}MOM × ${c.rounds} set`;
     case "TABATA":
       return `TABATA ${c.rounds} SECTION · ${c.workSec}/${c.restSec}`;
   }

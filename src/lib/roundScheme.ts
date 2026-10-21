@@ -1,6 +1,6 @@
 // A round's training scheme, as picked in the program editor and stored
 // as plain text on the round's first slot (ProgramSlot.roundScheme):
-//   EMOM   → "E3MOM"            (+ the round's set count → "E3MOM (3 set)")
+//   EMOM   → "E3MOM" / "E2,5MOM" (+ the round's set count → "E3MOM (3 set)")
 //   AMRAP  → "AMRAP 7 min"
 //   TABATA → "TABATA 8 SECTION"
 //   FOR TIME → "FOR TIME 12 min" (time cap)
@@ -33,11 +33,22 @@ export const SCHEME_DEFAULTS: Record<SchemeKind, string> = {
   CUSTOM: "",
 };
 
+/** "2,5" or "2.5" → 2.5 (null when not a positive number). */
+export function parseMinutes(raw: string): number | null {
+  const n = Number(raw.trim().replace(",", "."));
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/** 2.5 → "2,5" — decimals are written with a comma, like "2,5 kg" elsewhere. */
+export function formatMinutes(n: number): string {
+  return String(Math.round(n * 100) / 100).replace(".", ",");
+}
+
 export function parseScheme(raw: string | null | undefined): ParsedScheme {
   const s = (raw ?? "").trim();
   if (!s) return { kind: "NONE", value: "", custom: "" };
-  let m = s.match(/^E(\d+)MOM$/i);
-  if (m) return { kind: "EMOM", value: m[1], custom: "" };
+  let m = s.match(/^E(\d+(?:[.,]\d+)?)MOM$/i);
+  if (m) return { kind: "EMOM", value: m[1].replace(".", ","), custom: "" };
   if (/^EMOM$/i.test(s)) return { kind: "EMOM", value: "1", custom: "" };
   m = s.match(/^AMRAP\s*(\d+)\s*(min|menit|mins|minutes)?$/i);
   if (m) return { kind: "AMRAP", value: m[1], custom: "" };
@@ -52,7 +63,7 @@ export function formatScheme(p: ParsedScheme): string {
   const v = p.value.trim();
   switch (p.kind) {
     case "EMOM":
-      return `E${v || SCHEME_DEFAULTS.EMOM}MOM`;
+      return `E${(v || SCHEME_DEFAULTS.EMOM).replace(".", ",")}MOM`;
     case "AMRAP":
       return `AMRAP ${v || SCHEME_DEFAULTS.AMRAP} min`;
     case "TABATA":

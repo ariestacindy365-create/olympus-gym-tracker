@@ -73,14 +73,16 @@ export function RoundSchemeRow({ roundNumber, scheme, sets, onChange }: RoundSch
             <label className="flex items-center gap-1 font-semibold">
               E
               <input
-                type="number"
-                min={1}
-                inputMode="numeric"
+                type="text"
+                inputMode="decimal"
                 value={value}
                 onChange={(e) => {
-                  setValue(e.target.value);
-                  emit({ value: e.target.value });
+                  // Whole or decimal minutes (2,5 or 2.5 → shown as E2,5MOM).
+                  const v = e.target.value.replace(/[^\d.,]/g, "").replace(/([.,].*)[.,]/, "$1");
+                  setValue(v);
+                  emit({ value: v });
                 }}
+                placeholder="3"
                 aria-label="Menit EMOM"
                 className={numInput}
               />
