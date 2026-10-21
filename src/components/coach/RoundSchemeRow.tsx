@@ -73,14 +73,16 @@ export function RoundSchemeRow({ roundNumber, scheme, sets, onChange }: RoundSch
             <label className="flex items-center gap-1 font-semibold">
               E
               <input
-                type="number"
-                min={1}
-                inputMode="numeric"
+                type="text"
+                inputMode="decimal"
                 value={value}
                 onChange={(e) => {
-                  setValue(e.target.value);
-                  emit({ value: e.target.value });
+                  // Whole or decimal minutes (2,5 or 2.5 → shown as E2,5MOM).
+                  const v = e.target.value.replace(/[^\d.,]/g, "").replace(/([.,].*)[.,]/, "$1");
+                  setValue(v);
+                  emit({ value: v });
                 }}
+                placeholder="3"
                 aria-label="Menit EMOM"
                 className={numInput}
               />
@@ -121,6 +123,24 @@ export function RoundSchemeRow({ roundNumber, scheme, sets, onChange }: RoundSch
                 className={numInput}
               />
               SECTION
+            </label>
+          )}
+          {kind === "FOR_TIME" && (
+            <label className="flex items-center gap-1 font-semibold">
+              FOR TIME
+              <input
+                type="number"
+                min={1}
+                inputMode="numeric"
+                value={value}
+                onChange={(e) => {
+                  setValue(e.target.value);
+                  emit({ value: e.target.value });
+                }}
+                aria-label="Menit FOR TIME"
+                className={numInput}
+              />
+              min
             </label>
           )}
           {kind === "CUSTOM" && (

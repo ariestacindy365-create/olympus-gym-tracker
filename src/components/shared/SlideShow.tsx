@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ProgramSlide, useAppQrCode } from "@/components/shared/ProgramSlide";
 import type { ProgramSlideData } from "@/lib/programSlide";
+import { ClassTimer } from "@/components/shared/ClassTimer";
+import { timerFromScheme, type TimerConfig } from "@/lib/classTimer";
 
 interface SlideShowProps {
   slides: (ProgramSlideData & { isToday?: boolean })[];
@@ -24,6 +26,11 @@ export function SlideShow({ slides, startIndex = 0, onClose }: SlideShowProps) {
   const [index, setIndex] = useState(Math.min(Math.max(0, startIndex), slides.length - 1));
   const [controls, setControls] = useState(true);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The round timer sits in the right quarter (program stays readable on the
+  // left 3/4) and can be blown up to full screen; `key` restarts it when
+  // another round's ⏱ is tapped.
+  const [timer, setTimer] = useState<{ key: number; config: TimerConfig; subtitle: string; slide: number; round: number } | null>(null);
+  const [timerBig, setTimerBig] = useState(false);
 
   const showControls = useCallback(() => {
     setControls(true);
@@ -68,6 +75,9 @@ export function SlideShow({ slides, startIndex = 0, onClose }: SlideShowProps) {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      // While a timer is open it owns space / R / Esc; arrows still page the
+      // slides when it's in the side panel.
+      if (timer && (timerBig || !["ArrowRight", "ArrowLeft", "PageDown", "PageUp"].includes(e.key))) return;
       if (["ArrowRight", "ArrowDown", "PageDown", " ", "Enter"].includes(e.key)) {
         e.preventDefault();
         go(1);
@@ -81,7 +91,7 @@ export function SlideShow({ slides, startIndex = 0, onClose }: SlideShowProps) {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [go, close, showControls, slides.length]);
+  }, [go, close, showControls, slides.length, timer, timerBig]);
 
   const slide = slides[index];
   if (!slide) return null;
@@ -93,10 +103,17 @@ export function SlideShow({ slides, startIndex = 0, onClose }: SlideShowProps) {
       aria-modal="true"
       aria-label="Slideshow program"
       onMouseMove={showControls}
-      className={`fixed inset-0 z-[60] flex items-center justify-center bg-black ${controls ? "" : "cursor-none"}`}
+      className={`fixed inset-0 z-[60] flex flex-col bg-black landscape:flex-row ${controls ? "" : "cursor-none"}`}
     >
-      <div className="w-[min(100vw,calc(100dvh*16/9))]">
-        <ProgramSlide data={slide} qrDataUrl={qr} />
+      <div className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center">
+      <div
+        className={
+          timer && !timerBig
+            ? "w-[min(100vw,calc(58dvh*16/9))] landscape:w-[min(75vw,calc(100dvh*16/9))]"
+            : "w-[min(100vw,calc(100dvh*16/9))]"
+        }
+      >
+        <ProgramSlide data={slide} qrDataUrl={qr} highlightRound={timer && timer.slide === index ? timer.round : null} />
       </div>
 
       {/* Tap left / right half to move */}
@@ -121,7 +138,25 @@ export function SlideShow({ slides, startIndex = 0, onClose }: SlideShowProps) {
             {index + 1} / {slides.length}
           </span>
         </span>
-        <div className="pointer-events-auto flex items-center gap-2">
+        <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-2">
+          {slide.rounds.map((r) => {
+            const cfg = timerFromScheme(r.scheme, r.sets);
+            if (!cfg) return null;
+            return (
+              <button
+                key={r.number}
+                type="button"
+                onClick={() => {
+                  setTimer({ key: Date.now(), config: cfg, subtitle: `Round ${r.number} · ${slide.title}`, slide: index, round: r.number });
+                  setTimerBig(false);
+                }}
+                className="rounded-full bg-[#22c55e] px-3 py-2 text-xs font-bold text-black hover:brightness-110"
+                title={r.schemeLine}
+              >
+                ⏱ R{r.number}
+              </button>
+            );
+          })}
           <button type="button" onClick={() => go(-1)} disabled={index === 0} className="rounded-full bg-black/70 px-4 py-2 text-sm font-semibold ring-1 ring-white/30 hover:bg-black/85 disabled:opacity-30">
             ‹
           </button>
@@ -133,6 +168,17 @@ export function SlideShow({ slides, startIndex = 0, onClose }: SlideShowProps) {
           </button>
         </div>
       </div>
+      </div>
+      {timer && (
+        <ClassTimer
+          key={timer.key}
+          variant={timerBig ? "overlay" : "side"}
+          initial={timer.config}
+          subtitle={timer.subtitle}
+          onToggleSize={() => setTimerBig((b) => !b)}
+          onClose={() => setTimer(null)}
+        />
+      )}
     </div>
   );
 }

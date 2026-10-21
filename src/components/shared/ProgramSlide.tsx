@@ -64,11 +64,13 @@ function CatatSticker() {
 interface SlideCanvasProps {
   data: ProgramSlideData;
   qrDataUrl: string | null;
+  /** Round whose class timer is running, boxed in green. */
+  highlightRound?: number | null;
 }
 
 /** The slide at its full 1600×900 design size (what gets exported). */
 export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps & { style?: React.CSSProperties }>(
-  function SlideCanvas({ data, qrDataUrl, style }, ref) {
+  function SlideCanvas({ data, qrDataUrl, highlightRound = null, style }, ref) {
     const [left, right] = splitIntoColumns(data.rounds);
     // Shrink the text when a day has many exercises so both columns fit.
     const colHeight = (col: typeof left) =>
@@ -80,7 +82,14 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps & { style
     const column = (rounds: typeof left, x: number) => (
       <div style={{ position: "absolute", left: x, top: 268, width: 720, display: "flex", flexDirection: "column", gap: 30 * scale }}>
         {rounds.map((r) => (
-          <div key={r.number}>
+          <div
+            key={r.number}
+            style={
+              r.number === highlightRound
+                ? { width: "fit-content", maxWidth: 700, margin: "-14px -20px", padding: "14px 20px", borderRadius: 22, background: "rgba(34,197,94,0.14)", boxShadow: "inset 0 0 0 5px #22c55e" }
+                : undefined
+            }
+          >
             <p style={{ margin: 0, fontSize: 56 * scale, fontWeight: 800, color: INK, lineHeight: 1.15 }}>Round {r.number}</p>
             {r.schemeLine && (
               <p style={{ margin: `${4 * scale}px 0 ${6 * scale}px`, fontSize: 33 * scale, fontWeight: 800, color: INK }}>
@@ -192,11 +201,12 @@ export function useAppQrCode(): string | null {
 interface ProgramSlideProps {
   data: ProgramSlideData;
   qrDataUrl: string | null;
+  highlightRound?: number | null;
   className?: string;
 }
 
 /** The slide scaled down to its container's width, keeping 16:9. */
-export function ProgramSlide({ data, qrDataUrl, className = "" }: ProgramSlideProps) {
+export function ProgramSlide({ data, qrDataUrl, highlightRound = null, className = "" }: ProgramSlideProps) {
   const boxRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
 
@@ -216,6 +226,7 @@ export function ProgramSlide({ data, qrDataUrl, className = "" }: ProgramSlidePr
         <SlideCanvas
           data={data}
           qrDataUrl={qrDataUrl}
+          highlightRound={highlightRound}
           style={{ position: "absolute", left: 0, top: 0, transform: `scale(${scale})`, transformOrigin: "top left" }}
         />
       )}
