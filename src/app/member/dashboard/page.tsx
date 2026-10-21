@@ -177,32 +177,31 @@ export default async function MemberDashboardPage() {
         programToday && <ProgramTodayCard day={programToday} />
       )}
 
-      {dailyWorkout && (
+      {dailyWorkout && !todayPlan && (
         <div className="relative overflow-hidden rounded-xl bg-nav-bg p-5 text-nav-foreground shadow-raised [background-image:radial-gradient(28rem_10rem_at_100%_0%,rgb(37_99_235/0.45),transparent)]">
           <p className="text-xs font-semibold uppercase tracking-wider text-nav-muted">🎯 Gerakan hari ini dari pelatih</p>
           <p className="mt-1 font-display text-2xl font-bold tracking-wide text-white">{dailyWorkout.exercise.name}</p>
         </div>
       )}
 
-      {exercises.length === 0 ? (
+      {/* The plan above already has every set row; the free-form logger is
+          only for days without a class program. */}
+      {todayPlan ? null : exercises.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border-strong bg-surface p-6 text-center text-sm text-muted">
           Belum ada gerakan yang ditambahkan pelatih. Coba lagi nanti.
         </p>
       ) : (
-        <>
-          {todayPlan && <h2 className="-mb-3 font-display text-lg font-bold uppercase tracking-wide">Catat gerakan lain</h2>}
-          <DashboardClient
-            exercises={exercises}
-            defaultExerciseId={dailyWorkout?.exerciseId ?? null}
-            todaysSets={todaysSetsMap}
-            lastSets={lastSetsMap}
-            personalRecordsByExercise={personalRecordsByExercise}
-            memberName={user.name}
-            storyCharacter={lifterFromStored(user.storyCharacter)}
-            storySkinTone={skinToneFromStored(user.storySkinTone)}
-            priorBestWeights={priorBestWeights}
-          />
-        </>
+        <DashboardClient
+          exercises={exercises}
+          defaultExerciseId={dailyWorkout?.exerciseId ?? null}
+          todaysSets={todaysSetsMap}
+          lastSets={lastSetsMap}
+          personalRecordsByExercise={personalRecordsByExercise}
+          memberName={user.name}
+          storyCharacter={lifterFromStored(user.storyCharacter)}
+          storySkinTone={skinToneFromStored(user.storySkinTone)}
+          priorBestWeights={priorBestWeights}
+        />
       )}
 
       <TrainingHeatmap summary={summary} />
