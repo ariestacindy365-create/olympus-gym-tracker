@@ -7,7 +7,8 @@ import { notifyUsers } from "@/lib/notify";
 import { ANNOUNCEMENT_CATEGORY } from "@/lib/announcements";
 import { Role } from "@/generated/prisma/client";
 
-const STAFF: Role[] = [Role.COACH, Role.ADMIN, Role.OWNER];
+// Announcements come from the front desk (admin), and the owner.
+const STAFF: Role[] = [Role.ADMIN, Role.OWNER];
 
 const schema = z.object({
   category: z.enum(["PENGUMUMAN", "PROMO", "ARTIKEL", "LAINNYA"]),
@@ -16,7 +17,7 @@ const schema = z.object({
   linkUrl: z.union([z.url({ error: "Link harus diawali https://" }), z.literal("")]).optional(),
 });
 
-// Staff: send an announcement / promo / article to every member.
+// Admin/owner: send an announcement / promo / article to every member.
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user || !STAFF.includes(user.role)) return NextResponse.json({ error: "Not authorized." }, { status: 401 });

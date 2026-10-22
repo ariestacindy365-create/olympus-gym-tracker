@@ -6,7 +6,7 @@ import { Role } from "@/generated/prisma/client";
 // Withdraws an announcement: it disappears from every member's notifications.
 export async function DELETE(_req: Request, ctx: RouteContext<"/api/announcements/[announcementId]">) {
   const user = await getCurrentUser();
-  if (!user || (user.role !== Role.COACH && user.role !== Role.ADMIN && user.role !== Role.OWNER)) {
+  if (!user || (user.role !== Role.ADMIN && user.role !== Role.OWNER)) {
     return NextResponse.json({ error: "Not authorized." }, { status: 401 });
   }
   const { announcementId } = await ctx.params;
