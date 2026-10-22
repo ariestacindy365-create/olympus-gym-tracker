@@ -4,6 +4,7 @@ import type { ZodError } from "zod";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { saveProgramWeekSchema } from "@/lib/validation";
+import { writeProgramWeek } from "@/lib/programSave";
 import { Role } from "@/generated/prisma/client";
 
 const FIELD_LABELS: Record<string, string> = {
@@ -66,70 +67,7 @@ export async function PUT(
     return NextResponse.json({ error: describeValidationError(parsed.error, body) }, { status: 400 });
   }
 
-  const days = await prisma.$transaction(async (tx) => {
-    // Each coach saves only their own Minggu N.
-    const program =
-      (await tx.trainingProgram.findFirst({ where: { weekNumber, coachId: coach.id } })) ??
-      (await tx.trainingProgram.create({ data: { weekNumber, coachId: coach.id } }));
-    await tx.trainingProgram.update({ where: { id: program.id }, data: { updatedAt: new Date() } });
-
-    await tx.programDay.deleteMany({ where: { programId: program.id } });
-
-    for (let i = 0; i < parsed.data.days.length; i++) {
-      const d = parsed.data.days[i];
-      const day = await tx.programDay.create({
-        data: { programId: program.id, dayLabel: d.dayLabel, focusLabel: d.focusLabel ?? null, order: i },
-      });
-      if (d.slots.length > 0) {
-        await tx.programSlot.createMany({
-          data: d.slots.map((s, j) => ({
-            dayId: day.id,
-            slotLabel: s.slotLabel ?? null,
-            movementId: s.movementId,
-            sets: s.sets ?? null,
-            repTarget: s.repTarget ?? null,
-            targetWeight: s.targetWeight ?? null,
-            note: s.note ?? null,
-            roundScheme: s.roundScheme ?? null,
-            order: j,
-          })),
-        });
-      }
-    }
-
-    const savedDays = await tx.programDay.findMany({
-      where: { programId: program.id },
-      orderBy: { order: "asc" },
-      include: { slots: { orderBy: { order: "asc" }, include: { movement: true } } },
-    });
-
-    // Movement names are baked in now — the live rows only keep movementId,
-    // so without this the snapshot would go stale if a movement is later
-    // renamed or deleted.
-    await tx.programSnapshot.create({
-      data: {
-        weekNumber,
-        coachId: coach.id,
-        data: {
-          days: savedDays.map((d) => ({
-            dayLabel: d.dayLabel,
-            focusLabel: d.focusLabel,
-            slots: d.slots.map((s) => ({
-              slotLabel: s.slotLabel,
-              movementName: s.movement.name,
-              sets: s.sets,
-              repTarget: s.repTarget,
-              targetWeight: s.targetWeight,
-              note: s.note,
-              roundScheme: s.roundScheme,
-            })),
-          })),
-        },
-      },
-    });
-
-    return savedDays;
-  });
+  const days = await prisma.$transaction((tx) => writeProgramWeek(tx, coach.id, weekNumber, parsed.data.days));
 
   return NextResponse.json({ days });
 }

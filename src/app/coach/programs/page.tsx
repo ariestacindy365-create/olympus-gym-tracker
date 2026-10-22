@@ -53,7 +53,7 @@ export default async function CoachProgramsPage() {
             href="/coach/programs/riwayat"
             className="whitespace-nowrap text-sm font-semibold text-accent hover:underline"
           >
-            📅 Riwayat
+            📅 Riwayat &amp; pakai ulang
           </Link>
         </div>
       </div>
