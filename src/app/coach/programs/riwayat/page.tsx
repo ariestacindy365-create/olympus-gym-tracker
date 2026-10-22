@@ -2,6 +2,9 @@ import Link from "next/link";
 import { ProgramHistoryCalendar } from "@/components/coach/ProgramHistoryCalendar";
 import { computeMonthProgramDays } from "@/lib/programHistory";
 import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { ProgramVersionList, type ProgramVersion } from "@/components/coach/ProgramVersionList";
+import type { SnapshotData } from "@/lib/programSave";
 
 export default async function ProgramHistoryPage() {
   const coach = await getCurrentUser();
@@ -10,7 +13,16 @@ export default async function ProgramHistoryPage() {
   const year = now.getFullYear();
   const month = now.getMonth();
 
-  const { rotation, days, currentWeek } = await computeMonthProgramDays(year, month, coach.id);
+  const [{ rotation, days, currentWeek }, snapshots] = await Promise.all([
+    computeMonthProgramDays(year, month, coach.id),
+    prisma.programSnapshot.findMany({ where: { coachId: coach.id }, orderBy: { createdAt: "desc" }, take: 200 }),
+  ]);
+  const seenWeek = new Set<number>();
+  const versions: ProgramVersion[] = snapshots.map((s) => {
+    const current = !seenWeek.has(s.weekNumber);
+    seenWeek.add(s.weekNumber);
+    return { id: s.id, weekNumber: s.weekNumber, savedAt: s.createdAt.toISOString(), current, data: s.data as unknown as SnapshotData };
+  });
 
   return (
     <div className="flex flex-col gap-4">
@@ -32,6 +44,8 @@ export default async function ProgramHistoryPage() {
         initialRotation={{ anchorMonday: rotation.anchorMonday.toISOString(), anchorWeekNumber: rotation.anchorWeekNumber }}
         initialCurrentWeek={currentWeek}
       />
+
+      <ProgramVersionList versions={versions} />
     </div>
   );
 }

@@ -4,12 +4,11 @@ import { ProgramEditor } from "@/components/coach/ProgramEditor";
 import { SlideShowButton } from "@/components/coach/SlideShowButton";
 import { getThisWeekProgram } from "@/lib/weekProgram";
 import { getCurrentUser } from "@/lib/auth";
-import { CopyProgramButton } from "@/components/coach/CopyProgramButton";
 
 export default async function CoachProgramsPage() {
   const coach = await getCurrentUser();
   if (!coach) return null;
-  const [programs, movements, thisWeek, others] = await Promise.all([
+  const [programs, movements, thisWeek] = await Promise.all([
     prisma.trainingProgram.findMany({
       where: { coachId: coach.id },
       include: {
@@ -24,18 +23,7 @@ export default async function CoachProgramsPage() {
       select: { id: true, name: true, category: true, equipment: true, primaryMuscle: true },
     }),
     getThisWeekProgram(coach.id),
-    prisma.trainingProgram.findMany({
-      where: { coachId: { not: coach.id }, days: { some: { slots: { some: {} } } } },
-      select: { weekNumber: true, coach: { select: { id: true, name: true } } },
-    }),
   ]);
-  const otherCoaches = new Map<string, { id: string; name: string; weeks: number[] }>();
-  for (const p of others) {
-    const c = otherCoaches.get(p.coach.id) ?? { ...p.coach, weeks: [] };
-    c.weeks.push(p.weekNumber);
-    otherCoaches.set(p.coach.id, c);
-  }
-  for (const c of otherCoaches.values()) c.weeks.sort();
 
   const initialWeeks: Record<number, ReturnType<typeof mapDays>> = {};
   for (let w = 1; w <= 4; w++) {
@@ -65,12 +53,10 @@ export default async function CoachProgramsPage() {
             href="/coach/programs/riwayat"
             className="whitespace-nowrap text-sm font-semibold text-accent hover:underline"
           >
-            📅 Riwayat
+            📅 Riwayat &amp; pakai ulang
           </Link>
         </div>
       </div>
-
-      {otherCoaches.size > 0 && <CopyProgramButton coaches={[...otherCoaches.values()]} />}
 
       <ProgramEditor movements={movements} initialWeeks={initialWeeks} />
     </div>
