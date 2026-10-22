@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { StatTile } from "@/components/ui/StatTile";
 import { Badge } from "@/components/ui/Badge";
-import { parseWeightInput } from "@/lib/parseWeight";
+import { parseLiftWeight } from "@/lib/parseWeight";
 import { EditIcon, TrashIcon } from "@/components/ui/Icons";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { PRShareButton } from "@/components/member/PRShareButton";
@@ -154,9 +154,9 @@ export function ProgressView({
   }
 
   async function saveEdit(setId: string, exerciseId: string) {
-    const weightNum = parseWeightInput(editWeight);
+    const weightNum = parseLiftWeight(editWeight);
     const repsNum = Number(editReps);
-    if (!weightNum || !repsNum || repsNum <= 0) {
+    if (weightNum === null || !repsNum || repsNum <= 0) {
       setDeleteError("Isi beban dan reps yang valid.");
       return;
     }

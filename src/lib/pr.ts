@@ -16,6 +16,8 @@ export async function checkAndRecordPR(
   tx: Prisma.TransactionClient,
   { memberId, exerciseId, weight, reps, estimated1RM, setEntryId }: CheckPRParams
 ): Promise<boolean> {
+  // Bodyweight / no-load sets (0 kg) don't make a weight record.
+  if (weight <= 0) return false;
   let isPR = false;
 
   const currentMaxWeight = await tx.personalRecord.findUnique({
