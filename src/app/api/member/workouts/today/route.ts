@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { todayDateKey } from "@/lib/workout";
 import { summarizeDay } from "@/lib/workoutSummary";
+import { prisma } from "@/lib/prisma";
 import { Role } from "@/generated/prisma/client";
 
 // Totals + muscles for the "Selesai latihan hari ini" summary (all of
@@ -11,5 +12,10 @@ export async function GET() {
   if (!user || user.role !== Role.MEMBER) {
     return NextResponse.json({ error: "Not authorized." }, { status: 401 });
   }
-  return NextResponse.json({ summary: await summarizeDay(user.id, todayDateKey(), true) });
+  const [summary, lastWeighIn] = await Promise.all([
+    summarizeDay(user.id, todayDateKey(), true),
+    prisma.bodyMetric.findFirst({ where: { memberId: user.id }, orderBy: { recordedDate: "desc" }, select: { weight: true } }),
+  ]);
+  // Latest weigh-in, for the calorie estimate.
+  return NextResponse.json({ summary, bodyWeightKg: lastWeighIn?.weight ?? null });
 }
