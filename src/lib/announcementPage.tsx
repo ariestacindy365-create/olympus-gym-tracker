@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { AnnouncementManager } from "@/components/shared/AnnouncementManager";
 import { Role } from "@/generated/prisma/client";
 
-/** Shared body of /coach/pengumuman and /leads/pengumuman. */
+/** Body of /leads/pengumuman (admin + owner). */
 export async function AnnouncementPage() {
   const user = await getCurrentUser();
   if (!user) return null;
