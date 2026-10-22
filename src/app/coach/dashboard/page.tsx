@@ -1,9 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { isOnline } from "@/lib/status";
-import { getTodayDailyWorkout, todayDateKey } from "@/lib/workout";
+import { todayDateKey } from "@/lib/workout";
 import { StatTile } from "@/components/ui/StatTile";
 import { Card } from "@/components/ui/Card";
-import { DailyWorkoutForm } from "@/components/coach/DailyWorkoutForm";
 import { Role } from "@/generated/prisma/client";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
@@ -18,11 +17,9 @@ const INACTIVE_DAYS = 14;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export default async function CoachDashboardPage() {
-  const [coach, members, exercises, dailyWorkout, todaysSets, recentPRs, lastSets, thisWeek] = await Promise.all([
+  const [coach, members, todaysSets, recentPRs, lastSets, thisWeek] = await Promise.all([
     getCurrentUser(),
     prisma.user.findMany({ where: { role: Role.MEMBER } }),
-    prisma.exercise.findMany({ orderBy: { name: "asc" } }),
-    getTodayDailyWorkout(),
     prisma.setEntry.findMany({
       where: { workoutDate: todayDateKey() },
       select: { memberId: true },
@@ -51,12 +48,33 @@ export default async function CoachDashboardPage() {
   const loggedMemberIds = new Set(todaysSets.map((t) => t.memberId));
   const onlineCount = members.filter((m) => isOnline(m.lastActiveAt)).length;
 
+  const inactiveRow = (m: (typeof inactive)[number]) => (
+    <li key={m.id}>
+      <Link
+        href={`/coach/members/${m.id}`}
+        className="flex items-center justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2 text-sm transition hover:bg-accent/10"
+      >
+        <span className="min-w-0">
+          <span className="block truncate font-medium">{m.name}</span>
+          <span className="text-xs text-muted">
+            {m.last
+              ? `Terakhir latihan ${m.last.toLocaleDateString("id-ID", { day: "numeric", month: "short", timeZone: "UTC" })}`
+              : "Belum pernah mencatat latihan"}
+          </span>
+        </span>
+        <span className={`tabular shrink-0 text-xs font-semibold ${m.days >= 30 ? "text-danger" : "text-warning"}`}>
+          {m.days} hari
+        </span>
+      </Link>
+    </li>
+  );
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         eyebrow={todayLabel()}
         title={coach ? `Halo, ${/^coach\b/i.test(coach.name) ? coach.name : `Coach ${coach.name}`}` : "Coach Dashboard"}
-        subtitle="Atur gerakan hari ini dan pantau member yang sedang latihan."
+        subtitle="Pantau member yang sedang latihan dan yang mulai jarang datang."
         actions={
           <div className="flex flex-wrap gap-2">
           <SlideShowButton slides={thisWeek.days} label="▶ Slideshow Program" />
@@ -83,8 +101,6 @@ export default async function CoachDashboardPage() {
         <StatTile label="Belum Catat" value={members.length - loggedMemberIds.size} />
       </div>
 
-      <DailyWorkoutForm exercises={exercises} currentExerciseId={dailyWorkout?.exerciseId ?? null} />
-
       <Card>
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
@@ -101,28 +117,18 @@ export default async function CoachDashboardPage() {
           <p className="text-sm text-muted">Semua member aktif latihan dalam {INACTIVE_DAYS} hari terakhir. 💪</p>
         ) : (
           <ul className="flex flex-col gap-2">
-            {inactive.slice(0, 15).map((m) => (
-              <li key={m.id}>
-                <Link
-                  href={`/coach/members/${m.id}`}
-                  className="flex items-center justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2 text-sm transition hover:bg-accent/10"
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate font-medium">{m.name}</span>
-                    <span className="text-xs text-muted">
-                      {m.last
-                        ? `Terakhir latihan ${m.last.toLocaleDateString("id-ID", { day: "numeric", month: "short", timeZone: "UTC" })}`
-                        : "Belum pernah mencatat latihan"}
-                    </span>
-                  </span>
-                  <span className={`tabular shrink-0 text-xs font-semibold ${m.days >= 30 ? "text-danger" : "text-warning"}`}>
-                    {m.days} hari
-                  </span>
-                </Link>
-              </li>
-            ))}
+            {inactive.slice(0, 15).map(inactiveRow)}
             {inactive.length > 15 && (
-              <li className="text-center text-xs text-muted">+{inactive.length - 15} member lainnya</li>
+              <li>
+                {/* No JS needed: the rest of the list opens in place. */}
+                <details className="group">
+                  <summary className="cursor-pointer list-none py-1 text-center text-xs font-semibold text-accent hover:underline [&::-webkit-details-marker]:hidden">
+                    <span className="group-open:hidden">+{inactive.length - 15} member lainnya</span>
+                    <span className="hidden group-open:inline">Sembunyikan</span>
+                  </summary>
+                  <ul className="mt-2 flex flex-col gap-2">{inactive.slice(15).map(inactiveRow)}</ul>
+                </details>
+              </li>
             )}
           </ul>
         )}
