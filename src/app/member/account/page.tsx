@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { Card } from "@/components/ui/Card";
 import { ChangeEmailForm } from "@/components/member/ChangeEmailForm";
@@ -33,6 +34,14 @@ export default async function MemberAccountPage() {
           initialCharacter={lifterFromStored(user.storyCharacter)}
           initialSkinTone={skinToneFromStored(user.storySkinTone)}
         />
+      </Card>
+
+      <Card>
+        <h2 className="mb-1 font-display text-lg font-semibold">Notifikasi</h2>
+        <p className="mb-3 text-xs text-muted">Notifikasi di HP dan pengingat program pagi.</p>
+        <Link href="/member/notifikasi" className="text-sm font-semibold text-accent hover:underline">
+          🔔 Atur notifikasi →
+        </Link>
       </Card>
 
       <Card>

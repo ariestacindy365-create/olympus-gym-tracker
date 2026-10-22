@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { notifyUsers } from "@/lib/notify";
 import { Role } from "@/generated/prisma/client";
 
 const noteSchema = z.object({
@@ -30,6 +31,14 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/coach/m
   const note = await prisma.coachNote.create({
     data: { memberId, coachId: coach.id, body: parsed.data.body, context: parsed.data.context || null },
   });
+  after(() =>
+    notifyUsers([memberId], {
+      type: "COACH_NOTE",
+      title: `📝 Catatan dari ${coach.name}`,
+      body: parsed.data.body,
+      url: "/member/dashboard",
+    })
+  );
   return NextResponse.json({
     note: {
       id: note.id,
