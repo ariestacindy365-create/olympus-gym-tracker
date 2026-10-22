@@ -11,7 +11,7 @@ import {
   type UnlockedBadge,
 } from "@/components/shared/AchievementCelebrationModal";
 import { formatKg, type LifterCharacter, type SkinTone } from "@/lib/volumeStory";
-import { parseWeightInput } from "@/lib/parseWeight";
+import { parseLiftWeight } from "@/lib/parseWeight";
 import { mainMuscles, muscleLoad, muscleLevels, type MuscleKey } from "@/lib/muscles";
 import type { TodayPlan } from "@/lib/todayPlan";
 import { CLASS_COOKIE } from "@/lib/classCookie";
@@ -101,7 +101,7 @@ export function TodayWorkoutPlan({
     const row = rows[i][j];
     const wRaw = row.w || weightHint(i, j);
     const rRaw = row.r || (it.repDefault != null ? String(it.repDefault) : "");
-    const weight = parseWeightInput(wRaw || "") ?? (wRaw === "0" ? 0 : null);
+    const weight = parseLiftWeight(wRaw || "");
     const reps = Number(rRaw);
     if (weight === null || !reps || reps <= 0) {
       setError(`${it.label} set ${j + 1}: isi beban (0 untuk tanpa beban) dan reps.`);
@@ -113,7 +113,7 @@ export function TodayWorkoutPlan({
       const res = await fetch("/api/member/sets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ exerciseId: it.exerciseId, weight: weight || 0.0001, reps, setNumber: j + 1 }),
+        body: JSON.stringify({ exerciseId: it.exerciseId, weight, reps, setNumber: j + 1 }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Gagal menyimpan set.");

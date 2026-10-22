@@ -24,6 +24,11 @@ export async function recomputeExerciseRecords(
 
   for (const s of sets) {
     let isPR = false;
+    // Bodyweight / no-load sets (0 kg) never count as a weight record.
+    if (s.weight <= 0) {
+      if (s.isPR) await tx.setEntry.update({ where: { id: s.id }, data: { isPR: false } });
+      continue;
+    }
     if (s.weight > bestWeight) {
       bestWeight = s.weight;
       bestWeightEntry = s;

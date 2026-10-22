@@ -12,7 +12,7 @@ import {
   type AchievementCelebrationData,
   type UnlockedBadge,
 } from "@/components/shared/AchievementCelebrationModal";
-import { parseWeightInput } from "@/lib/parseWeight";
+import { parseLiftWeight } from "@/lib/parseWeight";
 import { EditIcon, TrashIcon } from "@/components/ui/Icons";
 import { VolumeStoryModal } from "@/components/member/VolumeStoryModal";
 import { formatKg, totalVolume, type LifterCharacter, type SkinTone, type VolumeStoryData } from "@/lib/volumeStory";
@@ -109,9 +109,9 @@ export function TopSetForm({
     e.preventDefault();
     setError(null);
 
-    const weightNum = parseWeightInput(weight);
+    const weightNum = parseLiftWeight(weight);
     const repsNum = Number(reps);
-    if (!weightNum || !repsNum || repsNum <= 0) {
+    if (weightNum === null || !repsNum || repsNum <= 0) {
       setError("Isi beban dan reps yang valid.");
       return;
     }
@@ -172,9 +172,9 @@ export function TopSetForm({
 
   async function saveEdit(setId: string) {
     setRowError(null);
-    const weightNum = parseWeightInput(editWeight);
+    const weightNum = parseLiftWeight(editWeight);
     const repsNum = Number(editReps);
-    if (!weightNum || !repsNum || repsNum <= 0) {
+    if (weightNum === null || !repsNum || repsNum <= 0) {
       setRowError("Isi beban dan reps yang valid.");
       return;
     }
@@ -259,7 +259,7 @@ export function TopSetForm({
   const repeatSource = currentSets.at(-1) ?? lastExerciseSets[0] ?? null;
   const repeatLabel = currentSets.length > 0 ? "Ulangi set terakhir" : "Pakai sesi lalu";
   const repeatMatches =
-    repeatSource != null && parseWeightInput(weight) === repeatSource.weight && Number(reps) === repeatSource.reps;
+    repeatSource != null && parseLiftWeight(weight) === repeatSource.weight && Number(reps) === repeatSource.reps;
 
   const exerciseName = exercises.find((ex) => ex.id === exerciseId)?.name ?? "";
   const storySets = currentSets.map((s) => ({ weight: s.weight, reps: s.reps }));

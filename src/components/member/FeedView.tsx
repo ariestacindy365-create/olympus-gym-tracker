@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MuscleMap } from "@/components/shared/MuscleMap";
+import { WorkoutStickerModal } from "@/components/shared/WorkoutStickerModal";
 import { formatKg } from "@/lib/volumeStory";
 import { formatDuration } from "@/lib/duration";
 import type { FeedPost } from "@/lib/feed";
@@ -44,6 +45,7 @@ function PostCard({ post }: { post: FeedPost }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [allLines, setAllLines] = useState(false);
+  const [sticker, setSticker] = useState(false);
 
   async function toggleKudos() {
     const next = !kudos.mine;
@@ -165,7 +167,26 @@ function PostCard({ post }: { post: FeedPost }) {
         >
           💬 {commentCount > 0 ? commentCount : "Komentar"}
         </button>
+        {post.mine && (
+          <button
+            type="button"
+            onClick={() => setSticker(true)}
+            className="flex flex-1 items-center justify-center gap-1.5 border-l border-border py-2.5 text-sm font-semibold text-muted hover:text-foreground"
+          >
+            🖼️ Stiker
+          </button>
+        )}
       </div>
+      {sticker && (
+        <WorkoutStickerModal
+          title={post.title}
+          lines={post.summary.lines}
+          levels={post.summary.levels}
+          stats={`${formatKg(post.totalVolume)} kg · ${post.summary.lines.reduce((a, l) => a + l.sets, 0)} set${post.prCount ? ` · ${post.prCount} PR` : ""}`}
+          memberName={post.memberName}
+          onClose={() => setSticker(false)}
+        />
+      )}
       {open && (
         <div className="border-t border-border bg-surface-2/60 px-4 py-3">
           {comments === null ? (

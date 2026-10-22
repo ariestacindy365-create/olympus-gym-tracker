@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
-import { parseWeightInput } from "@/lib/parseWeight";
+import { parseLiftWeight } from "@/lib/parseWeight";
 
 interface ExerciseOption {
   id: string;
@@ -33,9 +33,9 @@ export function CoachSetLogger({ memberId, exercises }: CoachSetLoggerProps) {
     setError(null);
     setSaved(false);
 
-    const weightNum = parseWeightInput(weight);
+    const weightNum = parseLiftWeight(weight);
     const repsNum = Number(reps);
-    if (!exerciseId || !weightNum || !repsNum || repsNum <= 0) {
+    if (!exerciseId || weightNum === null || !repsNum || repsNum <= 0) {
       setError("Pilih gerakan dan isi beban & reps yang valid.");
       return;
     }

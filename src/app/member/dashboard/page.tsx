@@ -28,6 +28,16 @@ export default async function MemberDashboardPage() {
   await syncMemberAchievements(user.id, { markSeen: false });
   const unseenAchievements = await getUnseenAchievements(user.id);
 
+  // Bodyweight sets used to be stored as 0.0001 kg because 0 was rejected;
+  // turn this member's old ones into a real 0 (no PR). A no-op once done.
+  await prisma.$transaction([
+    prisma.setEntry.updateMany({
+      where: { memberId: user.id, weight: { gt: 0, lt: 0.01 } },
+      data: { weight: 0, estimated1RM: 0, isPR: false },
+    }),
+    prisma.personalRecord.deleteMany({ where: { memberId: user.id, weight: { gt: 0, lt: 0.01 } } }),
+  ]);
+
   // One query for every set the member has logged; today's sets and each
   // exercise's previous session are derived from it below.
   const todayClass = await getMemberTodayClass(user.id);

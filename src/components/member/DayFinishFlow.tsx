@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MuscleMap } from "@/components/shared/MuscleMap";
 import { VolumeStoryModal } from "@/components/member/VolumeStoryModal";
+import { WorkoutStickerModal } from "@/components/shared/WorkoutStickerModal";
 import { formatKg, pickEquivalent, type LifterCharacter, type SkinTone } from "@/lib/volumeStory";
 import { MUSCLE_LABEL, type MuscleKey } from "@/lib/muscles";
 import type { DaySummary } from "@/lib/workoutSummary";
 import { formatDuration } from "@/lib/duration";
+import { estimateCalories } from "@/lib/calories";
 
 type Visibility = "ALL" | "COACH" | "PRIVATE";
 
@@ -66,13 +68,20 @@ export function DayFinishFlow({
   const [pending, setPending] = useState(false);
   const [totals, setTotals] = useState<Totals | null>(null);
   const [story, setStory] = useState(false);
+  const [sticker, setSticker] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [bodyWeightKg, setBodyWeightKg] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     fetch("/api/member/workouts/today")
       .then((r) => r.json())
-      .then((d) => !cancelled && (d.summary ? setSummary(d.summary) : setError(d.error ?? "Gagal memuat ringkasan.")))
+      .then((d) => {
+        if (cancelled) return;
+        if (!d.summary) return setError(d.error ?? "Gagal memuat ringkasan.");
+        setSummary(d.summary);
+        setBodyWeightKg(d.bodyWeightKg ?? null);
+      })
       .catch(() => !cancelled && setError("Gagal memuat ringkasan."));
     return () => {
       cancelled = true;
@@ -106,6 +115,7 @@ export function DayFinishFlow({
   }
 
   const firstName = memberName.split(" ")[0];
+  const cal = summary ? estimateCalories(summary.durationSec, bodyWeightKg) : null;
   const eq = summary ? pickEquivalent(summary.totalVolume) : null;
   const muscles = summary
     ? (Object.entries(summary.muscleSets) as [MuscleKey, number][]).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])
@@ -159,6 +169,28 @@ export function DayFinishFlow({
                 <Tile value={String(summary.lines.length)} label="Gerakan" />
                 <Tile value={String(summary.prCount)} label="🏆 PR" />
               </div>
+              {cal && (
+                <div className="flex items-center gap-3 rounded-2xl border border-[#f97316]/25 bg-[#f97316]/10 px-4 py-3">
+                  <span className="text-3xl" aria-hidden>
+                    🔥
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+                      Kalori terbakar <span className="rounded bg-[#f97316]/20 px-1 text-[10px] text-[#ea580c]">Estimasi</span>
+                    </p>
+                    <p className="font-display text-2xl font-bold leading-tight">
+                      ± {cal.kcal.toLocaleString("id-ID")} kcal
+                      <span className="ml-1.5 font-sans text-xs font-normal text-muted">
+                        ({cal.low.toLocaleString("id-ID")}–{cal.high.toLocaleString("id-ID")})
+                      </span>
+                    </p>
+                    <p className="text-[11px] leading-snug text-muted">
+                      Perkiraan dari {cal.minutes} menit latihan dan berat badan {cal.weightKg.toLocaleString("id-ID")} kg
+                      {cal.defaultWeight ? " (rata-rata; isi Body Metrics supaya lebih pas)" : ""}. Bukan angka pasti.
+                    </p>
+                  </div>
+                </div>
+              )}
               <div className="flex items-center gap-3 rounded-2xl bg-nav-bg p-3">
                 <MuscleMap levels={summary.levels} height={112} tone="dark" />
                 <div className="flex flex-wrap gap-1.5">
@@ -243,6 +275,7 @@ export function DayFinishFlow({
                   { big: String(totals.workoutNumber), unit: "latihan", sub: `${formatDuration(totals.durationSec)} · ${formatKg(totals.totalKg)} kg diangkat total` },
                   { big: formatKg(summary.totalVolume), unit: "kg hari ini", sub: eq ? `${eq.emoji} setara ${formatKg(eq.factor)}× ${eq.name}` : "" },
                   { big: String(summary.prCount), unit: "rekor pribadi", sub: summary.prCount ? "Rekor baru hari ini 🏆" : "Terus dorong, rekor menunggu!" },
+                  ...(cal ? [{ big: `±${cal.kcal.toLocaleString("id-ID")}`, unit: "kcal terbakar", sub: "Estimasi dari durasi & berat badan, bukan angka pasti 🔥" }] : []),
                   { big: String(totals.daysThisWeek), unit: "hari minggu ini", sub: totals.daysThisWeek >= 3 ? "Konsisten seperti dewa Olympus ⚡" : "Tambah satu hari lagi minggu ini?" },
                 ].map((c) => (
                   <div
@@ -255,6 +288,13 @@ export function DayFinishFlow({
                   </div>
                 ))}
               </div>
+              <button
+                type="button"
+                onClick={() => setSticker(true)}
+                className="flex h-12 items-center justify-center gap-2 rounded-xl bg-nav-bg text-sm font-semibold text-white hover:opacity-90"
+              >
+                🖼️ Stiker latihan <span className="text-xs font-normal text-white/70">PNG transparan</span>
+              </button>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -314,6 +354,16 @@ export function DayFinishFlow({
         )}
       </div>
 
+      {sticker && summary && (
+        <WorkoutStickerModal
+          title={title || defaultTitle}
+          lines={summary.lines}
+          levels={summary.levels}
+          stats={`${formatKg(summary.totalVolume)} kg · ${summary.totalSets} set${summary.prCount ? ` · ${summary.prCount} PR` : ""}`}
+          memberName={memberName}
+          onClose={() => setSticker(false)}
+        />
+      )}
       {story && summary && (
         <VolumeStoryModal
           data={{ memberName, exerciseName: title || defaultTitle, sets: summary.sets }}
