@@ -10,6 +10,7 @@ interface Comment {
   id: string;
   body: string;
   name: string;
+  coach: boolean;
   createdAt: string;
 }
 
@@ -161,7 +162,11 @@ function PostCard({ post }: { post: FeedPost }) {
             <ul className="flex flex-col gap-2">
               {comments.map((c) => (
                 <li key={c.id} className="text-sm">
-                  <span className="font-semibold">{c.name}</span> {c.body}
+                  <span className="font-semibold">{c.name}</span>
+                  {c.coach && (
+                    <span className="ml-1 rounded bg-accent/10 px-1 py-px text-[10px] font-bold uppercase text-accent">Coach</span>
+                  )}{" "}
+                  {c.body}
                   <span className="ml-1 text-[11px] text-muted">{timeAgo(c.createdAt)}</span>
                 </li>
               ))}
@@ -192,11 +197,16 @@ function PostCard({ post }: { post: FeedPost }) {
   );
 }
 
-export function FeedView({ posts }: { posts: FeedPost[] }) {
+export function FeedView({ posts, emptyText }: { posts: FeedPost[]; emptyText?: string }) {
   if (posts.length === 0) {
     return (
       <p className="rounded-2xl border border-dashed border-border-strong bg-surface p-8 text-center text-sm text-muted">
-        Belum ada latihan di Feed. Selesaikan latihan hari ini lalu tekan <b>Simpan latihan</b> — latihanmu akan muncul di sini.
+        {emptyText ?? (
+          <>
+            Belum ada latihan di Feed. Selesaikan latihan hari ini lalu tekan <b>Simpan latihan</b> — latihanmu akan muncul di
+            sini.
+          </>
+        )}
       </p>
     );
   }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { CLASS_SESSIONS } from "@/lib/classSessions";
 import { CLASS_WEEKDAYS, getClassSchedule } from "@/lib/classSchedule";
@@ -15,6 +16,9 @@ export default async function ClassSchedulePage() {
   return (
     <div className="flex flex-col gap-4">
       <div>
+        <Link href="/coach/programs" className="text-sm text-accent hover:underline">
+          &larr; Kembali ke Program
+        </Link>
         <h1 className="font-display text-2xl font-bold">Jadwal Kelas</h1>
         <p className="text-sm text-muted">
           Siapa yang mengajar di tiap jam. Member otomatis melihat program coach dari kelas yang sedang atau akan berjalan
