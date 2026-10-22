@@ -43,6 +43,7 @@ function PostCard({ post }: { post: FeedPost }) {
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [allLines, setAllLines] = useState(false);
 
   async function toggleKudos() {
     const next = !kudos.mine;
@@ -125,13 +126,24 @@ function PostCard({ post }: { post: FeedPost }) {
       <div className="mx-4 mt-3 flex items-center gap-3 rounded-xl bg-surface-2 p-2.5">
         <MuscleMap levels={post.summary.levels} height={84} labels={false} />
         <ul className="min-w-0 flex-1 text-[13px]">
-          {lines.slice(0, 5).map((l) => (
+          {(allLines ? lines : lines.slice(0, 5)).map((l) => (
             <li key={l.exercise} className="truncate">
               <span className="font-semibold">{l.sets} set</span> {l.exercise}
               {l.pr && " 🏆"}
             </li>
           ))}
-          {lines.length > 5 && <li className="text-xs text-muted">+{lines.length - 5} gerakan lagi</li>}
+          {lines.length > 5 && (
+            <li>
+              <button
+                type="button"
+                onClick={() => setAllLines((v) => !v)}
+                aria-expanded={allLines}
+                className="text-xs font-semibold text-accent hover:underline"
+              >
+                {allLines ? "Sembunyikan" : `+${lines.length - 5} gerakan lagi`}
+              </button>
+            </li>
+          )}
         </ul>
       </div>
       <div className="mt-2 flex border-t border-border">
