@@ -36,6 +36,8 @@ interface NavBarProps {
   role: NavRole;
   /** Off when the page supplies its own mobile navigation (member bottom bar). */
   mobileTabs?: boolean;
+  /** Extra controls before the theme toggle, e.g. the member's notification bell. */
+  extra?: React.ReactNode;
 }
 
 function initials(name: string) {
@@ -60,7 +62,7 @@ function IntentPrefetchLink(props: Omit<ComponentProps<typeof Link>, "prefetch">
   );
 }
 
-export function NavBar({ links, userName, role, mobileTabs = true }: NavBarProps) {
+export function NavBar({ links, userName, role, mobileTabs = true, extra }: NavBarProps) {
   const pathname = usePathname();
   const mobileNavRef = useRef<HTMLElement>(null);
   // The mobile nav is a horizontally scrolling strip with more links than
@@ -139,6 +141,7 @@ export function NavBar({ links, userName, role, mobileTabs = true }: NavBarProps
             </span>
             <span className="hidden max-w-[10rem] truncate text-sm text-nav-foreground/90 md:inline">{userName}</span>
           </div>
+          {extra}
           <ThemeToggle />
           <LogoutButton />
         </div>

@@ -14,6 +14,7 @@ const LEAD_SECTION_PATHS = [
   "owner",
   "packages",
   "payments",
+  "pengumuman",
   "renewals",
   "sales",
 ].map((s) => `/leads/${s}`);
@@ -26,6 +27,7 @@ const ADMIN_LINKS = [
   { href: "/leads/expenses", label: "Biaya" },
   { href: "/leads/kasir", label: "Kasir" },
   { href: "/leads/history", label: "Riwayat" },
+  { href: "/leads/pengumuman", label: "Info" },
   { href: "/leads/account", label: "Akun" },
 ];
 
@@ -37,6 +39,7 @@ const OWNER_LINKS = [
   { href: "/leads/kasir", label: "Kasir" },
   { href: "/leads/history", label: "Riwayat" },
   { href: "/leads/packages", label: "Harga" },
+  { href: "/leads/pengumuman", label: "Info" },
   { href: "/leads/account", label: "Akun" },
 ];
 

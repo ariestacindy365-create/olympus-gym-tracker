@@ -5,6 +5,7 @@ const LINKS = [
   { href: "/coach/dashboard", label: "Dashboard" },
   { href: "/coach/members", label: "Members" },
   { href: "/coach/feed", label: "Feed" },
+  { href: "/coach/pengumuman", label: "Info" },
   { href: "/coach/programs", label: "Program" },
   { href: "/coach/board", label: "Live Board" },
   { href: "/coach/timer", label: "Timer" },

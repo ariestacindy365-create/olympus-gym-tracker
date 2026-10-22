@@ -86,7 +86,7 @@ function PostCard({ post }: { post: FeedPost }) {
 
   const lines = post.summary.lines;
   return (
-    <article className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
+    <article id={`post-${post.id}`} className="scroll-mt-20 overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
       <div className="flex items-center gap-3 px-4 pt-3.5">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-nav-bg font-display text-sm font-bold text-white">
           {initials(post.memberName)}

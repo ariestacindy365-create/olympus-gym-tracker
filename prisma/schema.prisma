@@ -53,6 +53,8 @@ model User {
   leaderboardOptOut Boolean @default(false)
   // Default "Dilihat oleh" for workouts the member saves to the feed.
   feedVisibility WorkoutVisibility @default(ALL)
+  // Morning "program hari ini" reminder.
+  notifyProgram  Boolean           @default(true)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -62,6 +64,9 @@ model User {
   dailyWorkoutsCreated DailyWorkout[]      @relation("CoachDailyWorkouts")
   programsAsCoach      TrainingProgram[]   @relation("CoachPrograms")
   classSlots           ClassSlot[]         @relation("CoachClassSlots")
+  notifications        Notification[]
+  announcements        Announcement[]
+  pushSubscriptions    PushSubscription[]
   programSnapshots     ProgramSnapshot[]   @relation("CoachProgramSnapshots")
   programWeekOverrides ProgramWeekOverride[] @relation("CoachProgramWeekOverrides")
   achievementUnlocks   AchievementUnlock[]
@@ -695,4 +700,76 @@ model WorkoutComment {
   createdAt DateTime @default(now())
 
   @@index([workoutId, createdAt])
+}
+
+// --- Notifications ------------------------------------------------------------
+
+enum NotificationType {
+  KUDOS
+  COMMENT
+  COACH_NOTE
+  PROGRAM_TODAY
+  ANNOUNCEMENT
+}
+
+// One in-app notification for one user (also sent to their phone when they
+// turned push on).
+model Notification {
+  id             String           @id @default(cuid())
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type           NotificationType
+  title          String
+  body           String
+  url            String?
+  announcementId String?
+  announcement   Announcement?    @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  readAt         DateTime?
+  createdAt      DateTime         @default(now())
+
+  @@index([userId, createdAt])
+}
+
+enum AnnouncementCategory {
+  PENGUMUMAN
+  PROMO
+  ARTIKEL
+  LAINNYA
+}
+
+// Sent by staff to every member; each member gets a Notification row.
+model Announcement {
+  id          String               @id @default(cuid())
+  category    AnnouncementCategory
+  title       String
+  body        String
+  linkUrl     String?
+  createdById String
+  createdBy   User                 @relation(fields: [createdById], references: [id])
+  createdAt   DateTime             @default(now())
+
+  notifications Notification[]
+
+  @@index([createdAt])
+}
+
+// A browser/phone that accepted push notifications.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// The app's VAPID key pair for Web Push, made on first use. Singleton.
+model PushConfig {
+  id         String   @id @default("singleton")
+  publicKey  String
+  privateJwk Json
+  createdAt  DateTime @default(now())
 }
