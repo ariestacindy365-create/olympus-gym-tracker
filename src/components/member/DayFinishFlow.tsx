@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MuscleMap } from "@/components/shared/MuscleMap";
 import { VolumeStoryModal } from "@/components/member/VolumeStoryModal";
+import { WorkoutStickerModal } from "@/components/shared/WorkoutStickerModal";
 import { formatKg, pickEquivalent, type LifterCharacter, type SkinTone } from "@/lib/volumeStory";
 import { MUSCLE_LABEL, type MuscleKey } from "@/lib/muscles";
 import type { DaySummary } from "@/lib/workoutSummary";
@@ -67,6 +68,7 @@ export function DayFinishFlow({
   const [pending, setPending] = useState(false);
   const [totals, setTotals] = useState<Totals | null>(null);
   const [story, setStory] = useState(false);
+  const [sticker, setSticker] = useState(false);
   const [copied, setCopied] = useState(false);
   const [bodyWeightKg, setBodyWeightKg] = useState<number | null>(null);
 
@@ -286,6 +288,13 @@ export function DayFinishFlow({
                   </div>
                 ))}
               </div>
+              <button
+                type="button"
+                onClick={() => setSticker(true)}
+                className="flex h-12 items-center justify-center gap-2 rounded-xl bg-nav-bg text-sm font-semibold text-white hover:opacity-90"
+              >
+                🖼️ Stiker latihan <span className="text-xs font-normal text-white/70">PNG transparan</span>
+              </button>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -345,6 +354,16 @@ export function DayFinishFlow({
         )}
       </div>
 
+      {sticker && summary && (
+        <WorkoutStickerModal
+          title={title || defaultTitle}
+          lines={summary.lines}
+          levels={summary.levels}
+          stats={`${formatKg(summary.totalVolume)} kg · ${summary.totalSets} set${summary.prCount ? ` · ${summary.prCount} PR` : ""}`}
+          memberName={memberName}
+          onClose={() => setSticker(false)}
+        />
+      )}
       {story && summary && (
         <VolumeStoryModal
           data={{ memberName, exerciseName: title || defaultTitle, sets: summary.sets }}
