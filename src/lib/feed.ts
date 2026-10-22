@@ -27,12 +27,15 @@ export interface FeedPost {
   summary: Pick<DaySummary, "lines" | "levels">;
 }
 
-export async function getFeed(viewer: { id: string; role: Role }, take = 30): Promise<FeedPost[]> {
+/** `classOf`: only workouts saved from that coach's classes ("Coach Ari · …"). */
+export async function getFeed(viewer: { id: string; role: Role }, take = 30, classOf?: string): Promise<FeedPost[]> {
   const workouts = await prisma.workout.findMany({
-    where:
-      viewer.role === Role.COACH
+    where: {
+      ...(viewer.role === Role.COACH
         ? { OR: [{ visibility: { in: [WorkoutVisibility.ALL, WorkoutVisibility.COACH] } }, { memberId: viewer.id }] }
-        : { OR: [{ visibility: WorkoutVisibility.ALL }, { memberId: viewer.id }] },
+        : { OR: [{ visibility: WorkoutVisibility.ALL }, { memberId: viewer.id }] }),
+      ...(classOf ? { classLabel: { startsWith: `${classOf} · ` } } : {}),
+    },
     orderBy: { createdAt: "desc" },
     take,
     include: {

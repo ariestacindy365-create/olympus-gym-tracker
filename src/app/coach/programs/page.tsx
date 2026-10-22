@@ -58,6 +58,9 @@ export default async function CoachProgramsPage() {
         </div>
         <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
           <SlideShowButton slides={thisWeek.days} label={`▶ Slideshow Minggu ${thisWeek.weekNumber}`} />
+          <Link href="/coach/jadwal" className="whitespace-nowrap text-sm font-semibold text-accent hover:underline">
+            🗓️ Jadwal Kelas
+          </Link>
           <Link
             href="/coach/programs/riwayat"
             className="whitespace-nowrap text-sm font-semibold text-accent hover:underline"

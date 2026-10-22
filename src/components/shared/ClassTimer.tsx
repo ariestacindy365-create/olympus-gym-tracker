@@ -64,12 +64,17 @@ function beep(freq: number, ms: number) {
     const gain = audioCtx.createGain();
     osc.type = "square";
     osc.frequency.value = freq;
-    gain.gain.value = 0.12;
-    osc.connect(gain).connect(audioCtx.destination);
+    // Full level, held for the whole beep with only a short fade at the end,
+    // so the laptop / speaker volume is the one knob that sets how loud it is.
     const now = audioCtx.currentTime;
+    const end = now + ms / 1000;
+    const fade = Math.min(0.04, ms / 4000);
+    gain.gain.setValueAtTime(0.9, now);
+    gain.gain.setValueAtTime(0.9, end - fade);
+    gain.gain.linearRampToValueAtTime(0.0001, end);
+    osc.connect(gain).connect(audioCtx.destination);
     osc.start(now);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + ms / 1000);
-    osc.stop(now + ms / 1000);
+    osc.stop(end);
   } catch {
     // Audio is a bonus; the clock still works without it.
   }
