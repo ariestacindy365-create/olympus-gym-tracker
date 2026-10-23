@@ -9,7 +9,8 @@ import { formatKg, pickEquivalent, type LifterCharacter, type SkinTone } from "@
 import { MUSCLE_LABEL, type MuscleKey } from "@/lib/muscles";
 import type { DaySummary } from "@/lib/workoutSummary";
 import { formatDuration } from "@/lib/duration";
-import { estimateCalories } from "@/lib/calories";
+import { estimateCalories, foodEquivalent } from "@/lib/calories";
+import { CalorieShareModal } from "@/components/member/CalorieShareModal";
 import { formatAmount } from "@/lib/setUnits";
 
 type Visibility = "ALL" | "COACH" | "PRIVATE";
@@ -73,6 +74,7 @@ export function DayFinishFlow({
   const [totals, setTotals] = useState<Totals | null>(null);
   const [story, setStory] = useState(false);
   const [sticker, setSticker] = useState(false);
+  const [calCard, setCalCard] = useState(false);
   const [copied, setCopied] = useState(false);
   const [bodyWeightKg, setBodyWeightKg] = useState<number | null>(null);
   const [durationMin, setDurationMin] = useState(60);
@@ -124,6 +126,7 @@ export function DayFinishFlow({
   // A filled-in day's sets were typed in later, so the member says how long it took.
   const durationSec = summary ? (date ? durationMin * 60 : summary.durationSec) : 0;
   const cal = summary ? estimateCalories(durationSec, bodyWeightKg) : null;
+  const food = cal ? foodEquivalent(cal.kcal) : null;
   const eq = summary ? pickEquivalent(summary.totalVolume) : null;
   const muscles = summary
     ? (Object.entries(summary.muscleSets) as [MuscleKey, number][]).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])
@@ -131,7 +134,8 @@ export function DayFinishFlow({
   const shareText = summary
     ? `${title || defaultTitle} di OLYMPUS Lifting Club 💪 ${formatKg(summary.totalVolume)} kg total volume, ${summary.totalSets} set` +
       (summary.prCount ? `, ${summary.prCount} rekor pribadi 🏆` : "") +
-      (eq ? ` — setara ${formatKg(eq.factor)}× ${eq.name} ${eq.emoji}` : "")
+      (eq ? ` — setara ${formatKg(eq.factor)}× ${eq.name} ${eq.emoji}` : "") +
+      (cal && food ? `. Bakar ±${cal.kcal.toLocaleString("id-ID")} kcal, setara ${food.main.text} ${food.main.emoji} (estimasi) 🔥` : "")
     : "";
 
   return (
@@ -211,6 +215,12 @@ export function DayFinishFlow({
                         ({cal.low.toLocaleString("id-ID")}–{cal.high.toLocaleString("id-ID")})
                       </span>
                     </p>
+                    {food && (
+                      <p className="text-sm font-semibold">
+                        {food.main.emoji} setara {food.main.text}
+                        {food.alt && <span className="font-normal text-muted"> · atau {food.alt.text}</span>}
+                      </p>
+                    )}
                     <p className="text-[11px] leading-snug text-muted">
                       Perkiraan dari {cal.minutes} menit latihan dan berat badan {cal.weightKg.toLocaleString("id-ID")} kg
                       {cal.defaultWeight ? " (rata-rata; isi Body Metrics supaya lebih pas)" : ""}. Bukan angka pasti.
@@ -304,7 +314,7 @@ export function DayFinishFlow({
                   { big: String(totals.workoutNumber), unit: "latihan", sub: `${formatDuration(totals.durationSec)} · ${formatKg(totals.totalKg)} kg diangkat total` },
                   { big: formatKg(summary.totalVolume), unit: date ? "kg diangkat" : "kg hari ini", sub: eq ? `${eq.emoji} setara ${formatKg(eq.factor)}× ${eq.name}` : "" },
                   { big: String(summary.prCount), unit: "rekor pribadi", sub: summary.prCount ? date ? "Rekor baru 🏆" : "Rekor baru hari ini 🏆" : "Terus dorong, rekor menunggu!" },
-                  ...(cal ? [{ big: `±${cal.kcal.toLocaleString("id-ID")}`, unit: "kcal terbakar", sub: "Estimasi dari durasi & berat badan, bukan angka pasti 🔥" }] : []),
+                  ...(cal ? [{ big: `±${cal.kcal.toLocaleString("id-ID")}`, unit: "kcal terbakar", sub: `${food?.main.emoji} setara ${food?.main.text} · estimasi, bukan angka pasti` }] : []),
                   { big: String(totals.daysThisWeek), unit: "hari minggu ini", sub: totals.daysThisWeek >= 3 ? "Konsisten seperti dewa Olympus ⚡" : "Tambah satu hari lagi minggu ini?" },
                 ].map((c) => (
                   <div
@@ -324,6 +334,17 @@ export function DayFinishFlow({
               >
                 🖼️ Stiker latihan <span className="text-xs font-normal text-white/70">PNG transparan</span>
               </button>
+              {cal && (
+                <button
+                  type="button"
+                  onClick={() => setCalCard(true)}
+                  className="flex h-12 items-center justify-center gap-2 rounded-xl bg-[#ea580c] text-sm font-semibold text-white hover:opacity-90"
+                >
+                  🔥 Kartu kalori <span className="text-xs font-normal text-white/80">
+                    {food?.main.emoji} {food?.main.text}
+                  </span>
+                </button>
+              )}
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -383,6 +404,15 @@ export function DayFinishFlow({
         )}
       </div>
 
+      {calCard && cal && summary && (
+        <CalorieShareModal
+          cal={cal}
+          title={title || defaultTitle}
+          stats={`${formatDuration(durationSec)} · ${formatKg(summary.totalVolume)} kg`}
+          memberName={memberName}
+          onClose={() => setCalCard(false)}
+        />
+      )}
       {sticker && summary && (
         <WorkoutStickerModal
           title={title || defaultTitle}
