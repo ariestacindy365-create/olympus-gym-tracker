@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MuscleMap } from "@/components/shared/MuscleMap";
 import { shareOrDownload } from "@/lib/shareFile";
+import { formatKg } from "@/lib/volumeStory";
 import type { MuscleKey } from "@/lib/muscles";
 
 interface StickerLine {
@@ -14,14 +15,14 @@ interface WorkoutStickerModalProps {
   title: string;
   lines: StickerLine[];
   levels: Partial<Record<MuscleKey, number>>;
-  /** Small line under the title, e.g. "1.620 kg · 45m". */
-  stats?: string;
+  totalVolume: number;
+  totalSets: number;
+  prCount: number;
   memberName: string;
   onClose: () => void;
 }
 
 const SIZE = 1080;
-const MAX_LINES = 8;
 type Ink = "light" | "dark";
 const INK = {
   light: { text: "#ffffff", muted: "rgba(255,255,255,0.72)", accent: "#3b82f6", shadow: "rgba(0,0,0,0.45)", logo: "/olympus-logo-light-bw.png" },
@@ -83,59 +84,66 @@ async function drawSticker(canvas: HTMLCanvasElement, host: HTMLElement, p: Work
   ctx.shadowColor = c.shadow;
   ctx.shadowBlur = 18;
 
-  const left = 70;
-  const textWidth = 680;
+  // Poster layout: the title runs up the left edge, front/back figures fill
+  // the right, total volume sits under a rule at the bottom.
+  const margin = 70;
+  const title = p.title.toUpperCase();
+  let size = 170;
+  ctx.font = `700 ${size}px ${display}`;
+  while (size > 90 && ctx.measureText(title).width > SIZE - 2 * margin) {
+    size -= 4;
+    ctx.font = `700 ${size}px ${display}`;
+  }
   ctx.fillStyle = c.text;
-  ctx.font = `700 76px ${display}`;
-  ctx.fillText(fit(ctx, p.title.toUpperCase(), textWidth), left, 205);
-  if (p.stats) {
-    ctx.fillStyle = c.muted;
-    ctx.font = `500 34px ${body}`;
-    ctx.fillText(fit(ctx, p.stats, textWidth), left, 258);
-  }
+  ctx.save();
+  ctx.translate(margin + size * 0.76, SIZE - margin);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText(fit(ctx, title, SIZE - 2 * margin), 0, 0);
+  ctx.restore();
 
-  const shown = p.lines.slice(0, MAX_LINES);
-  const rest = p.lines.length - shown.length;
-  const top = p.stats ? 345 : 320;
-  const step = shown.length + (rest > 0 ? 1 : 0) > 7 ? 66 : 74;
-  shown.forEach((l, i) => {
-    const y = top + i * step;
-    const count = `${l.sets}x`;
-    ctx.fillStyle = c.accent;
-    ctx.font = `700 46px ${body}`;
-    ctx.fillText(count, left, y);
-    const nameX = left + Math.max(78, ctx.measureText(count).width + 22);
-    ctx.fillStyle = c.text;
-    ctx.font = `500 44px ${body}`;
-    ctx.fillText(fit(ctx, l.exercise, left + textWidth - nameX), nameX, y);
-  });
-  if (rest > 0) {
-    ctx.fillStyle = c.muted;
-    ctx.font = `500 36px ${body}`;
-    ctx.fillText(`+${rest} gerakan lagi`, left, top + shown.length * step);
-  }
-
+  const col = 270;
+  const right = SIZE - margin;
   ctx.shadowBlur = 0;
   const [front, back] = await figureImages(host);
-  if (front) ctx.drawImage(front, 800, 110, 210, 400);
-  if (back) ctx.drawImage(back, 800, 520, 210, 400);
+  const figH = 660;
+  const figW = Math.round(figH * (200 / 380));
+  const gap = right - col - 2 * figW;
+  if (front) ctx.drawImage(front, col, 70, figW, figH);
+  if (back) ctx.drawImage(back, col + figW + gap, 70, figW, figH);
 
   ctx.shadowBlur = 18;
+  ctx.fillRect(col, 790, right - col, 5);
+
+  ctx.font = `700 150px ${display}`;
+  const volume = formatKg(p.totalVolume);
+  ctx.fillText(fit(ctx, volume, 470), col, 950);
+  const volW = Math.min(470, ctx.measureText(volume).width);
+  ctx.font = `700 54px ${display}`;
+  ctx.fillText("KG", col + volW + 14, 950);
+
+  ctx.fillStyle = c.muted;
+  ctx.font = `600 32px ${body}`;
+  if ("letterSpacing" in ctx) ctx.letterSpacing = "4px";
+  const stats = [`${p.totalSets} SET`, p.prCount ? `${p.prCount} PR` : ""].filter(Boolean).join(" · ");
+  ctx.fillText(fit(ctx, stats, 400), col, SIZE - margin);
+  if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
+
   const logo = await loadImage(c.logo).catch(() => null);
   if (logo) {
-    const h = 74;
-    ctx.drawImage(logo, left, 935, (logo.width / logo.height) * h, h);
+    const h = 62;
+    const w = (logo.width / logo.height) * h;
+    ctx.drawImage(logo, right - w, 840, w, h);
   }
   ctx.fillStyle = c.text;
-  ctx.font = `600 42px ${body}`;
+  ctx.font = `600 38px ${body}`;
   ctx.textAlign = "right";
-  ctx.fillText(fit(ctx, p.memberName, 420), SIZE - 70, 990);
+  ctx.fillText(fit(ctx, p.memberName, 300), right, SIZE - margin);
   ctx.textAlign = "left";
 }
 
 /**
- * "Stiker latihan": the workout as a transparent 1080×1080 PNG (title,
- * "3x Gerakan" lines, front/back muscle map, OLYMPUS logo) to lay over a
+ * "Stiker latihan": the workout as a transparent 1080×1080 PNG (title up the
+ * side, front/back muscle map, total volume, OLYMPUS logo) to lay over a
  * photo in an Instagram/WhatsApp story.
  */
 export function WorkoutStickerModal(props: WorkoutStickerModalProps) {
@@ -153,7 +161,7 @@ export function WorkoutStickerModal(props: WorkoutStickerModalProps) {
     drawSticker(canvasRef.current, hostRef.current, props, ink).catch(() => setError("Gagal menggambar stiker."));
     // props is a fresh object every render; redraw only when the look changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ink, title, levels]);
+  }, [ink, title, levels, props.totalVolume]);
 
   const toPngBlob = () =>
     new Promise<Blob>((resolve, reject) =>

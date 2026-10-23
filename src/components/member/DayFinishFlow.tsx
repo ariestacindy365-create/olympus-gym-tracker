@@ -388,7 +388,9 @@ export function DayFinishFlow({
           title={title || defaultTitle}
           lines={summary.lines}
           levels={summary.levels}
-          stats={`${formatKg(summary.totalVolume)} kg · ${summary.totalSets} set${summary.prCount ? ` · ${summary.prCount} PR` : ""}`}
+          totalVolume={summary.totalVolume}
+          totalSets={summary.totalSets}
+          prCount={summary.prCount}
           memberName={memberName}
           onClose={() => setSticker(false)}
         />
