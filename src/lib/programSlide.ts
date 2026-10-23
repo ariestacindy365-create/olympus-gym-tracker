@@ -9,6 +9,8 @@ export interface SlideSlot {
   sets: number | string | null;
   repTarget: string | null;
   roundScheme: string | null;
+  /** Coach's note on the slot, shown in brackets after the movement name. */
+  note?: string | null;
 }
 
 export interface SlideRound {
@@ -51,7 +53,11 @@ export function buildSlideRounds(slots: SlideSlot[]): SlideRound[] {
     }
     currentKey = key;
     const rep = formatRepTarget(s.repTarget);
-    rounds[rounds.length - 1].items.push(`${label ? `${label}. ` : ""}${s.movementName}${rep ? ` ${rep}` : ""}`);
+    const note = (s.note ?? "").trim();
+    // "A1. BB Deadlift (tempo 3-1-1) 10-12 reps"
+    rounds[rounds.length - 1].items.push(
+      `${label ? `${label}. ` : ""}${s.movementName}${note ? ` (${note})` : ""}${rep ? ` ${rep}` : ""}`
+    );
   }
   return rounds.map((r, i) => ({
     number: i + 1,

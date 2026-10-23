@@ -205,6 +205,7 @@ export function TodayWorkoutPlan({
                 <p className="flex flex-wrap items-baseline gap-x-2">
                   <span className="font-display text-sm font-bold text-accent">{it.label}</span>
                   <span className="font-semibold">{it.name}</span>
+                  {it.note && <span className="text-sm text-foreground/80">({it.note})</span>}
                   {it.target && <span className="text-xs text-muted">· {it.target}</span>}
                 </p>
                 {muscles.length > 0 && <p className="text-[11.5px] font-semibold text-accent">🎯 {muscles.join(" · ")}</p>}

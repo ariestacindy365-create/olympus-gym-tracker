@@ -67,6 +67,7 @@ export async function getThisWeekProgram(
         sets: s.sets,
         repTarget: s.repTarget,
         roundScheme: s.roundScheme,
+        note: s.note,
       }))
     ),
   }));

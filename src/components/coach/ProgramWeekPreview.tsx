@@ -66,6 +66,7 @@ export function ProgramWeekPreview({ weekNumber, days, movements, onEdit }: Prog
             sets: s.sets,
             repTarget: s.repTarget,
             roundScheme: s.roundScheme,
+            note: s.note,
           }))
       ),
     }))

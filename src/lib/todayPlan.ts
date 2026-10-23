@@ -23,6 +23,8 @@ export interface PlanItem {
   /** "10 reps each": the number is per side, and volume counts both sides. */
   perSide: boolean;
   muscles: MuscleWeights;
+  /** Coach's note on the slot (e.g. "tempo 3-1-1"). */
+  note: string | null;
 }
 
 export interface PlanRound {
@@ -107,6 +109,7 @@ export async function getTodayPlan(classes: TodayClasses): Promise<TodayPlan | n
       unit: unitFromTarget(s.repTarget),
       perSide: perSideFromTarget(s.repTarget),
       muscles: musclesFor(s.movement.name, s.movement.primaryMuscle, s.movement.secondaryMuscle),
+      note: s.note?.trim() || null,
     });
   }
 
