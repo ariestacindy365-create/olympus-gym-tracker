@@ -54,34 +54,46 @@ function MinutesField({ value, onChange }: { value: number; onChange: (n: number
 }
 
 /**
- * A referee's pea whistle on `ctx` at time `at`: a ~2.9 kHz tone that the pea
- * trills about 34 times a second (pitch and level wobble), plus a little
- * breath noise. Held at full level with a short fade, so the laptop / speaker
- * volume is the one knob that sets how loud it is. Exported for previews.
+ * A referee's pea whistle on `ctx` at time `at`: a bright ~2.9 kHz tone (a
+ * sawtooth, so it has the shrill overtones) that the pea trills about 38 times
+ * a second (pitch and level wobble), plus a little breath noise, through a
+ * compressor so it cuts through the room. Held at full level with a short
+ * fade, so the laptop / speaker volume is the one knob that sets how loud it
+ * is. Exported for previews.
  */
 export function scheduleWhistle(ctx: BaseAudioContext, at: number, ms: number, pitch = 1) {
   const end = at + ms / 1000;
   const freq = 2900 * pitch;
+  const squeeze = ctx.createDynamicsCompressor();
+  squeeze.threshold.value = -24;
+  squeeze.ratio.value = 8;
+  squeeze.attack.value = 0.002;
+  squeeze.release.value = 0.1;
+  squeeze.connect(ctx.destination);
   const out = ctx.createGain();
   out.gain.setValueAtTime(0.0001, at);
-  out.gain.linearRampToValueAtTime(0.9, at + 0.015);
-  out.gain.setValueAtTime(0.9, Math.max(at + 0.015, end - 0.05));
+  out.gain.linearRampToValueAtTime(1, at + 0.008);
+  out.gain.setValueAtTime(1, Math.max(at + 0.008, end - 0.06));
   out.gain.linearRampToValueAtTime(0.0001, end);
-  out.connect(ctx.destination);
+  out.connect(squeeze);
 
   const tone = ctx.createOscillator();
+  tone.type = "sawtooth";
   tone.frequency.value = freq;
+  const bright = ctx.createBiquadFilter();
+  bright.type = "lowpass";
+  bright.frequency.value = 9000;
   const trill = ctx.createOscillator();
-  trill.frequency.value = 34;
+  trill.frequency.value = 38;
   const trillPitch = ctx.createGain();
-  trillPitch.gain.value = 140 * pitch;
+  trillPitch.gain.value = 180 * pitch;
   trill.connect(trillPitch).connect(tone.frequency);
   const level = ctx.createGain();
-  level.gain.value = 0.7;
+  level.gain.value = 0.55;
   const trillLevel = ctx.createGain();
-  trillLevel.gain.value = 0.3;
+  trillLevel.gain.value = 0.45;
   trill.connect(trillLevel).connect(level.gain);
-  tone.connect(level).connect(out);
+  tone.connect(bright).connect(level).connect(out);
 
   const len = Math.ceil(ctx.sampleRate * (ms / 1000));
   const buf = ctx.createBuffer(1, len, ctx.sampleRate);
@@ -94,7 +106,7 @@ export function scheduleWhistle(ctx: BaseAudioContext, at: number, ms: number, p
   band.frequency.value = freq;
   band.Q.value = 6;
   const breathLevel = ctx.createGain();
-  breathLevel.gain.value = 0.25;
+  breathLevel.gain.value = 0.2;
   breath.connect(band).connect(breathLevel).connect(out);
 
   for (const node of [tone, trill, breath]) {
@@ -174,9 +186,9 @@ export function ClassTimer({ initial, subtitle, variant = "page", onToggleSize, 
     if (key === lastWhistleRef.current) return;
     const prev = lastWhistleRef.current;
     lastWhistleRef.current = key;
-    if (f.phase === "done") whistle(1200);
-    else if (prev && !prev.startsWith(`${f.phase}-${f.round}-`)) whistle(550, f.phase === "rest" ? 0.85 : 1);
-    else if (left <= 3 && left >= 1) whistle(150);
+    if (f.phase === "done") whistle(2000);
+    else if (prev && !prev.startsWith(`${f.phase}-${f.round}-`)) whistle(1000, f.phase === "rest" ? 0.85 : 1);
+    else if (left <= 3 && left >= 1) whistle(300);
   }, [elapsed, running, config]);
 
   const reset = useCallback(() => {
@@ -202,7 +214,7 @@ export function ClassTimer({ initial, subtitle, variant = "page", onToggleSize, 
     baseRef.current = elapsed;
     setRunning(false);
     setFinishedAt(elapsed);
-    whistle(1200);
+    whistle(2000);
   }
 
   useEffect(() => {

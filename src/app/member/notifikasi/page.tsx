@@ -11,7 +11,7 @@ export default async function MemberNotificationsPage() {
     where: { userId: user.id },
     orderBy: { createdAt: "desc" },
     take: 60,
-    include: { announcement: { select: { linkUrl: true } } },
+    include: { announcement: { select: { linkUrl: true, createdBy: { select: { name: true, role: true } } } } },
   });
 
   return (
@@ -27,6 +27,8 @@ export default async function MemberNotificationsPage() {
           url: n.url,
           announcementId: n.announcementId,
           linkUrl: n.announcement?.linkUrl ?? null,
+          // Coaches sign their announcements; the front desk and owner speak as Olympus.
+          from: n.announcement?.createdBy.role === "COACH" ? n.announcement.createdBy.name : null,
           read: n.readAt !== null,
           createdAt: n.createdAt.toISOString(),
         }))}

@@ -11,6 +11,8 @@ export interface NotificationRow {
   url: string | null;
   announcementId: string | null;
   linkUrl: string | null;
+  /** Coach who sent the announcement. */
+  from?: string | null;
   read: boolean;
   createdAt: string;
 }
@@ -57,7 +59,10 @@ export function NotificationList({ items }: { items: NotificationRow[] }) {
               {!n.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-accent" aria-label="Belum dibaca" />}
             </div>
             <p className={`mt-0.5 text-[13px] text-muted ${expanded ? "whitespace-pre-line" : "line-clamp-2"}`}>{n.body}</p>
-            <p className="mt-1 text-[11px] text-muted">{timeAgo(n.createdAt)}</p>
+            <p className="mt-1 text-[11px] text-muted">
+              {timeAgo(n.createdAt)}
+              {n.from && ` · dari ${n.from}`}
+            </p>
           </>
         );
         return (
