@@ -21,6 +21,7 @@ import { getMemberClassOn, getMemberTodayClass } from "@/lib/memberClass";
 import { BackfillPicker } from "@/components/member/BackfillPicker";
 import { getMonthlyChallenge } from "@/lib/challenge";
 import { ChallengeCard } from "@/components/member/ChallengeCard";
+import { PushPrompt } from "@/components/member/PushPrompt";
 import { TodayWorkoutPlan, type LoggedSet } from "@/components/member/TodayWorkoutPlan";
 import type { SetUnit } from "@/lib/setUnits";
 
@@ -210,6 +211,7 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
       ) : (
         <>
           <PageHeader eyebrow={todayLabel()} title={`Halo, ${user.name}`} subtitle="Berikut latihan hari ini." />
+          <PushPrompt />
           <TrainingStats summary={summary} />
           <CoachNotesCard notes={coachNotes} />
         </>
