@@ -145,7 +145,7 @@ export async function loadStoryAssets(): Promise<VolumeStoryAssets> {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = () => resolve(null);
-    img.src = "/olympus-logo-light.png";
+    img.src = "/olympus-logo-light-bw.png";
   });
   return { logo, hexPattern: createHexPattern(), displayFont, bodyFont };
 }

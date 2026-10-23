@@ -99,7 +99,9 @@ function PostCard({ post }: { post: FeedPost }) {
             {post.mine && <span className="ml-1 text-xs font-normal text-muted">(kamu)</span>}
           </p>
           <p className="text-xs text-muted">
-            {timeAgo(post.createdAt)}
+            {post.backfilledDate
+              ? `Latihan ${new Date(`${post.backfilledDate}T00:00:00Z`).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "short", timeZone: "UTC" })}`
+              : timeAgo(post.createdAt)}
             {post.classLabel && ` · Kelas ${post.classLabel}`}
             {VISIBILITY_NOTE[post.visibility] && ` · ${VISIBILITY_NOTE[post.visibility]}`}
           </p>

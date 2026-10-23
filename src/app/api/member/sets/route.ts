@@ -4,7 +4,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { estimate1RMFor } from "@/lib/oneRepMax";
 import { checkAndRecordPR } from "@/lib/pr";
-import { todayDateKey } from "@/lib/workout";
+import { BACKFILL_DAYS, loggableDateKey, todayDateKey } from "@/lib/workout";
+import { invalidatePriorBests } from "@/lib/priorBests";
 import { setEntrySchema } from "@/lib/validation";
 import { syncMemberAchievements } from "@/lib/achievements";
 import { Role } from "@/generated/prisma/client";
@@ -27,8 +28,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Gerakan tidak ditemukan." }, { status: 404 });
   }
 
+  const workoutDate = loggableDateKey(parsed.data.date);
+  if (!workoutDate) {
+    return NextResponse.json({ error: `Latihan hanya bisa diisi sampai ${BACKFILL_DAYS} hari ke belakang.` }, { status: 400 });
+  }
   const estimated1RM = estimate1RMFor(weight, reps, unit);
-  const workoutDate = todayDateKey();
 
   const setEntry = await prisma.$transaction(async (tx) => {
     let setNumber = parsed.data.setNumber;
@@ -64,6 +68,8 @@ export async function POST(request: NextRequest) {
     return saved;
   });
 
+  // A set on a past day can change the Live Board's "previous best".
+  if (workoutDate < todayDateKey()) invalidatePriorBests();
   const newAchievements = await syncMemberAchievements(user.id);
 
   return NextResponse.json({ setEntry, exercise, newAchievements });

@@ -17,6 +17,8 @@ export interface FeedPost {
   note: string | null;
   classLabel: string | null;
   createdAt: string;
+  /** "YYYY-MM-DD" when the workout was filled in after its day had ended. */
+  backfilledDate: string | null;
   durationSec: number;
   totalVolume: number;
   prCount: number;
@@ -64,6 +66,9 @@ export async function getFeed(viewer: { id: string; role: Role }, take = 30, cla
   return Promise.all(
     workouts.map(async (w) => {
       const s = await summarizeSets(setsByDay.get(dayKey(w.memberId, w.workoutDate)) ?? [], muscles);
+      // Saved after that Jakarta day ended (UTC midnight + 17 h): filled in
+      // later, so the duration the member entered stands.
+      const backfilled = w.updatedAt.getTime() >= w.workoutDate.getTime() + 17 * 3600_000;
       return {
         id: w.id,
         memberName: w.member.name,
@@ -72,8 +77,9 @@ export async function getFeed(viewer: { id: string; role: Role }, take = 30, cla
         note: w.note,
         classLabel: w.classLabel,
         createdAt: w.createdAt.toISOString(),
+        backfilledDate: backfilled ? w.workoutDate.toISOString().slice(0, 10) : null,
         // From the sets themselves, so posts saved late show the real length.
-        durationSec: s.durationSec,
+        durationSec: backfilled ? w.durationSec : s.durationSec,
         totalVolume: w.totalVolume,
         prCount: w.prCount,
         visibility: w.visibility,

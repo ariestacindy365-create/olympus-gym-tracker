@@ -14,7 +14,7 @@ interface OlympusLogoProps {
 
 export function OlympusLogo({ height = 32, variant = "dark", className = "" }: OlympusLogoProps) {
   const width = Math.round((height * NATURAL_WIDTH) / NATURAL_HEIGHT);
-  const src = variant === "light" ? "/olympus-logo-light.png" : "/olympus-logo.png";
+  const src = variant === "light" ? "/olympus-logo-light-bw.png" : "/olympus-logo-bw.png";
 
   return (
     <Image

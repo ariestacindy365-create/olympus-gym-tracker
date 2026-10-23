@@ -52,6 +52,8 @@ export const setEntrySchema = z
     unit: z.enum(SET_UNITS).default("REPS"),
     perSide: z.boolean().default(false),
     note: z.string().trim().max(280).optional(),
+    // "YYYY-MM-DD" when filling in a past day; the route checks the range.
+    date: z.string().max(10).optional(),
   })
   .refine((d) => amountFitsUnit(d.reps, d.unit), { path: ["reps"] });
 

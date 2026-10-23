@@ -68,11 +68,11 @@ function repDefaultOf(rep: string | null): number | null {
  * by name (created when missing) so the sets land in the normal history,
  * PRs and leaderboard.
  */
-export async function getTodayPlan(classes: TodayClasses): Promise<TodayPlan | null> {
+export async function getTodayPlan(classes: TodayClasses, on?: Date): Promise<TodayPlan | null> {
   const coach = classes.current?.coach ?? null;
-  const key = todayDateKey();
+  const key = on ?? todayDateKey();
   const weekday = weekdayLabelForDate(new Date(key.getUTCFullYear(), key.getUTCMonth(), key.getUTCDate()));
-  const { program } = await getThisWeekProgramRaw(coach?.id ?? null, weekday);
+  const { program } = await getThisWeekProgramRaw(coach?.id ?? null, weekday, on);
   const day = program?.days.find((d) => matchesWeekday(d.dayLabel, weekday));
   if (!day || day.slots.length === 0) return null;
 

@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { todayDateKey } from "@/lib/workout";
+import { BACKFILL_DAYS, loggableDateKey, todayDateKey } from "@/lib/workout";
 import { summarizeDay } from "@/lib/workoutSummary";
 import { mondayOf } from "@/lib/programRotation";
 import { Role, WorkoutVisibility } from "@/generated/prisma/client";
@@ -14,6 +14,10 @@ const saveSchema = z.object({
   note: z.string().trim().max(500).optional(),
   visibility: z.enum(["ALL", "COACH", "PRIVATE"]),
   classLabel: z.string().trim().max(80).optional(),
+  // Filling in a past day: its date, and how long the session was (the sets
+  // were all typed in later, so their timestamps can't tell).
+  date: z.string().max(10).optional(),
+  durationMin: z.number().int().min(10).max(120).optional(),
 });
 
 // "Simpan latihan": records today's workout for the feed (one per day —
@@ -27,11 +31,15 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Isi judul latihan." }, { status: 400 });
   }
-  const workoutDate = todayDateKey();
+  const workoutDate = loggableDateKey(parsed.data.date);
+  if (!workoutDate) {
+    return NextResponse.json({ error: `Latihan hanya bisa diisi sampai ${BACKFILL_DAYS} hari ke belakang.` }, { status: 400 });
+  }
   const summary = await summarizeDay(user.id, workoutDate);
   if (summary.totalSets === 0) {
-    return NextResponse.json({ error: "Belum ada set yang dicatat hari ini." }, { status: 400 });
+    return NextResponse.json({ error: "Belum ada set yang dicatat di hari itu." }, { status: 400 });
   }
+  if (workoutDate < todayDateKey()) summary.durationSec = (parsed.data.durationMin ?? 60) * 60;
   const visibility = WorkoutVisibility[parsed.data.visibility];
   const data = {
     title: parsed.data.title,

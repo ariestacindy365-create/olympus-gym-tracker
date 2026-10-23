@@ -1,5 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
-import { getTodayDailyWorkout, todayDateKey } from "@/lib/workout";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { backfillDays, getTodayDailyWorkout, loggableDateKey, todayDateKey } from "@/lib/workout";
 import { prisma } from "@/lib/prisma";
 import { DashboardClient } from "@/components/member/DashboardClient";
 import { ProgressView, type ExerciseProgress } from "@/components/shared/ProgressView";
@@ -15,13 +17,22 @@ import { ProgramTodayCard } from "@/components/member/ProgramTodayCard";
 import { computeTrainingSummary } from "@/lib/trainingSummary";
 import { TrainingHeatmap, TrainingStats } from "@/components/member/TrainingSummary";
 import { getTodayPlan } from "@/lib/todayPlan";
-import { getMemberTodayClass } from "@/lib/memberClass";
+import { getMemberClassOn, getMemberTodayClass } from "@/lib/memberClass";
+import { BackfillPicker } from "@/components/member/BackfillPicker";
 import { TodayWorkoutPlan, type LoggedSet } from "@/components/member/TodayWorkoutPlan";
 import type { SetUnit } from "@/lib/setUnits";
 
-export default async function MemberDashboardPage() {
+export default async function MemberDashboardPage(props: PageProps<"/member/dashboard">) {
   const user = await getCurrentUser();
   if (!user) return null;
+
+  // ?tgl=YYYY-MM-DD: filling in a workout from one of the last few days.
+  const sp = await props.searchParams;
+  const tgl = typeof sp.tgl === "string" ? sp.tgl : null;
+  const tglKey = tgl ? loggableDateKey(tgl) : null;
+  const pastDay = tglKey && tglKey < todayDateKey() ? tglKey : null;
+  if (tgl && !pastDay) redirect("/member/dashboard");
+  const pickedClass = typeof sp.kelas === "string" ? sp.kelas : null;
 
   // Membership-duration achievements unlock purely by time passing, not by
   // any set/body-metric action — sync here (unseen, so the celebration
@@ -41,7 +52,7 @@ export default async function MemberDashboardPage() {
 
   // One query for every set the member has logged; today's sets and each
   // exercise's previous session are derived from it below.
-  const todayClass = await getMemberTodayClass(user.id);
+  const todayClass = pastDay ? await getMemberClassOn(user.id, pastDay, pickedClass) : await getMemberTodayClass(user.id);
   const [dailyWorkout, exercises, personalRecords, allSets, coachNotes, weekProgram, todayPlan] = await Promise.all([
     getTodayDailyWorkout(),
     prisma.exercise.findMany({ orderBy: { name: "asc" } }),
@@ -53,10 +64,16 @@ export default async function MemberDashboardPage() {
     }),
     getCoachNotes(user.id, 10),
     getThisWeekProgram(todayClass.current?.coach?.id ?? null),
-    getTodayPlan(todayClass),
+    getTodayPlan(todayClass, pastDay ?? undefined),
   ]);
-  const programToday = weekProgram.days.find((d) => d.isToday) ?? null;
-  const todayTs = todayDateKey().getTime();
+  const programToday = pastDay ? null : (weekProgram.days.find((d) => d.isToday) ?? null);
+  // The day being logged: today, or the past day being filled in.
+  const todayTs = (pastDay ?? todayDateKey()).getTime();
+  const backfill = backfillDays().map((date) => ({
+    date,
+    sets: allSets.filter((s) => s.workoutDate.toISOString().startsWith(date)).length,
+  }));
+  const dateStr = pastDay ? pastDay.toISOString().slice(0, 10) : null;
   const todaysSets = allSets.filter((s) => s.workoutDate.getTime() === todayTs);
 
   const todaysSetsMap: Record<
@@ -176,15 +193,28 @@ export default async function MemberDashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader eyebrow={todayLabel()} title={`Halo, ${user.name}`} subtitle="Berikut latihan hari ini." />
-
-      <TrainingStats summary={summary} />
-
-      <CoachNotesCard notes={coachNotes} />
+      {pastDay ? (
+        <>
+          <PageHeader
+            eyebrow="Isi latihan yang terlewat"
+            title={pastDay.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })}
+            subtitle="Catat set yang kamu lakukan di hari itu, lalu simpan."
+          />
+          <Link href="/member/dashboard" className="-mt-3 self-start text-sm font-semibold text-accent hover:underline">
+            ← Kembali ke latihan hari ini
+          </Link>
+        </>
+      ) : (
+        <>
+          <PageHeader eyebrow={todayLabel()} title={`Halo, ${user.name}`} subtitle="Berikut latihan hari ini." />
+          <TrainingStats summary={summary} />
+          <CoachNotesCard notes={coachNotes} />
+        </>
+      )}
 
       {todayPlan ? (
         <TodayWorkoutPlan
-          key={todayPlan.klass?.sessionId ?? "plan"}
+          key={`${dateStr ?? "today"}-${todayPlan.klass?.sessionId ?? "plan"}`}
           plan={todayPlan}
           todaysSets={planSets}
           lastWeights={lastWeights}
@@ -192,12 +222,13 @@ export default async function MemberDashboardPage() {
           storyCharacter={lifterFromStored(user.storyCharacter)}
           storySkinTone={skinToneFromStored(user.storySkinTone)}
           defaultVisibility={user.feedVisibility}
+          date={dateStr}
         />
       ) : (
         programToday && <ProgramTodayCard day={programToday} />
       )}
 
-      {dailyWorkout && !todayPlan && (
+      {dailyWorkout && !todayPlan && !pastDay && (
         <div className="relative overflow-hidden rounded-xl bg-nav-bg p-5 text-nav-foreground shadow-raised [background-image:radial-gradient(28rem_10rem_at_100%_0%,rgb(37_99_235/0.45),transparent)]">
           <p className="text-xs font-semibold uppercase tracking-wider text-nav-muted">🎯 Gerakan hari ini dari pelatih</p>
           <p className="mt-1 font-display text-2xl font-bold tracking-wide text-white">{dailyWorkout.exercise.name}</p>
@@ -221,19 +252,25 @@ export default async function MemberDashboardPage() {
           storyCharacter={lifterFromStored(user.storyCharacter)}
           storySkinTone={skinToneFromStored(user.storySkinTone)}
           priorBestWeights={priorBestWeights}
+          date={dateStr}
+          key={dateStr ?? "today"}
         />
       )}
 
-      <TrainingHeatmap summary={summary} />
+      <BackfillPicker days={backfill} active={dateStr} />
 
-      <ProgressView
-        exercises={progressExercises}
-        referenceDate={new Date().toISOString()}
-        canDelete
-        shareMemberName={user.name}
-        storyCharacter={lifterFromStored(user.storyCharacter)}
-        storySkinTone={skinToneFromStored(user.storySkinTone)}
-      />
+      {!pastDay && <TrainingHeatmap summary={summary} />}
+
+      {!pastDay && (
+        <ProgressView
+          exercises={progressExercises}
+          referenceDate={new Date().toISOString()}
+          canDelete
+          shareMemberName={user.name}
+          storyCharacter={lifterFromStored(user.storyCharacter)}
+          storySkinTone={skinToneFromStored(user.storySkinTone)}
+        />
+      )}
 
       <UnseenAchievementNotifier memberName={user.name} badges={unseenAchievements} />
     </div>

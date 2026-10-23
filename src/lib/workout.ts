@@ -38,6 +38,30 @@ export function dateKeyFromString(dateString: string): Date {
   return new Date(Date.UTC(year, month - 1, day));
 }
 
+/** How many days back a member may still fill in a workout they forgot to log. */
+export const BACKFILL_DAYS = 3;
+
+/**
+ * The day a member may log sets for: today when `value` is empty or today,
+ * one of the last BACKFILL_DAYS days for a "YYYY-MM-DD" in that range, else
+ * null (too old, in the future or not a date).
+ */
+export function loggableDateKey(value?: string | null): Date | null {
+  const today = todayDateKey();
+  if (!value) return today;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const key = dateKeyFromString(value);
+  if (key.toISOString().slice(0, 10) !== value) return null;
+  const daysBack = Math.round((today.getTime() - key.getTime()) / 86_400_000);
+  return daysBack >= 0 && daysBack <= BACKFILL_DAYS ? key : null;
+}
+
+/** The last BACKFILL_DAYS days before today as "YYYY-MM-DD", newest first. */
+export function backfillDays(): string[] {
+  const today = todayDateKey().getTime();
+  return Array.from({ length: BACKFILL_DAYS }, (_, i) => new Date(today - (i + 1) * 86_400_000).toISOString().slice(0, 10));
+}
+
 export async function getTodayDailyWorkout() {
   return prisma.dailyWorkout.findUnique({
     where: { workoutDate: todayDateKey() },

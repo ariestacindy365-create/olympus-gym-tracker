@@ -37,7 +37,7 @@ export function BodyMetricCelebrationModal({ data, onClose }: BodyMetricCelebrat
   const dateLabel = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 
   useEffect(() => {
-    fetchAsDataUrl("/olympus-logo.png")
+    fetchAsDataUrl("/olympus-logo-bw.png")
       .then(setLogoSrc)
       .catch(() => {});
   }, []);

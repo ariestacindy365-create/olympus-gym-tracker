@@ -148,7 +148,7 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps & { style
         {/* Logo */}
         <div style={{ position: "absolute", right: 330, top: 34, display: "flex", alignItems: "center", gap: 10 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/olympus-logo.png" alt="Olympus" style={{ height: 44, width: "auto" }} />
+          <img src="/olympus-logo-bw.png" alt="Olympus" style={{ height: 44, width: "auto" }} />
           <span style={{ fontSize: 20, fontWeight: 800, color: INK, letterSpacing: 1.5 }}>| OLAHRAGA JADI SERU</span>
         </div>
 
