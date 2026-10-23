@@ -1,9 +1,11 @@
 import { mondayOf } from "@/lib/programRotation";
+import { setVolume, type SetUnit } from "@/lib/setUnits";
 
 interface SetLike {
   workoutDate: Date;
   weight: number;
   reps: number;
+  unit?: SetUnit;
   isPR: boolean;
   exercise: { name: string };
 }
@@ -20,7 +22,7 @@ export interface TrainingSummaryData {
   weekStreak: number;
   volumeThisWeek: number;
   daysThisMonth: number;
-  latestPR: { exerciseName: string; weight: number; reps: number; date: string } | null;
+  latestPR: { exerciseName: string; weight: number; reps: number; unit?: SetUnit; date: string } | null;
   /** HEATMAP_WEEKS columns × 7 rows (Mon→Sun), oldest week first. */
   heatmap: HeatmapDay[][];
 }
@@ -37,7 +39,7 @@ export function computeTrainingSummary(sets: SetLike[], now = new Date()): Train
   const volumeByDay = new Map<string, number>();
   for (const s of sets) {
     const key = dayKey(s.workoutDate);
-    volumeByDay.set(key, (volumeByDay.get(key) ?? 0) + s.weight * s.reps);
+    volumeByDay.set(key, (volumeByDay.get(key) ?? 0) + setVolume(s));
   }
 
   const thisMonday = mondayOf(now);
@@ -55,7 +57,7 @@ export function computeTrainingSummary(sets: SetLike[], now = new Date()): Train
   }
 
   let volumeThisWeek = 0;
-  for (const s of sets) if (s.workoutDate >= thisMonday) volumeThisWeek += s.weight * s.reps;
+  for (const s of sets) if (s.workoutDate >= thisMonday) volumeThisWeek += setVolume(s);
 
   const monthDays = new Set(
     sets
@@ -65,7 +67,7 @@ export function computeTrainingSummary(sets: SetLike[], now = new Date()): Train
 
   const prs = sets.filter((s) => s.isPR).sort((a, b) => b.workoutDate.getTime() - a.workoutDate.getTime());
   const latestPR = prs[0]
-    ? { exerciseName: prs[0].exercise.name, weight: prs[0].weight, reps: prs[0].reps, date: prs[0].workoutDate.toISOString() }
+    ? { exerciseName: prs[0].exercise.name, weight: prs[0].weight, reps: prs[0].reps, unit: prs[0].unit, date: prs[0].workoutDate.toISOString() }
     : null;
 
   const start = new Date(thisMonday);

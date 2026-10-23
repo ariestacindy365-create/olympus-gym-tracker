@@ -7,10 +7,9 @@
 
 const MET = 5;
 const DEFAULT_WEIGHT_KG = 65;
-// The duration runs from the first logged set, so cap it to a plausible
-// time actually spent training.
+// Same cap as the workout duration (2 hours).
 const MIN_MINUTES = 10;
-const MAX_MINUTES = 90;
+const MAX_MINUTES = 120;
 
 export interface CalorieEstimate {
   kcal: number;

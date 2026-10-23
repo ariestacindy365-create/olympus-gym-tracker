@@ -17,6 +17,7 @@ import { TrainingHeatmap, TrainingStats } from "@/components/member/TrainingSumm
 import { getTodayPlan } from "@/lib/todayPlan";
 import { getMemberTodayClass } from "@/lib/memberClass";
 import { TodayWorkoutPlan, type LoggedSet } from "@/components/member/TodayWorkoutPlan";
+import type { SetUnit } from "@/lib/setUnits";
 
 export default async function MemberDashboardPage() {
   const user = await getCurrentUser();
@@ -76,7 +77,7 @@ export default async function MemberDashboardPage() {
   // allSets is ordered oldest-day-first, so a later day before today simply
   // replaces an exercise's list — what's left is its most recent prior session.
   const lastDateByExercise: Record<string, number> = {};
-  const lastSetsMap: Record<string, { setNumber: number; weight: number; reps: number; workoutDate: string }[]> = {};
+  const lastSetsMap: Record<string, { setNumber: number; weight: number; reps: number; unit: SetUnit; workoutDate: string }[]> = {};
   for (const s of allSets) {
     const ts = s.workoutDate.getTime();
     if (ts >= todayTs) continue;
@@ -88,6 +89,7 @@ export default async function MemberDashboardPage() {
       setNumber: s.setNumber,
       weight: s.weight,
       reps: s.reps,
+      unit: s.unit,
       workoutDate: s.workoutDate.toISOString(),
     });
   }
@@ -142,6 +144,7 @@ export default async function MemberDashboardPage() {
       setNumber: s.setNumber,
       weight: s.weight,
       reps: s.reps,
+      unit: s.unit,
       note: s.note,
       isPR: s.isPR,
     });
@@ -157,6 +160,7 @@ export default async function MemberDashboardPage() {
       setNumber: s.setNumber,
       weight: s.weight,
       reps: s.reps,
+      unit: s.unit,
       note: s.note,
       isPR: s.isPR,
     });

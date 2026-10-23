@@ -15,14 +15,16 @@ async function handle(method: "POST" | "DELETE", workoutId: string) {
   if (method === "POST") {
     const existed = await prisma.workoutKudo.findUnique({ where: { workoutId_memberId: { workoutId, memberId: user.id } } });
     if (!existed && workout.memberId !== user.id) {
-      after(() =>
-        notifyUsers([workout.memberId], {
-          type: "KUDOS",
-          title: `💪 ${user.name} memberi semangat`,
-          body: `di latihanmu "${workout.title}"`,
-          url: `/member/feed#post-${workoutId}`,
-        })
-      );
+      const title = `💪 ${user.name} memberi semangat`;
+      const url = `/member/feed#post-${workoutId}`;
+      after(async () => {
+        // Tapping 💪 off and on again shouldn't notify twice.
+        const recent = await prisma.notification.findFirst({
+          where: { userId: workout.memberId, type: "KUDOS", title, url, createdAt: { gte: new Date(Date.now() - 24 * 3600_000) } },
+          select: { id: true },
+        });
+        if (!recent) await notifyUsers([workout.memberId], { type: "KUDOS", title, body: `di latihanmu "${workout.title}"`, url });
+      });
     }
     await prisma.workoutKudo.upsert({
       where: { workoutId_memberId: { workoutId, memberId: user.id } },

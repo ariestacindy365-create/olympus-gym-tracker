@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { todayDateKey } from "@/lib/workout";
 import { Role } from "@/generated/prisma/client";
+import { setVolume } from "@/lib/setUnits";
 
 export type LeaderboardCategory = "volume" | "days" | "prs";
 
@@ -31,13 +32,13 @@ export async function getMonthlyLeaderboard(): Promise<MonthlyLeaderboard> {
       workoutDate: { gte: monthStart, lt: nextMonth },
       member: { role: Role.MEMBER, leaderboardOptOut: false },
     },
-    select: { memberId: true, workoutDate: true, weight: true, reps: true, isPR: true, member: { select: { name: true } } },
+    select: { memberId: true, workoutDate: true, weight: true, reps: true, unit: true, isPR: true, member: { select: { name: true } } },
   });
 
   const stats = new Map<string, { name: string; volume: number; days: Set<number>; prs: number }>();
   for (const s of sets) {
     const st = stats.get(s.memberId) ?? { name: s.member.name, volume: 0, days: new Set<number>(), prs: 0 };
-    st.volume += s.weight * s.reps;
+    st.volume += setVolume(s);
     st.days.add(s.workoutDate.getTime());
     if (s.isPR) st.prs += 1;
     stats.set(s.memberId, st);

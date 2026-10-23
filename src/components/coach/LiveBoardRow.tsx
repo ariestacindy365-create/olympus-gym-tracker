@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { MemberStatusBadge } from "@/components/coach/MemberStatusBadge";
+import { formatAmount, type SetUnit } from "@/lib/setUnits";
 
 export interface LiveRow {
   id: string;
@@ -11,6 +12,7 @@ export interface LiveRow {
   exerciseName: string;
   weight: number;
   reps: number;
+  unit?: SetUnit;
   estimated1RM: number;
   note: string | null;
   isPR: boolean;
@@ -54,7 +56,9 @@ export function LiveBoardRow({ memberId, memberName, online, row }: LiveBoardRow
           <p className="font-display text-2xl font-bold">
             {row.weight}
             <span className="text-sm font-semibold text-muted">kg</span>{" "}
-            <span className="text-sm font-normal text-muted">&times; {row.reps}</span>
+            <span className="text-sm font-normal text-muted">
+              {!row.unit || row.unit === "REPS" ? <>&times; {row.reps}</> : <>· {formatAmount(row.reps, row.unit)}</>}
+            </span>
           </p>
         ) : (
           <p className="text-sm text-muted">belum ada data</p>

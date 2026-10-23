@@ -7,6 +7,7 @@ import { todayDateKey } from "@/lib/workout";
 import { summarizeDay } from "@/lib/workoutSummary";
 import { mondayOf } from "@/lib/programRotation";
 import { Role, WorkoutVisibility } from "@/generated/prisma/client";
+import { setVolume } from "@/lib/setUnits";
 
 const saveSchema = z.object({
   title: z.string().trim().min(1).max(80),
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Isi judul latihan." }, { status: 400 });
   }
   const workoutDate = todayDateKey();
-  const summary = await summarizeDay(user.id, workoutDate, true);
+  const summary = await summarizeDay(user.id, workoutDate);
   if (summary.totalSets === 0) {
     return NextResponse.json({ error: "Belum ada set yang dicatat hari ini." }, { status: 400 });
   }
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
     prisma.workout.aggregate({ where: { memberId: user.id }, _sum: { durationSec: true } }),
     prisma.setEntry.groupBy({ by: ["workoutDate"], where: { memberId: user.id, workoutDate: { gte: weekStart } } }),
   ]);
-  const allSets = await prisma.setEntry.findMany({ where: { memberId: user.id }, select: { weight: true, reps: true } });
+  const allSets = await prisma.setEntry.findMany({ where: { memberId: user.id }, select: { weight: true, reps: true, unit: true } });
 
   return NextResponse.json({
     workout,
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
     totals: {
       workoutNumber: trainingDays.length,
       durationSec: totals._sum.durationSec ?? 0,
-      totalKg: Math.round(allSets.reduce((a, s) => a + s.weight * s.reps, 0)),
+      totalKg: Math.round(allSets.reduce((a, s) => a + setVolume(s), 0)),
       daysThisWeek: weekDays.length,
     },
   });

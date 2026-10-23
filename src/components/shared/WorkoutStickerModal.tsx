@@ -145,6 +145,8 @@ export function WorkoutStickerModal(props: WorkoutStickerModalProps) {
   const [ink, setInk] = useState<Ink>("light");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (!canvasRef.current || !hostRef.current) return;
@@ -153,15 +155,52 @@ export function WorkoutStickerModal(props: WorkoutStickerModalProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ink, title, levels]);
 
+  const toPngBlob = () =>
+    new Promise<Blob>((resolve, reject) =>
+      canvasRef.current ? canvasRef.current.toBlob((b) => (b ? resolve(b) : reject(new Error("no blob"))), "image/png") : reject(new Error("no canvas"))
+    );
+
+  // Copy → paste in the Instagram story editor keeps the transparency
+  // (sharing the file straight to Instagram/WhatsApp turns it into a JPG
+  // with a black background). The ClipboardItem gets a promise so the
+  // write still counts as part of this tap on Safari.
+  async function copy() {
+    setError(null);
+    setSaved(false);
+    if (typeof ClipboardItem === "undefined" || !navigator.clipboard?.write) {
+      setError("HP ini belum bisa menyalin gambar. Pakai Simpan PNG.");
+      return;
+    }
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": toPngBlob() })]);
+      setCopied(true);
+    } catch {
+      setError("Gagal menyalin. Pakai Simpan PNG.");
+    }
+  }
+
   async function save() {
-    if (!canvasRef.current) return;
     setPending(true);
     setError(null);
+    setCopied(false);
     try {
-      const blob = await new Promise<Blob | null>((r) => canvasRef.current!.toBlob(r, "image/png"));
-      if (!blob) throw new Error("no blob");
+      const blob = await toPngBlob();
       const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "latihan";
-      await shareOrDownload(new File([blob], `olympus-stiker-${slug}.png`, { type: "image/png" }), "");
+      const file = new File([blob], `olympus-stiker-${slug}.png`, { type: "image/png" });
+      if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+        // iPhone only puts images in Photos through the share sheet ("Simpan Gambar").
+        await shareOrDownload(file, "");
+      } else {
+        // Elsewhere download the PNG itself: the share sheet would hand it to
+        // apps that recompress it to JPG and lose the transparency.
+        const url = URL.createObjectURL(file);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = file.name;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+      setSaved(true);
     } catch (e) {
       if ((e as { name?: string }).name !== "AbortError") setError("Gagal menyimpan gambar. Coba lagi.");
     } finally {
@@ -171,7 +210,7 @@ export function WorkoutStickerModal(props: WorkoutStickerModalProps) {
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 sm:items-center" role="dialog" aria-modal="true" aria-label="Stiker latihan">
-      <div className="flex max-h-[94dvh] w-full max-w-md flex-col overflow-y-auto rounded-t-3xl bg-surface p-4 shadow-overlay sm:rounded-3xl">
+      <div className="flex max-h-[94dvh] w-full max-w-md flex-col overflow-y-auto rounded-t-3xl bg-surface p-4 [&>*]:shrink-0 shadow-overlay sm:rounded-3xl">
         <div className="mb-3 flex items-center justify-between">
           <p className="font-display text-base font-bold uppercase tracking-wide">Stiker latihan</p>
           <button type="button" onClick={onClose} aria-label="Tutup" className="text-xl text-muted hover:text-foreground">
@@ -179,11 +218,11 @@ export function WorkoutStickerModal(props: WorkoutStickerModalProps) {
           </button>
         </div>
         <p className="mb-3 text-xs text-muted">
-          PNG dengan latar transparan. Tempel di atas foto story (Instagram: stiker → galeri), atau simpan dulu ke HP.
+          PNG dengan latar transparan, untuk ditempel di atas foto story kamu.
         </p>
         {/* Checkerboard behind the preview shows which parts are transparent. */}
         <div
-          className={`overflow-hidden rounded-xl border border-border ${ink === "light" ? "bg-[#1f2937]" : "bg-[#f1f5f9]"}`}
+          className={`shrink-0 overflow-hidden rounded-xl border border-border ${ink === "light" ? "bg-[#1f2937]" : "bg-[#f1f5f9]"}`}
           style={{
             backgroundImage:
               ink === "light"
@@ -210,14 +249,33 @@ export function WorkoutStickerModal(props: WorkoutStickerModalProps) {
         </div>
         <p className="mt-1.5 text-center text-[11px] text-muted">Teks putih untuk foto gelap, teks gelap untuk foto terang.</p>
         {error && <p className="mt-2 text-sm text-danger">{error}</p>}
+        <button type="button" onClick={copy} className="mt-3 h-12 rounded-xl bg-accent font-bold text-white hover:bg-accent-2">
+          {copied ? "✓ Stiker tersalin" : "📋 Salin stiker"}
+        </button>
+        {copied && (
+          <ol className="mt-2 list-decimal rounded-xl bg-surface-2 py-2.5 pl-8 pr-3 text-[13px] leading-relaxed">
+            <li>Buka Instagram → buat Story → pilih foto latarnya.</li>
+            <li>Ketuk <b>Aa</b> (teks), tahan di kolom teks, lalu pilih <b>Tempel</b>.</li>
+            <li>Stiker muncul transparan. Geser dan cubit untuk mengatur ukurannya.</li>
+          </ol>
+        )}
         <button
           type="button"
           onClick={save}
           disabled={pending}
-          className="mt-3 h-12 rounded-xl bg-accent font-bold text-white hover:bg-accent-2 disabled:opacity-60"
+          className="mt-2 h-11 rounded-xl border border-border bg-surface text-sm font-semibold hover:bg-surface-2 disabled:opacity-60"
         >
-          {pending ? "Menyiapkan…" : "⬇️ Simpan / bagikan PNG"}
+          {pending ? "Menyiapkan…" : "⬇️ Simpan PNG"}
         </button>
+        {saved && (
+          <p className="mt-2 rounded-xl bg-surface-2 px-3 py-2 text-[12.5px] leading-relaxed">
+            Tersimpan sebagai PNG. Di Instagram Story pakai <b>stiker → foto galeri</b> untuk menempelkannya.
+            {/iphone|ipad|ipod/i.test(navigator.userAgent) ? " Di menu bagikan pilih Simpan Gambar." : ""}
+          </p>
+        )}
+        <p className="mt-2 text-center text-[11px] text-muted">
+          Jangan kirim stiker lewat WhatsApp atau tombol bagikan Instagram: aplikasinya mengubah gambar jadi JPG dan latarnya jadi hitam.
+        </p>
       </div>
       {/* Source of the muscle figures drawn onto the canvas. */}
       <div ref={hostRef} aria-hidden className="pointer-events-none fixed -left-[9999px] top-0">

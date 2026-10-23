@@ -5,7 +5,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 const subSchema = z.object({
-  endpoint: z.url().max(1000),
+  // Push services are always https; anything else would make the server
+  // POST to an address of the client's choosing.
+  endpoint: z.url({ protocol: /^https$/ }).max(1000),
   keys: z.object({ p256dh: z.string().min(20).max(200), auth: z.string().min(8).max(100) }),
 });
 

@@ -76,7 +76,7 @@ export function NotificationList({ items }: { items: NotificationRow[] }) {
                 >
                   {content}
                 </button>
-                {expanded && n.linkUrl && (
+                {expanded && n.linkUrl && /^https?:\/\//i.test(n.linkUrl) && (
                   <a
                     href={n.linkUrl}
                     target="_blank"

@@ -11,6 +11,7 @@ import {
   type UnlockedBadge,
 } from "@/components/shared/AchievementCelebrationModal";
 import { formatKg, type LifterCharacter, type SkinTone } from "@/lib/volumeStory";
+import { UNIT_LABEL } from "@/lib/setUnits";
 import { parseLiftWeight } from "@/lib/parseWeight";
 import { mainMuscles, muscleLoad, muscleLevels, type MuscleKey } from "@/lib/muscles";
 import type { TodayPlan } from "@/lib/todayPlan";
@@ -74,7 +75,9 @@ export function TodayWorkoutPlan({
 
   const done = rows.flat().filter((r) => r.saved);
   const total = rows.flat().length;
-  const volume = done.reduce((a, r) => a + r.saved!.weight * r.saved!.reps, 0);
+  // Volume counts rep sets only (timed / lap / distance sets add 0 kg).
+  const unitOfRow = new Map(rows.flatMap((rs, i) => rs.map((r) => [r, items[i].unit] as const)));
+  const volume = done.reduce((a, r) => a + (unitOfRow.get(r) === "REPS" ? r.saved!.weight * r.saved!.reps : 0), 0);
 
   // Planned muscles glow faintly; logged ones light up by how many sets they got.
   const levels = useMemo(() => {
@@ -104,7 +107,7 @@ export function TodayWorkoutPlan({
     const weight = parseLiftWeight(wRaw || "");
     const reps = Number(rRaw);
     if (weight === null || !reps || reps <= 0) {
-      setError(`${it.label} set ${j + 1}: isi beban (0 untuk tanpa beban) dan reps.`);
+      setError(`${it.label} set ${j + 1}: isi beban (0 untuk tanpa beban) dan ${UNIT_LABEL[it.unit]}.`);
       return;
     }
     setError(null);
@@ -113,7 +116,7 @@ export function TodayWorkoutPlan({
       const res = await fetch("/api/member/sets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ exerciseId: it.exerciseId, weight, reps, setNumber: j + 1 }),
+        body: JSON.stringify({ exerciseId: it.exerciseId, weight, reps, unit: it.unit, setNumber: j + 1 }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Gagal menyimpan set.");
@@ -206,7 +209,9 @@ export function TodayWorkoutPlan({
                 {muscles.length > 0 && <p className="text-[11.5px] font-semibold text-accent">🎯 {muscles.join(" · ")}</p>}
                 <p className="mb-1 text-[11.5px] text-muted">
                   {last != null ? `Terakhir: ${formatKg(last)} kg` : "Belum pernah dicatat"}
-                  {it.repDefault != null ? ` · target ${it.repDefault} reps` : " · isi reps / jumlah yang selesai"}
+                  {it.repDefault != null
+                    ? ` · target ${it.repDefault} ${UNIT_LABEL[it.unit]}`
+                    : ` · isi ${UNIT_LABEL[it.unit]} yang selesai`}
                 </p>
                 {rows[i].map((row, j) => {
                   const savedNow = row.saved && row.w === String(row.saved.weight) && row.r === String(row.saved.reps);
@@ -233,14 +238,16 @@ export function TodayWorkoutPlan({
                         <input
                           inputMode="numeric"
                           value={row.r}
-                          placeholder={it.repDefault != null ? String(it.repDefault) : "reps"}
+                          placeholder={it.repDefault != null ? String(it.repDefault) : UNIT_LABEL[it.unit]}
                           onChange={(e) => update(i, j, { r: e.target.value })}
-                          aria-label={`${it.label} set ${j + 1} reps`}
+                          aria-label={`${it.label} set ${j + 1} ${UNIT_LABEL[it.unit]}`}
                           className={`h-11 w-full min-w-0 rounded-lg border px-2 pr-9 text-center text-base font-semibold text-foreground placeholder:text-muted/70 focus:border-accent focus:outline-none ${
                             savedNow ? "border-transparent bg-success/10" : "border-border bg-surface"
                           }`}
                         />
-                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-muted">reps</span>
+                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-muted">
+                          {UNIT_LABEL[it.unit]}
+                        </span>
                       </label>
                       <button
                         type="button"
