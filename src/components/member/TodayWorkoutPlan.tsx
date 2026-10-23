@@ -11,7 +11,7 @@ import {
   type UnlockedBadge,
 } from "@/components/shared/AchievementCelebrationModal";
 import { formatKg, type LifterCharacter, type SkinTone } from "@/lib/volumeStory";
-import { UNIT_LABEL } from "@/lib/setUnits";
+import { UNIT_LABEL, setVolume } from "@/lib/setUnits";
 import { parseLiftWeight } from "@/lib/parseWeight";
 import { mainMuscles, muscleLoad, muscleLevels, type MuscleKey } from "@/lib/muscles";
 import type { TodayPlan } from "@/lib/todayPlan";
@@ -76,8 +76,9 @@ export function TodayWorkoutPlan({
   const done = rows.flat().filter((r) => r.saved);
   const total = rows.flat().length;
   // Volume counts rep sets only (timed / lap / distance sets add 0 kg).
-  const unitOfRow = new Map(rows.flatMap((rs, i) => rs.map((r) => [r, items[i].unit] as const)));
-  const volume = done.reduce((a, r) => a + (unitOfRow.get(r) === "REPS" ? r.saved!.weight * r.saved!.reps : 0), 0);
+  // and a per-side ("each") set counts both sides.
+  const itemOfRow = new Map(rows.flatMap((rs, i) => rs.map((r) => [r, items[i]] as const)));
+  const volume = done.reduce((a, r) => a + setVolume({ ...r.saved!, unit: itemOfRow.get(r)?.unit, perSide: itemOfRow.get(r)?.perSide }), 0);
 
   // Planned muscles glow faintly; logged ones light up by how many sets they got.
   const levels = useMemo(() => {
@@ -116,7 +117,7 @@ export function TodayWorkoutPlan({
       const res = await fetch("/api/member/sets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ exerciseId: it.exerciseId, weight, reps, unit: it.unit, setNumber: j + 1 }),
+        body: JSON.stringify({ exerciseId: it.exerciseId, weight, reps, unit: it.unit, perSide: it.perSide, setNumber: j + 1 }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Gagal menyimpan set.");
@@ -210,7 +211,7 @@ export function TodayWorkoutPlan({
                 <p className="mb-1 text-[11.5px] text-muted">
                   {last != null ? `Terakhir: ${formatKg(last)} kg` : "Belum pernah dicatat"}
                   {it.repDefault != null
-                    ? ` · target ${it.repDefault} ${UNIT_LABEL[it.unit]}`
+                    ? ` · target ${it.repDefault} ${UNIT_LABEL[it.unit]}${it.perSide ? " tiap sisi" : ""}`
                     : ` · isi ${UNIT_LABEL[it.unit]} yang selesai`}
                 </p>
                 {rows[i].map((row, j) => {
@@ -247,6 +248,7 @@ export function TodayWorkoutPlan({
                         />
                         <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-muted">
                           {UNIT_LABEL[it.unit]}
+                          {it.perSide && "/sisi"}
                         </span>
                       </label>
                       <button

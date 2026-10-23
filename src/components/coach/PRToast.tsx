@@ -6,6 +6,7 @@ export interface PREvent {
   weight: number;
   reps: number;
   unit?: SetUnit;
+  perSide?: boolean;
   estimated1RM: number;
   createdAt: string;
 }

@@ -80,6 +80,7 @@ export default async function CoachMemberDetailPage({
       weight: s.weight,
       reps: s.reps,
       unit: s.unit,
+      perSide: s.perSide,
       note: s.note,
       isPR: s.isPR,
     });

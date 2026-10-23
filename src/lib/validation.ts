@@ -50,6 +50,7 @@ export const setEntrySchema = z
     weight: liftWeight,
     reps: z.number().int().positive().max(20000),
     unit: z.enum(SET_UNITS).default("REPS"),
+    perSide: z.boolean().default(false),
     note: z.string().trim().max(280).optional(),
   })
   .refine((d) => amountFitsUnit(d.reps, d.unit), { path: ["reps"] });

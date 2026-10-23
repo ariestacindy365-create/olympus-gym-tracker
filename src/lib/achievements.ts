@@ -270,7 +270,7 @@ export async function computeMemberStats(memberId: string): Promise<MemberStats>
   const [sets, bodyMetrics, member] = await Promise.all([
     prisma.setEntry.findMany({
       where: { memberId },
-      select: { workoutDate: true, exerciseId: true, weight: true, reps: true, unit: true, isPR: true },
+      select: { workoutDate: true, exerciseId: true, weight: true, reps: true, unit: true, perSide: true, isPR: true },
     }),
     prisma.bodyMetric.findMany({
       where: { memberId },

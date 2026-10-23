@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Pilih gerakan dan isi beban & reps yang valid." }, { status: 400 });
   }
-  const { exerciseId, weight, reps, unit, note } = parsed.data;
+  const { exerciseId, weight, reps, unit, perSide, note } = parsed.data;
 
   const exercise = await prisma.exercise.findUnique({ where: { id: exerciseId } });
   if (!exercise) {
@@ -44,8 +44,8 @@ export async function POST(request: NextRequest) {
 
     const saved = await tx.setEntry.upsert({
       where: { memberId_exerciseId_workoutDate_setNumber: { memberId: user.id, exerciseId, workoutDate, setNumber } },
-      create: { memberId: user.id, exerciseId, workoutDate, setNumber, weight, reps, unit, estimated1RM, note },
-      update: { weight, reps, unit, estimated1RM, note },
+      create: { memberId: user.id, exerciseId, workoutDate, setNumber, weight, reps, unit, perSide, estimated1RM, note },
+      update: { weight, reps, unit, perSide, estimated1RM, note },
     });
 
     const isPR = await checkAndRecordPR(tx, {

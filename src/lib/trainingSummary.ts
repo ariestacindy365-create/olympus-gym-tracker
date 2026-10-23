@@ -6,6 +6,7 @@ interface SetLike {
   weight: number;
   reps: number;
   unit?: SetUnit;
+  perSide?: boolean;
   isPR: boolean;
   exercise: { name: string };
 }

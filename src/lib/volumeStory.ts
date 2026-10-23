@@ -21,6 +21,7 @@ export interface VolumeStorySet {
   weight: number;
   reps: number;
   unit?: SetUnit;
+  perSide?: boolean;
 }
 
 export interface VolumeStoryData {

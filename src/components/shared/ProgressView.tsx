@@ -37,6 +37,7 @@ export interface ProgressSession {
   weight: number;
   reps: number;
   unit?: SetUnit;
+  perSide?: boolean;
   note: string | null;
   isPR: boolean;
 }
@@ -487,7 +488,7 @@ export function ProgressView({
                         ))}
                     </td>
                     <td className="py-2 pr-3">
-                      <Badge tone="muted">{formatAmount(s.reps, s.unit)}</Badge>
+                      <Badge tone="muted">{formatAmount(s.reps, s.unit, s.perSide)}</Badge>
                     </td>
                     <td className="py-2 pr-3 text-muted">{s.note ?? "—"}</td>
                     {(canEdit || canDelete) && (

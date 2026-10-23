@@ -158,6 +158,8 @@ model SetEntry {
   // The amount, in `unit` (reps unless it's a timed / lap / distance set).
   reps         Int
   unit         SetUnit  @default(REPS)
+  // One side at a time ("10 reps each"): reps are per side, volume counts both.
+  perSide      Boolean  @default(false)
   estimated1RM Float
   note         String?
   isPR         Boolean  @default(false)

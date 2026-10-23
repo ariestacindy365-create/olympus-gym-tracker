@@ -42,21 +42,27 @@ export function amountFromTarget(target: string | null | undefined): number | nu
   return /\d\s*km\b/.test(t) ? n * 1000 : n;
 }
 
-/** kg moved by a set: only rep sets count toward volume. */
-export function setVolume(s: { weight: number; reps: number; unit?: SetUnit | null }) {
-  return !s.unit || s.unit === "REPS" ? s.weight * s.reps : 0;
+/** One side at a time: "10 reps each", "per side", "kanan-kiri", "(L/R)". */
+export function perSideFromTarget(target: string | null | undefined): boolean {
+  return /\beach\b|per\s*side|\/\s*side|tiap\s*sisi|per\s*sisi|kanan[\s-]*kiri|\(?\bl\s*\/\s*r\b\)?/i.test(target ?? "");
 }
 
-/** "12 reps", "30 detik", "2 lap", "200 m", "10 kal". */
-export function formatAmount(amount: number, unit: SetUnit | null | undefined) {
-  return `${amount} ${UNIT_LABEL[unit ?? "REPS"]}`;
+/** kg moved by a set: only rep sets count, and a per-side set counts both sides. */
+export function setVolume(s: { weight: number; reps: number; unit?: SetUnit | null; perSide?: boolean | null }) {
+  return !s.unit || s.unit === "REPS" ? s.weight * s.reps * (s.perSide ? 2 : 1) : 0;
 }
 
-/** A set as text: "50 kg × 12", "30 detik", "20 kg · 2 lap". */
-export function formatSet(s: { weight: number; reps: number; unit?: SetUnit | null }) {
+/** "12 reps", "10 reps/sisi", "30 detik", "2 lap", "200 m", "10 kal". */
+export function formatAmount(amount: number, unit: SetUnit | null | undefined, perSide?: boolean | null) {
+  return `${amount} ${UNIT_LABEL[unit ?? "REPS"]}${perSide ? "/sisi" : ""}`;
+}
+
+/** A set as text: "50 kg × 12", "12 kg × 10/sisi", "30 detik", "20 kg · 2 lap". */
+export function formatSet(s: { weight: number; reps: number; unit?: SetUnit | null; perSide?: boolean | null }) {
   const kg = `${s.weight.toLocaleString("id-ID", { maximumFractionDigits: 2 })} kg`;
-  if (!s.unit || s.unit === "REPS") return `${kg} × ${s.reps}`;
-  return s.weight > 0 ? `${kg} · ${formatAmount(s.reps, s.unit)}` : formatAmount(s.reps, s.unit);
+  const side = s.perSide ? "/sisi" : "";
+  if (!s.unit || s.unit === "REPS") return `${kg} × ${s.reps}${side}`;
+  return s.weight > 0 ? `${kg} · ${formatAmount(s.reps, s.unit, s.perSide)}` : formatAmount(s.reps, s.unit, s.perSide);
 }
 
 /** A personal record as text: "60 kg × 8", "~72,5 kg 1RM", "45 detik". */
