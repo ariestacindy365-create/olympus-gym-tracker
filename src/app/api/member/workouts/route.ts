@@ -14,8 +14,9 @@ const saveSchema = z.object({
   note: z.string().trim().max(500).optional(),
   visibility: z.enum(["ALL", "COACH", "PRIVATE"]),
   classLabel: z.string().trim().max(80).optional(),
-  // Filling in a past day: its date, and how long the session was (the sets
-  // were all typed in later, so their timestamps can't tell).
+  // Filling in a past day: its date. durationMin: how long the session was,
+  // when the member sets it (always for a past day, whose sets were typed in
+  // later so their timestamps can't tell).
   date: z.string().max(10).optional(),
   durationMin: z.number().int().min(10).max(120).optional(),
 });
@@ -39,13 +40,16 @@ export async function POST(request: NextRequest) {
   if (summary.totalSets === 0) {
     return NextResponse.json({ error: "Belum ada set yang dicatat di hari itu." }, { status: 400 });
   }
-  if (workoutDate < todayDateKey()) summary.durationSec = (parsed.data.durationMin ?? 60) * 60;
+  const past = workoutDate < todayDateKey();
+  const durationManual = past || parsed.data.durationMin !== undefined;
+  if (durationManual) summary.durationSec = (parsed.data.durationMin ?? 60) * 60;
   const visibility = WorkoutVisibility[parsed.data.visibility];
   const data = {
     title: parsed.data.title,
     note: parsed.data.note || null,
     classLabel: parsed.data.classLabel || null,
     durationSec: summary.durationSec,
+    durationManual,
     totalVolume: summary.totalVolume,
     totalSets: summary.totalSets,
     prCount: summary.prCount,
