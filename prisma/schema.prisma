@@ -684,6 +684,9 @@ model Workout {
   title       String
   note        String?
   durationSec Int
+  // The member set the duration themselves (finish screen or a filled-in
+  // past day), so it's kept instead of being worked out from the sets.
+  durationManual Boolean @default(false)
   totalVolume Float
   totalSets   Int
   prCount     Int

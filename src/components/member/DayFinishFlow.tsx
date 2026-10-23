@@ -77,7 +77,8 @@ export function DayFinishFlow({
   const [calCard, setCalCard] = useState(false);
   const [copied, setCopied] = useState(false);
   const [bodyWeightKg, setBodyWeightKg] = useState<number | null>(null);
-  const [durationMin, setDurationMin] = useState(60);
+  // null = worked out from the sets ("Otomatis"); a past day always has one.
+  const [durationMin, setDurationMin] = useState<number | null>(date ? 60 : null);
 
   useEffect(() => {
     let cancelled = false;
@@ -107,7 +108,8 @@ export function DayFinishFlow({
           note: note.trim() || undefined,
           visibility,
           classLabel: classLabel ?? undefined,
-          ...(date ? { date, durationMin } : {}),
+          ...(date ? { date } : {}),
+          ...(durationMin !== null ? { durationMin } : {}),
         }),
       });
       const data = await res.json();
@@ -124,7 +126,7 @@ export function DayFinishFlow({
 
   const firstName = memberName.split(" ")[0];
   // A filled-in day's sets were typed in later, so the member says how long it took.
-  const durationSec = summary ? (date ? durationMin * 60 : summary.durationSec) : 0;
+  const durationSec = summary ? (durationMin !== null ? durationMin * 60 : summary.durationSec) : 0;
   const cal = summary ? estimateCalories(durationSec, bodyWeightKg) : null;
   const food = cal ? foodEquivalent(cal.kcal) : null;
   const eq = summary ? pickEquivalent(summary.totalVolume) : null;
@@ -181,23 +183,26 @@ export function DayFinishFlow({
                 <Tile value={String(summary.lines.length)} label="Gerakan" />
                 <Tile value={String(summary.prCount)} label="🏆 PR" />
               </div>
-              {date && (
-                <label className="-mt-1 flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2 text-sm font-semibold">
-                  ⏱️ Berapa lama latihannya?
-                  <select
-                    value={durationMin}
-                    onChange={(e) => setDurationMin(Number(e.target.value))}
-                    className="h-9 rounded-lg border border-border bg-surface px-2 text-sm focus:border-accent focus:outline-none"
-                  >
-                    {[15, 30, 45, 60, 75, 90, 105, 120].map((m) => (
-                      <option key={m} value={m}>
-                        {formatDuration(m * 60)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              {!date && summary.durationSec >= 2 * 3600 && (
+              <label className="-mt-1 flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2 text-sm font-semibold">
+                <span>
+                  ⏱️ {date ? "Berapa lama latihannya?" : "Durasi latihan"}
+                  {!date && <span className="block text-[11px] font-normal text-muted">Otomatis dari waktu set. Ubah kalau kurang pas.</span>}
+                </span>
+                <select
+                  value={durationMin ?? "auto"}
+                  onChange={(e) => setDurationMin(e.target.value === "auto" ? null : Number(e.target.value))}
+                  aria-label="Durasi latihan"
+                  className="h-9 shrink-0 rounded-lg border border-border bg-surface px-2 text-sm focus:border-accent focus:outline-none"
+                >
+                  {!date && <option value="auto">Otomatis · {formatDuration(summary.durationSec)}</option>}
+                  {[15, 30, 45, 60, 75, 90, 105, 120].map((m) => (
+                    <option key={m} value={m}>
+                      {formatDuration(m * 60)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {durationMin === null && summary.durationSec >= 2 * 3600 && (
                 <p className="-mt-2 text-center text-xs text-muted">⏱️ Durasi otomatis berhenti di 2 jam.</p>
               )}
               {cal && (

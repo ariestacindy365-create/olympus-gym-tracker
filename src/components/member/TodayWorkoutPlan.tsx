@@ -130,9 +130,11 @@ export function TodayWorkoutPlan({
       // Always the explicit day, so a set sent after midnight keeps its date.
       body: { exerciseId: it.exerciseId, weight, reps, unit: it.unit, perSide: it.perSide, setNumber: j + 1, date: day },
     };
+    const tappedAt = new Date().toISOString();
     const result = await send(p);
     if (result === "offline") {
-      addPending(p);
+      // Keep the tap time so the late set still counts at the right moment.
+      addPending({ ...p, body: { ...p.body, loggedAt: tappedAt } });
       update(i, j, { pending: false, queued: true });
     } else if (result !== "ok") {
       update(i, j, { pending: false });
