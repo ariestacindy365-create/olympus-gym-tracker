@@ -22,11 +22,12 @@ function Switch({ on, onClick, disabled, label }: { on: boolean; onClick: () => 
 }
 
 /** "Notifikasi di HP" (this device's push) and the morning program reminder. */
-export function PushSettings({ initialProgram }: { initialProgram: boolean }) {
+export function PushSettings({ initialProgram, initialReminder }: { initialProgram: boolean; initialReminder: boolean }) {
   const [support, setSupport] = useState<PushSupport | null>(null);
   const [state, setState] = useState<State>("loading");
   const [busy, setBusy] = useState(false);
   const [program, setProgram] = useState(initialProgram);
+  const [reminder, setReminder] = useState(initialReminder);
 
   useEffect(() => {
     // Browser-only checks, run once after mount.
@@ -62,6 +63,17 @@ export function PushSettings({ initialProgram }: { initialProgram: boolean }) {
     if (!res?.ok) setProgram(!next);
   }
 
+  async function toggleReminder() {
+    const next = !reminder;
+    setReminder(next);
+    const res = await fetch("/api/member/notify-program", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ on: next, kind: "reminder" }),
+    }).catch(() => null);
+    if (!res?.ok) setReminder(!next);
+  }
+
   const pushHint =
     support === "ios-install"
       ? "Di iPhone: buka di Safari, tekan Bagikan → \"Tambah ke Layar Utama\", lalu buka Olympus dari layar utama dan aktifkan di sini."
@@ -92,6 +104,13 @@ export function PushSettings({ initialProgram }: { initialProgram: boolean }) {
           <p className="text-xs text-muted">Setiap Senin–Sabtu sekitar jam 05.30–06.30: program kelas hari itu.</p>
         </div>
         <Switch on={program} onClick={toggleProgram} label="Pengingat program pagi" />
+      </div>
+      <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
+        <div>
+          <p className="text-sm font-semibold">Pengingat catat latihan</p>
+          <p className="text-xs text-muted">Sekitar jam 20.30 kalau hari ini kamu ke gym tapi belum mencatat latihan.</p>
+        </div>
+        <Switch on={reminder} onClick={toggleReminder} label="Pengingat catat latihan" />
       </div>
     </div>
   );

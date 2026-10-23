@@ -67,6 +67,8 @@ model User {
   feedVisibility WorkoutVisibility @default(ALL)
   // Morning "program hari ini" reminder.
   notifyProgram  Boolean           @default(true)
+  // Evening "jangan lupa catat" reminder when nothing was logged today.
+  notifyReminder Boolean           @default(true)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -728,6 +730,7 @@ enum NotificationType {
   COACH_NOTE
   PROGRAM_TODAY
   ANNOUNCEMENT
+  LOG_REMINDER
 }
 
 // One in-app notification for one user (also sent to their phone when they

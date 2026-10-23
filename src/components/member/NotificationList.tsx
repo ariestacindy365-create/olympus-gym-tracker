@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export interface NotificationRow {
   id: string;
-  type: "KUDOS" | "COMMENT" | "COACH_NOTE" | "PROGRAM_TODAY" | "ANNOUNCEMENT";
+  type: "KUDOS" | "COMMENT" | "COACH_NOTE" | "PROGRAM_TODAY" | "ANNOUNCEMENT" | "LOG_REMINDER";
   title: string;
   body: string;
   url: string | null;

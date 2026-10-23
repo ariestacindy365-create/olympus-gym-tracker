@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/Card";
 import { LeaderboardView } from "@/components/member/LeaderboardView";
 import { LeaderboardOptOutToggle } from "@/components/member/LeaderboardOptOutToggle";
 import { FeedView } from "@/components/member/FeedView";
+import { getMonthlyChallenge } from "@/lib/challenge";
+import { ChallengeCard } from "@/components/member/ChallengeCard";
 
 export default async function MemberFeedPage({
   searchParams,
@@ -39,7 +41,7 @@ export default async function MemberFeedPage({
   );
 
   if (tab === "peringkat") {
-    const { monthLabel, boards } = await getMonthlyLeaderboard();
+    const [{ monthLabel, boards }, challenge] = await Promise.all([getMonthlyLeaderboard(), getMonthlyChallenge(user.id)]);
     return (
       <div className="flex flex-col gap-4">
         <PageHeader
@@ -48,6 +50,7 @@ export default async function MemberFeedPage({
           subtitle="Tantangan antar member Olympus. Direset setiap awal bulan."
         />
         {tabs}
+        <ChallengeCard challenge={challenge} />
         {user.leaderboardOptOut && (
           <p className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-muted">
             Kamu sedang disembunyikan dari peringkat.

@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { setVolume } from "@/lib/setUnits";
+import { CHALLENGE, challengeMonths } from "@/lib/challenge";
 
 export interface Achievement {
   code: string;
@@ -27,6 +28,8 @@ export interface MemberStats {
   membershipDays: number;
   /** Most distinct training days ever logged within a single ISO week. */
   maxWeeklyTrainingDays: number;
+  /** Months with the monthly challenge done (CHALLENGE.days training days). */
+  challengeMonths: number;
 }
 
 export const ACHIEVEMENTS: Achievement[] = [
@@ -112,6 +115,34 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: "KONSISTENSI",
     threshold: 6,
     statKey: "maxWeeklyTrainingDays",
+  },
+  // Challenge bulanan — bulan dengan latihan CHALLENGE.days hari atau lebih
+  {
+    code: "CHALLENGE_1",
+    name: "Penakluk Challenge",
+    description: `Selesaikan challenge bulanan: latihan ${CHALLENGE.days} hari dalam 1 bulan`,
+    icon: "🎖️",
+    category: "KONSISTENSI",
+    threshold: 1,
+    statKey: "challengeMonths",
+  },
+  {
+    code: "CHALLENGE_3",
+    name: "Langganan Challenge",
+    description: "Selesaikan challenge bulanan 3 kali",
+    icon: "🏅",
+    category: "KONSISTENSI",
+    threshold: 3,
+    statKey: "challengeMonths",
+  },
+  {
+    code: "CHALLENGE_6",
+    name: "Legenda Olympus",
+    description: "Selesaikan challenge bulanan 6 kali",
+    icon: "👑",
+    category: "KONSISTENSI",
+    threshold: 6,
+    statKey: "challengeMonths",
   },
   // Loyalitas — lama bergabung jadi member
   {
@@ -313,6 +344,7 @@ export async function computeMemberStats(memberId: string): Promise<MemberStats>
     bodyweightMultiple,
     membershipDays,
     maxWeeklyTrainingDays,
+    challengeMonths: challengeMonths(distinctDates.map((ts) => new Date(ts))),
   };
 }
 

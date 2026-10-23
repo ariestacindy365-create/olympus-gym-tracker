@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/program-today",
       "schedule": "30 22 * * *"
+    },
+    {
+      "path": "/api/cron/log-reminder",
+      "schedule": "30 13 * * *"
     }
   ]
 }
