@@ -25,6 +25,8 @@ interface WorkoutStickerModalProps {
 }
 
 const SIZE = 1080;
+/** Exercise rows in the top-right list (the last one becomes "+N gerakan lagi" when there are more). */
+const MAX_LINES = 6;
 type Ink = "light" | "dark";
 const INK = {
   light: { text: "#ffffff", muted: "rgba(255,255,255,0.72)", accent: "#3b82f6", track: "rgba(255,255,255,0.22)", shadow: "rgba(0,0,0,0.45)", logo: "/olympus-logo-light-bw.png" },
@@ -86,37 +88,57 @@ async function drawSticker(canvas: HTMLCanvasElement, host: HTMLElement, p: Work
   ctx.shadowColor = c.shadow;
   ctx.shadowBlur = 18;
 
-  // Title and total volume across the top; front/back figures bottom-left
-  // with a bar per trained muscle (sets) beside them.
+  // Title and total volume top-left, the day's exercises top-right;
+  // front/back figures bottom-left with a bar per trained muscle beside them.
   const margin = 70;
   const right = SIZE - margin;
+  const figH = 540;
+  const figW = Math.round(figH * (200 / 380));
+  const barX = margin + 2 * figW + 30;
+  const barW = right - barX;
+  const leftW = barX - margin - 30;
   ctx.fillStyle = c.text;
   ctx.font = `700 92px ${display}`;
-  ctx.fillText(fit(ctx, p.title.toUpperCase(), SIZE - 2 * margin), margin, 160);
+  ctx.fillText(fit(ctx, p.title.toUpperCase(), leftW), margin, 160);
   ctx.font = `700 150px ${display}`;
   const volume = formatKg(p.totalVolume);
-  ctx.fillText(fit(ctx, volume, 640), margin, 320);
-  const volW = Math.min(640, ctx.measureText(volume).width);
+  ctx.fillText(fit(ctx, volume, leftW - 90), margin, 320);
+  const volW = Math.min(leftW - 90, ctx.measureText(volume).width);
   ctx.font = `700 54px ${display}`;
   ctx.fillText("KG", margin + volW + 16, 320);
   ctx.fillStyle = c.muted;
   ctx.font = `600 32px ${body}`;
   if ("letterSpacing" in ctx) ctx.letterSpacing = "4px";
   const stats = [`${p.totalSets} SET`, p.prCount ? `${p.prCount} PR` : ""].filter(Boolean).join(" · ");
-  ctx.fillText(fit(ctx, stats, 600), margin, 378);
+  ctx.fillText(fit(ctx, stats, leftW), margin, 378);
   if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
+
+  const shown = p.lines.length > MAX_LINES ? p.lines.slice(0, MAX_LINES - 1) : p.lines;
+  const rest = p.lines.length - shown.length;
+  shown.forEach((l, i) => {
+    const y = 104 + i * 50;
+    const count = `${l.sets}×`;
+    ctx.fillStyle = c.accent;
+    ctx.font = `700 30px ${body}`;
+    ctx.fillText(count, barX, y);
+    const nameX = barX + Math.max(46, ctx.measureText(count).width + 12);
+    ctx.fillStyle = c.text;
+    ctx.font = `500 30px ${body}`;
+    ctx.fillText(fit(ctx, l.exercise, right - nameX), nameX, y);
+  });
+  if (rest > 0) {
+    ctx.fillStyle = c.muted;
+    ctx.font = `500 28px ${body}`;
+    ctx.fillText(`+${rest} gerakan lagi`, barX, 104 + shown.length * 50);
+  }
 
   ctx.shadowBlur = 0;
   const [front, back] = await figureImages(host);
-  const figH = 540;
-  const figW = Math.round(figH * (200 / 380));
   const figTop = SIZE - margin - figH;
   if (front) ctx.drawImage(front, margin - 10, figTop, figW, figH);
   if (back) ctx.drawImage(back, margin - 10 + figW + 6, figTop, figW, figH);
 
   ctx.shadowBlur = 18;
-  const barX = margin + 2 * figW + 30;
-  const barW = right - barX;
   const muscles = (Object.entries(p.muscleSets) as [MuscleKey, number][])
     .filter(([, v]) => v > 0)
     .sort((a, b) => b[1] - a[1])
@@ -155,7 +177,8 @@ async function drawSticker(canvas: HTMLCanvasElement, host: HTMLElement, p: Work
 
 /**
  * "Stiker latihan": the workout as a transparent 1080×1080 PNG (title, total
- * volume, front/back muscle map with sets per muscle, OLYMPUS logo) to lay
+ * volume, the day's exercises, front/back muscle map with sets per muscle,
+ * OLYMPUS logo) to lay
  * over a photo in an Instagram/WhatsApp story.
  */
 export function WorkoutStickerModal(props: WorkoutStickerModalProps) {
