@@ -184,6 +184,7 @@ function PostCard({ post }: { post: FeedPost }) {
           title={post.title}
           lines={post.summary.lines}
           levels={post.summary.levels}
+          muscleSets={post.summary.muscleSets}
           totalVolume={post.totalVolume}
           totalSets={post.summary.lines.reduce((a, l) => a + l.sets, 0)}
           prCount={post.prCount}

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { MuscleMap } from "@/components/shared/MuscleMap";
 import { shareOrDownload } from "@/lib/shareFile";
 import { formatKg } from "@/lib/volumeStory";
-import type { MuscleKey } from "@/lib/muscles";
+import { MUSCLE_LABEL, type MuscleKey } from "@/lib/muscles";
 
 interface StickerLine {
   exercise: string;
@@ -15,6 +15,8 @@ interface WorkoutStickerModalProps {
   title: string;
   lines: StickerLine[];
   levels: Partial<Record<MuscleKey, number>>;
+  /** Sets per muscle (helpers count half), for the bars. */
+  muscleSets: Partial<Record<MuscleKey, number>>;
   totalVolume: number;
   totalSets: number;
   prCount: number;
@@ -25,8 +27,8 @@ interface WorkoutStickerModalProps {
 const SIZE = 1080;
 type Ink = "light" | "dark";
 const INK = {
-  light: { text: "#ffffff", muted: "rgba(255,255,255,0.72)", accent: "#3b82f6", shadow: "rgba(0,0,0,0.45)", logo: "/olympus-logo-light-bw.png" },
-  dark: { text: "#0b1220", muted: "rgba(11,18,32,0.65)", accent: "#2563eb", shadow: "rgba(255,255,255,0.5)", logo: "/olympus-logo-bw.png" },
+  light: { text: "#ffffff", muted: "rgba(255,255,255,0.72)", accent: "#3b82f6", track: "rgba(255,255,255,0.22)", shadow: "rgba(0,0,0,0.45)", logo: "/olympus-logo-light-bw.png" },
+  dark: { text: "#0b1220", muted: "rgba(11,18,32,0.65)", accent: "#2563eb", track: "rgba(11,18,32,0.14)", shadow: "rgba(255,255,255,0.5)", logo: "/olympus-logo-bw.png" },
 };
 
 function loadImage(src: string) {
@@ -84,67 +86,77 @@ async function drawSticker(canvas: HTMLCanvasElement, host: HTMLElement, p: Work
   ctx.shadowColor = c.shadow;
   ctx.shadowBlur = 18;
 
-  // Poster layout: the title runs up the left edge, front/back figures fill
-  // the right, total volume sits under a rule at the bottom.
+  // Title and total volume across the top; front/back figures bottom-left
+  // with a bar per trained muscle (sets) beside them.
   const margin = 70;
-  const title = p.title.toUpperCase();
-  let size = 170;
-  ctx.font = `700 ${size}px ${display}`;
-  while (size > 90 && ctx.measureText(title).width > SIZE - 2 * margin) {
-    size -= 4;
-    ctx.font = `700 ${size}px ${display}`;
-  }
-  ctx.fillStyle = c.text;
-  ctx.save();
-  ctx.translate(margin + size * 0.76, SIZE - margin);
-  ctx.rotate(-Math.PI / 2);
-  ctx.fillText(fit(ctx, title, SIZE - 2 * margin), 0, 0);
-  ctx.restore();
-
-  const col = 270;
   const right = SIZE - margin;
-  ctx.shadowBlur = 0;
-  const [front, back] = await figureImages(host);
-  const figH = 660;
-  const figW = Math.round(figH * (200 / 380));
-  const gap = right - col - 2 * figW;
-  if (front) ctx.drawImage(front, col, 70, figW, figH);
-  if (back) ctx.drawImage(back, col + figW + gap, 70, figW, figH);
-
-  ctx.shadowBlur = 18;
-  ctx.fillRect(col, 790, right - col, 5);
-
+  ctx.fillStyle = c.text;
+  ctx.font = `700 92px ${display}`;
+  ctx.fillText(fit(ctx, p.title.toUpperCase(), SIZE - 2 * margin), margin, 160);
   ctx.font = `700 150px ${display}`;
   const volume = formatKg(p.totalVolume);
-  ctx.fillText(fit(ctx, volume, 470), col, 950);
-  const volW = Math.min(470, ctx.measureText(volume).width);
+  ctx.fillText(fit(ctx, volume, 640), margin, 320);
+  const volW = Math.min(640, ctx.measureText(volume).width);
   ctx.font = `700 54px ${display}`;
-  ctx.fillText("KG", col + volW + 14, 950);
-
+  ctx.fillText("KG", margin + volW + 16, 320);
   ctx.fillStyle = c.muted;
   ctx.font = `600 32px ${body}`;
   if ("letterSpacing" in ctx) ctx.letterSpacing = "4px";
   const stats = [`${p.totalSets} SET`, p.prCount ? `${p.prCount} PR` : ""].filter(Boolean).join(" · ");
-  ctx.fillText(fit(ctx, stats, 400), col, SIZE - margin);
+  ctx.fillText(fit(ctx, stats, 600), margin, 378);
   if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
+
+  ctx.shadowBlur = 0;
+  const [front, back] = await figureImages(host);
+  const figH = 540;
+  const figW = Math.round(figH * (200 / 380));
+  const figTop = SIZE - margin - figH;
+  if (front) ctx.drawImage(front, margin - 10, figTop, figW, figH);
+  if (back) ctx.drawImage(back, margin - 10 + figW + 6, figTop, figW, figH);
+
+  ctx.shadowBlur = 18;
+  const barX = margin + 2 * figW + 30;
+  const barW = right - barX;
+  const muscles = (Object.entries(p.muscleSets) as [MuscleKey, number][])
+    .filter(([, v]) => v > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+  const most = muscles[0]?.[1] ?? 1;
+  muscles.forEach(([k, v], i) => {
+    const y = figTop + 40 + i * 78;
+    const count = `${formatKg(Math.round(v * 2) / 2)} set`;
+    ctx.font = `700 30px ${body}`;
+    ctx.fillStyle = c.text;
+    ctx.textAlign = "right";
+    ctx.fillText(count, right, y);
+    const countW = ctx.measureText(count).width;
+    ctx.textAlign = "left";
+    ctx.font = `500 30px ${body}`;
+    ctx.fillText(fit(ctx, MUSCLE_LABEL[k], barW - countW - 14), barX, y);
+    ctx.fillStyle = c.track;
+    ctx.beginPath();
+    ctx.roundRect(barX, y + 14, barW, 14, 7);
+    ctx.fill();
+    ctx.fillStyle = c.accent;
+    ctx.beginPath();
+    ctx.roundRect(barX, y + 14, Math.max(14, (barW * v) / most), 14, 7);
+    ctx.fill();
+  });
 
   const logo = await loadImage(c.logo).catch(() => null);
   if (logo) {
-    const h = 62;
-    const w = (logo.width / logo.height) * h;
-    ctx.drawImage(logo, right - w, 840, w, h);
+    const h = 56;
+    ctx.drawImage(logo, barX, SIZE - margin - 110, (logo.width / logo.height) * h, h);
   }
   ctx.fillStyle = c.text;
-  ctx.font = `600 38px ${body}`;
-  ctx.textAlign = "right";
-  ctx.fillText(fit(ctx, p.memberName, 300), right, SIZE - margin);
-  ctx.textAlign = "left";
+  ctx.font = `600 34px ${body}`;
+  ctx.fillText(fit(ctx, p.memberName, barW), barX, SIZE - margin);
 }
 
 /**
- * "Stiker latihan": the workout as a transparent 1080×1080 PNG (title up the
- * side, front/back muscle map, total volume, OLYMPUS logo) to lay over a
- * photo in an Instagram/WhatsApp story.
+ * "Stiker latihan": the workout as a transparent 1080×1080 PNG (title, total
+ * volume, front/back muscle map with sets per muscle, OLYMPUS logo) to lay
+ * over a photo in an Instagram/WhatsApp story.
  */
 export function WorkoutStickerModal(props: WorkoutStickerModalProps) {
   const { title, levels, onClose } = props;

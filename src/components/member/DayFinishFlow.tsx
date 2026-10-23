@@ -388,6 +388,7 @@ export function DayFinishFlow({
           title={title || defaultTitle}
           lines={summary.lines}
           levels={summary.levels}
+          muscleSets={summary.muscleSets}
           totalVolume={summary.totalVolume}
           totalSets={summary.totalSets}
           prCount={summary.prCount}
