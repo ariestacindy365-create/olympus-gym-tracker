@@ -13,6 +13,7 @@ export interface LiveRow {
   weight: number;
   reps: number;
   unit?: SetUnit;
+  perSide?: boolean;
   estimated1RM: number;
   note: string | null;
   isPR: boolean;
@@ -57,7 +58,14 @@ export function LiveBoardRow({ memberId, memberName, online, row }: LiveBoardRow
             {row.weight}
             <span className="text-sm font-semibold text-muted">kg</span>{" "}
             <span className="text-sm font-normal text-muted">
-              {!row.unit || row.unit === "REPS" ? <>&times; {row.reps}</> : <>· {formatAmount(row.reps, row.unit)}</>}
+              {!row.unit || row.unit === "REPS" ? (
+                <>
+                  &times; {row.reps}
+                  {row.perSide && "/sisi"}
+                </>
+              ) : (
+                <>· {formatAmount(row.reps, row.unit, row.perSide)}</>
+              )}
             </span>
           </p>
         ) : (

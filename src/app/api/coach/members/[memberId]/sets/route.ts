@@ -26,7 +26,7 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/coach/m
   if (!parsed.success) {
     return NextResponse.json({ error: "Pilih gerakan dan isi beban & reps yang valid." }, { status: 400 });
   }
-  const { exerciseId, weight, reps, unit, note } = parsed.data;
+  const { exerciseId, weight, reps, unit, perSide, note } = parsed.data;
 
   const exercise = await prisma.exercise.findUnique({ where: { id: exerciseId } });
   if (!exercise) {
@@ -50,8 +50,8 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/coach/m
 
     const saved = await tx.setEntry.upsert({
       where: { memberId_exerciseId_workoutDate_setNumber: { memberId, exerciseId, workoutDate, setNumber } },
-      create: { memberId, exerciseId, workoutDate, setNumber, weight, reps, unit, estimated1RM, note },
-      update: { weight, reps, unit, estimated1RM, note },
+      create: { memberId, exerciseId, workoutDate, setNumber, weight, reps, unit, perSide, estimated1RM, note },
+      update: { weight, reps, unit, perSide, estimated1RM, note },
     });
 
     const isPR = await checkAndRecordPR(tx, {

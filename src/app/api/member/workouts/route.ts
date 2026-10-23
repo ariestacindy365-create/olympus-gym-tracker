@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     prisma.workout.aggregate({ where: { memberId: user.id }, _sum: { durationSec: true } }),
     prisma.setEntry.groupBy({ by: ["workoutDate"], where: { memberId: user.id, workoutDate: { gte: weekStart } } }),
   ]);
-  const allSets = await prisma.setEntry.findMany({ where: { memberId: user.id }, select: { weight: true, reps: true, unit: true } });
+  const allSets = await prisma.setEntry.findMany({ where: { memberId: user.id }, select: { weight: true, reps: true, unit: true, perSide: true } });
 
   return NextResponse.json({
     workout,

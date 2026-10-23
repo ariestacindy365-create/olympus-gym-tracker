@@ -5,7 +5,7 @@ import { matchesWeekday, weekdayLabelForDate } from "@/lib/programRotation";
 import { formatRepTarget } from "@/lib/programSlide";
 import { schemeLine } from "@/lib/roundScheme";
 import { musclesFor, type MuscleWeights } from "@/lib/muscles";
-import { amountFromTarget, unitFromTarget, type SetUnit } from "@/lib/setUnits";
+import { amountFromTarget, perSideFromTarget, unitFromTarget, type SetUnit } from "@/lib/setUnits";
 import { classLabel, type TodayClasses } from "@/lib/classSchedule";
 
 export interface PlanItem {
@@ -20,6 +20,8 @@ export interface PlanItem {
   repDefault: number | null;
   /** What the number counts, read from the target: `30"` → detik, "1 lap" → lap, "7 kal" → kal. */
   unit: SetUnit;
+  /** "10 reps each": the number is per side, and volume counts both sides. */
+  perSide: boolean;
   muscles: MuscleWeights;
 }
 
@@ -103,6 +105,7 @@ export async function getTodayPlan(classes: TodayClasses): Promise<TodayPlan | n
       target: formatRepTarget(s.repTarget),
       repDefault: unitFromTarget(s.repTarget) === "REPS" ? repDefaultOf(s.repTarget) : amountFromTarget(s.repTarget),
       unit: unitFromTarget(s.repTarget),
+      perSide: perSideFromTarget(s.repTarget),
       muscles: musclesFor(s.movement.name, s.movement.primaryMuscle, s.movement.secondaryMuscle),
     });
   }

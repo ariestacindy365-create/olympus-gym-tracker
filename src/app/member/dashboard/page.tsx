@@ -77,7 +77,7 @@ export default async function MemberDashboardPage() {
   // allSets is ordered oldest-day-first, so a later day before today simply
   // replaces an exercise's list — what's left is its most recent prior session.
   const lastDateByExercise: Record<string, number> = {};
-  const lastSetsMap: Record<string, { setNumber: number; weight: number; reps: number; unit: SetUnit; workoutDate: string }[]> = {};
+  const lastSetsMap: Record<string, { setNumber: number; weight: number; reps: number; unit: SetUnit; perSide: boolean; workoutDate: string }[]> = {};
   for (const s of allSets) {
     const ts = s.workoutDate.getTime();
     if (ts >= todayTs) continue;
@@ -90,6 +90,7 @@ export default async function MemberDashboardPage() {
       weight: s.weight,
       reps: s.reps,
       unit: s.unit,
+      perSide: s.perSide,
       workoutDate: s.workoutDate.toISOString(),
     });
   }
@@ -145,6 +146,7 @@ export default async function MemberDashboardPage() {
       weight: s.weight,
       reps: s.reps,
       unit: s.unit,
+      perSide: s.perSide,
       note: s.note,
       isPR: s.isPR,
     });
@@ -161,6 +163,7 @@ export default async function MemberDashboardPage() {
       weight: s.weight,
       reps: s.reps,
       unit: s.unit,
+      perSide: s.perSide,
       note: s.note,
       isPR: s.isPR,
     });

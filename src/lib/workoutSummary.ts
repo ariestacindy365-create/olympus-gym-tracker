@@ -23,7 +23,7 @@ export interface DaySummary {
   muscleSets: MuscleWeights;
   levels: Partial<Record<MuscleKey, number>>;
   /** Every set, for the volume story card. */
-  sets: { weight: number; reps: number; unit: SetUnit }[];
+  sets: { weight: number; reps: number; unit: SetUnit; perSide: boolean }[];
 }
 
 // A workout stops counting at 2 hours.
@@ -49,7 +49,7 @@ export async function musclesByExerciseName(names: string[]): Promise<Map<string
   );
 }
 
-type SetRow = { weight: number; reps: number; unit: SetUnit; isPR: boolean; createdAt: Date; exercise: { name: string } };
+type SetRow = { weight: number; reps: number; unit: SetUnit; perSide: boolean; isPR: boolean; createdAt: Date; exercise: { name: string } };
 
 /**
  * `muscles`: exercise name → muscles, when the caller already looked them up
@@ -82,14 +82,14 @@ export async function summarizeSets(sets: SetRow[], muscles?: Map<string, Muscle
     lines,
     muscleSets,
     levels: muscleLevels(muscleSets),
-    sets: sets.map((s) => ({ weight: s.weight, reps: s.reps, unit: s.unit })),
+    sets: sets.map((s) => ({ weight: s.weight, reps: s.reps, unit: s.unit, perSide: s.perSide })),
   };
 }
 
 export async function summarizeDay(memberId: string, workoutDate: Date): Promise<DaySummary> {
   const sets = await prisma.setEntry.findMany({
     where: { memberId, workoutDate },
-    select: { weight: true, reps: true, unit: true, isPR: true, createdAt: true, exercise: { select: { name: true } } },
+    select: { weight: true, reps: true, unit: true, perSide: true, isPR: true, createdAt: true, exercise: { select: { name: true } } },
     orderBy: [{ createdAt: "asc" }],
   });
   return summarizeSets(sets);

@@ -32,7 +32,7 @@ export async function getMonthlyLeaderboard(): Promise<MonthlyLeaderboard> {
       workoutDate: { gte: monthStart, lt: nextMonth },
       member: { role: Role.MEMBER, leaderboardOptOut: false },
     },
-    select: { memberId: true, workoutDate: true, weight: true, reps: true, unit: true, isPR: true, member: { select: { name: true } } },
+    select: { memberId: true, workoutDate: true, weight: true, reps: true, unit: true, perSide: true, isPR: true, member: { select: { name: true } } },
   });
 
   const stats = new Map<string, { name: string; volume: number; days: Set<number>; prs: number }>();

@@ -44,6 +44,7 @@ interface LastSet {
   weight: number;
   reps: number;
   unit?: SetUnit;
+  perSide?: boolean;
   workoutDate: string;
 }
 

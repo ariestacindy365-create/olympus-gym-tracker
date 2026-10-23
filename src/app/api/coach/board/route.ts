@@ -51,6 +51,7 @@ export async function GET() {
       weight: setEntry.weight,
       reps: setEntry.reps,
       unit: setEntry.unit,
+      perSide: setEntry.perSide,
       estimated1RM: setEntry.estimated1RM,
       note: setEntry.note,
       isPR: setEntry.isPR,
@@ -76,6 +77,7 @@ export async function GET() {
       weight: s.weight,
       reps: s.reps,
       unit: s.unit,
+      perSide: s.perSide,
       estimated1RM: s.estimated1RM,
       createdAt: s.updatedAt.toISOString(),
     }));
