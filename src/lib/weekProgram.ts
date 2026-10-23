@@ -3,6 +3,8 @@ import { todayDateKey } from "@/lib/workout";
 import { effectiveWeek, getOrCreateRotation } from "@/lib/programHistory";
 import { matchesWeekday, mondayOf, weekdayLabelForDate } from "@/lib/programRotation";
 import { buildSlideRounds, type ProgramSlideData } from "@/lib/programSlide";
+import { getClassSchedule } from "@/lib/classSchedule";
+import { CLASS_SESSIONS } from "@/lib/classSessions";
 
 export interface WeekProgramDay extends ProgramSlideData {
   isToday: boolean;
@@ -73,4 +75,29 @@ export async function getThisWeekProgram(
     ),
   }));
   return { weekNumber, coachName: program?.coach.name ?? null, days: days.filter((d) => d.rounds.length > 0) };
+}
+
+/**
+ * Coaches with a program this week (rotation Minggu or override), and the
+ * times they teach today, for the member's "program coach lain" tabs.
+ */
+export async function getThisWeekCoaches(weekNumber: number): Promise<{ id: string; name: string; times: string[] }[]> {
+  const [programs, schedule] = await Promise.all([
+    prisma.trainingProgram.findMany({
+      where: { weekNumber, days: { some: { slots: { some: {} } } } },
+      select: { coach: { select: { id: true, name: true } } },
+      orderBy: { coach: { name: "asc" } },
+    }),
+    getClassSchedule(),
+  ]);
+  const weekday = todayDateKey().getUTCDay();
+  const seen = new Set<string>();
+  return programs.flatMap(({ coach }) => {
+    if (seen.has(coach.id)) return [];
+    seen.add(coach.id);
+    const times = CLASS_SESSIONS.filter((cs) =>
+      schedule.some((e) => e.weekday === weekday && e.sessionId === cs.id && e.coach?.id === coach.id)
+    ).map((cs) => cs.name.slice(0, 5));
+    return [{ id: coach.id, name: coach.name, times }];
+  });
 }
