@@ -53,28 +53,76 @@ function MinutesField({ value, onChange }: { value: number; onChange: (n: number
   );
 }
 
+/**
+ * A referee's pea whistle on `ctx` at time `at`: a bright ~2.9 kHz tone (a
+ * sawtooth, so it has the shrill overtones) that the pea trills about 38 times
+ * a second (pitch and level wobble), plus a little breath noise, through a
+ * compressor so it cuts through the room. Held at full level with a short
+ * fade, so the laptop / speaker volume is the one knob that sets how loud it
+ * is. Exported for previews.
+ */
+export function scheduleWhistle(ctx: BaseAudioContext, at: number, ms: number, pitch = 1) {
+  const end = at + ms / 1000;
+  const freq = 2900 * pitch;
+  const squeeze = ctx.createDynamicsCompressor();
+  squeeze.threshold.value = -24;
+  squeeze.ratio.value = 8;
+  squeeze.attack.value = 0.002;
+  squeeze.release.value = 0.1;
+  squeeze.connect(ctx.destination);
+  const out = ctx.createGain();
+  out.gain.setValueAtTime(0.0001, at);
+  out.gain.linearRampToValueAtTime(1, at + 0.008);
+  out.gain.setValueAtTime(1, Math.max(at + 0.008, end - 0.06));
+  out.gain.linearRampToValueAtTime(0.0001, end);
+  out.connect(squeeze);
+
+  const tone = ctx.createOscillator();
+  tone.type = "sawtooth";
+  tone.frequency.value = freq;
+  const bright = ctx.createBiquadFilter();
+  bright.type = "lowpass";
+  bright.frequency.value = 9000;
+  const trill = ctx.createOscillator();
+  trill.frequency.value = 38;
+  const trillPitch = ctx.createGain();
+  trillPitch.gain.value = 180 * pitch;
+  trill.connect(trillPitch).connect(tone.frequency);
+  const level = ctx.createGain();
+  level.gain.value = 0.55;
+  const trillLevel = ctx.createGain();
+  trillLevel.gain.value = 0.45;
+  trill.connect(trillLevel).connect(level.gain);
+  tone.connect(bright).connect(level).connect(out);
+
+  const len = Math.ceil(ctx.sampleRate * (ms / 1000));
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+  const breath = ctx.createBufferSource();
+  breath.buffer = buf;
+  const band = ctx.createBiquadFilter();
+  band.type = "bandpass";
+  band.frequency.value = freq;
+  band.Q.value = 6;
+  const breathLevel = ctx.createGain();
+  breathLevel.gain.value = 0.2;
+  breath.connect(band).connect(breathLevel).connect(out);
+
+  for (const node of [tone, trill, breath]) {
+    node.start(at);
+    node.stop(end);
+  }
+}
+
 let audioCtx: AudioContext | null = null;
-function beep(freq: number, ms: number) {
+function whistle(ms: number, pitch = 1) {
   try {
     const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctor) return;
     audioCtx ??= new Ctor();
     void audioCtx.resume();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = "square";
-    osc.frequency.value = freq;
-    // Full level, held for the whole beep with only a short fade at the end,
-    // so the laptop / speaker volume is the one knob that sets how loud it is.
-    const now = audioCtx.currentTime;
-    const end = now + ms / 1000;
-    const fade = Math.min(0.04, ms / 4000);
-    gain.gain.setValueAtTime(0.9, now);
-    gain.gain.setValueAtTime(0.9, end - fade);
-    gain.gain.linearRampToValueAtTime(0.0001, end);
-    osc.connect(gain).connect(audioCtx.destination);
-    osc.start(now);
-    osc.stop(end);
+    scheduleWhistle(audioCtx, audioCtx.currentTime, ms, pitch);
   } catch {
     // Audio is a bonus; the clock still works without it.
   }
@@ -93,8 +141,8 @@ const numCls =
 
 /**
  * Class timer in the style of the CrossFit box timers: huge digits, a 10s
- * countdown, round counter, green for work / red for rest, and beeps on the
- * last 3 seconds of every interval.
+ * countdown, round counter, green for work / red for rest, and a whistle on
+ * the last 3 seconds of every interval.
  */
 export function ClassTimer({ initial, subtitle, variant = "page", onToggleSize, onClose }: ClassTimerProps) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -104,7 +152,7 @@ export function ClassTimer({ initial, subtitle, variant = "page", onToggleSize, 
   const [finishedAt, setFinishedAt] = useState<number | null>(null);
   const startRef = useRef(0);
   const baseRef = useRef(0);
-  const lastBeepRef = useRef<string>("");
+  const lastWhistleRef = useRef<string>("");
 
   const started = elapsed > 0 || running;
   const stoppedEarly = finishedAt !== null;
@@ -129,24 +177,24 @@ export function ClassTimer({ initial, subtitle, variant = "page", onToggleSize, 
     return () => clearInterval(id);
   }, [running, config]);
 
-  // Beep on 3-2-1 and on every phase change (including the final buzzer).
+  // Whistle on 3-2-1 and on every phase change (a long one at the end).
   useEffect(() => {
     if (!running && frameAt(config, elapsed).phase !== "done") return;
     const f = frameAt(config, elapsed);
     const left = Math.ceil(f.phaseLeft - 1e-6);
     const key = `${f.phase}-${f.round}-${left}`;
-    if (key === lastBeepRef.current) return;
-    const prev = lastBeepRef.current;
-    lastBeepRef.current = key;
-    if (f.phase === "done") beep(660, 900);
-    else if (prev && !prev.startsWith(`${f.phase}-${f.round}-`)) beep(f.phase === "rest" ? 440 : 880, 450);
-    else if (left <= 3 && left >= 1) beep(660, 150);
+    if (key === lastWhistleRef.current) return;
+    const prev = lastWhistleRef.current;
+    lastWhistleRef.current = key;
+    if (f.phase === "done") whistle(2000);
+    else if (prev && !prev.startsWith(`${f.phase}-${f.round}-`)) whistle(1000, f.phase === "rest" ? 0.85 : 1);
+    else if (left <= 3 && left >= 1) whistle(300);
   }, [elapsed, running, config]);
 
   const reset = useCallback(() => {
     setRunning(false);
     baseRef.current = 0;
-    lastBeepRef.current = "";
+    lastWhistleRef.current = "";
     setElapsed(0);
     setFinishedAt(null);
   }, []);
@@ -157,7 +205,7 @@ export function ClassTimer({ initial, subtitle, variant = "page", onToggleSize, 
       baseRef.current = elapsed;
       setRunning(false);
     } else {
-      beep(880, 80);
+      whistle(90);
       setRunning(true);
     }
   }, [running, elapsed, config, finishedAt]);
@@ -166,7 +214,7 @@ export function ClassTimer({ initial, subtitle, variant = "page", onToggleSize, 
     baseRef.current = elapsed;
     setRunning(false);
     setFinishedAt(elapsed);
-    beep(660, 900);
+    whistle(2000);
   }
 
   useEffect(() => {

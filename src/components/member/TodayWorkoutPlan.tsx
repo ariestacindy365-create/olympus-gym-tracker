@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MuscleMap } from "@/components/shared/MuscleMap";
@@ -16,6 +16,7 @@ import { parseLiftWeight } from "@/lib/parseWeight";
 import { mainMuscles, muscleLoad, muscleLevels, type MuscleKey } from "@/lib/muscles";
 import type { TodayPlan } from "@/lib/todayPlan";
 import { CLASS_COOKIE } from "@/lib/classCookie";
+import { addPending, jakartaToday, loadPending, removePending, type PendingSet } from "@/lib/pendingSets";
 
 export interface LoggedSet {
   id: string;
@@ -30,6 +31,8 @@ interface Row {
   r: string;
   saved: LoggedSet | null;
   pending: boolean;
+  /** Ticked without signal: kept on the phone until it reaches the server. */
+  queued?: boolean;
 }
 
 interface TodayWorkoutPlanProps {
@@ -61,6 +64,8 @@ export function TodayWorkoutPlan({
   date = null,
 }: TodayWorkoutPlanProps) {
   const router = useRouter();
+  // The day these sets belong to: the past day being filled in, else today (Jakarta).
+  const [day] = useState(() => date ?? jakartaToday());
   const items = useMemo(() => plan.rounds.flatMap((r) => r.items), [plan]);
   const [rows, setRows] = useState<Row[][]>(() =>
     items.map((it) => {
@@ -77,6 +82,7 @@ export function TodayWorkoutPlan({
   const [finishing, setFinishing] = useState(false);
 
   const done = rows.flat().filter((r) => r.saved);
+  const queuedCount = rows.flat().filter((r) => r.queued).length;
   const total = rows.flat().length;
   // Volume counts rep sets only (timed / lap / distance sets add 0 kg).
   // and a per-side ("each") set counts both sides.
@@ -116,25 +122,107 @@ export function TodayWorkoutPlan({
     }
     setError(null);
     update(i, j, { w: String(weight), r: String(reps), pending: true });
-    try {
-      const res = await fetch("/api/member/sets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ exerciseId: it.exerciseId, weight, reps, unit: it.unit, perSide: it.perSide, setNumber: j + 1, date: date ?? undefined }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Gagal menyimpan set.");
-      update(i, j, {
-        pending: false,
-        saved: { id: data.setEntry.id, setNumber: j + 1, weight: data.setEntry.weight, reps: data.setEntry.reps, isPR: data.setEntry.isPR },
-      });
-      const badges: UnlockedBadge[] = data.newAchievements ?? [];
-      if (badges.length > 0) setCelebration({ memberName, badges });
-    } catch (e) {
+    const p: PendingSet = {
+      owner: memberName,
+      date: day,
+      exerciseId: it.exerciseId,
+      setNumber: j + 1,
+      // Always the explicit day, so a set sent after midnight keeps its date.
+      body: { exerciseId: it.exerciseId, weight, reps, unit: it.unit, perSide: it.perSide, setNumber: j + 1, date: day },
+    };
+    const result = await send(p);
+    if (result === "offline") {
+      addPending(p);
+      update(i, j, { pending: false, queued: true });
+    } else if (result !== "ok") {
       update(i, j, { pending: false });
-      setError(e instanceof Error ? e.message : "Gagal menyimpan set.");
+      setError(result);
     }
   }
+
+  /** POSTs one set and fills its row; "offline" when the network failed, else an error message. */
+  const send = useCallback(
+    async (p: PendingSet): Promise<"ok" | "offline" | string> => {
+      let res: Response;
+      try {
+        res = await fetch("/api/member/sets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p.body) });
+      } catch {
+        return "offline";
+      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return data.error ?? "Gagal menyimpan set.";
+      const i = items.findIndex((it) => it.exerciseId === p.exerciseId);
+      if (i >= 0) {
+        setRows((prev) =>
+          prev.map((rs, a) =>
+            a !== i
+              ? rs
+              : rs.map((r, b) =>
+                  b !== p.setNumber - 1
+                    ? r
+                    : {
+                        ...r,
+                        pending: false,
+                        queued: false,
+                        saved: { id: data.setEntry.id, setNumber: p.setNumber, weight: data.setEntry.weight, reps: data.setEntry.reps, isPR: data.setEntry.isPR },
+                      }
+                )
+          )
+        );
+      }
+      const badges: UnlockedBadge[] = data.newAchievements ?? [];
+      if (badges.length > 0) setCelebration({ memberName, badges });
+      return "ok";
+    },
+    [items, memberName]
+  );
+
+  // Queued sets go out on load, when the phone gets signal back, and every
+  // 15 s while any are waiting.
+  const flushing = useRef(false);
+  const flush = useCallback(async () => {
+    if (flushing.current) return;
+    flushing.current = true;
+    try {
+      for (const p of loadPending(memberName, day)) {
+        const result = await send(p);
+        if (result === "offline") break;
+        removePending(p);
+        if (result !== "ok") setError(`Set ${p.setNumber} gagal dikirim: ${result}`);
+      }
+    } finally {
+      flushing.current = false;
+    }
+  }, [memberName, day, send]);
+
+  useEffect(() => {
+    // Show what's still waiting from an earlier visit, then try to send it.
+    const waiting = loadPending(memberName, day);
+    const t = setTimeout(() => {
+      if (waiting.length > 0) {
+        setRows((prev) =>
+          prev.map((rs, i) =>
+            rs.map((r, j) => {
+              const p = waiting.find((w) => w.exerciseId === items[i]?.exerciseId && w.setNumber === j + 1);
+              return p && !r.saved ? { ...r, w: String(p.body.weight), r: String(p.body.reps), queued: true } : r;
+            })
+          )
+        );
+      }
+      void flush();
+    }, 0);
+    window.addEventListener("online", flush);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("online", flush);
+    };
+  }, [memberName, day, items, flush]);
+
+  useEffect(() => {
+    if (queuedCount === 0) return;
+    const id = setInterval(flush, 15_000);
+    return () => clearInterval(id);
+  }, [queuedCount, flush]);
 
   // Index of each round's first item in the flat `items` / `rows` arrays.
   const roundStart = plan.rounds.map((_, r) => plan.rounds.slice(0, r).reduce((a, x) => a + x.items.length, 0));
@@ -228,6 +316,7 @@ export function TodayWorkoutPlan({
                 </p>
                 {rows[i].map((row, j) => {
                   const savedNow = row.saved && row.w === String(row.saved.weight) && row.r === String(row.saved.reps);
+                  const field = savedNow ? "border-transparent bg-success/10" : row.queued ? "border-transparent bg-[#f59e0b]/15" : "border-border bg-surface";
                   return (
                     <div key={j} className="mt-1.5 grid grid-cols-[52px_1fr_1fr_44px] items-center gap-1.5">
                       <span className="text-[11px] font-bold uppercase text-muted">
@@ -242,7 +331,7 @@ export function TodayWorkoutPlan({
                           onChange={(e) => update(i, j, { w: e.target.value })}
                           aria-label={`${it.label} set ${j + 1} beban`}
                           className={`h-11 w-full min-w-0 rounded-lg border px-2 pr-7 text-center text-base font-semibold text-foreground placeholder:text-muted/70 focus:border-accent focus:outline-none ${
-                            savedNow ? "border-transparent bg-success/10" : "border-border bg-surface"
+                            field
                           }`}
                         />
                         <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-muted">kg</span>
@@ -255,7 +344,7 @@ export function TodayWorkoutPlan({
                           onChange={(e) => update(i, j, { r: e.target.value })}
                           aria-label={`${it.label} set ${j + 1} ${UNIT_LABEL[it.unit]}`}
                           className={`h-11 w-full min-w-0 rounded-lg border px-2 pr-9 text-center text-base font-semibold text-foreground placeholder:text-muted/70 focus:border-accent focus:outline-none ${
-                            savedNow ? "border-transparent bg-success/10" : "border-border bg-surface"
+                            field
                           }`}
                         />
                         <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-muted">
@@ -268,11 +357,16 @@ export function TodayWorkoutPlan({
                         onClick={() => save(i, j)}
                         disabled={row.pending}
                         aria-label={`Simpan ${it.label} set ${j + 1}`}
+                        title={row.queued ? "Menunggu sinyal" : undefined}
                         className={`h-11 rounded-lg text-lg font-bold transition disabled:opacity-60 ${
-                          savedNow ? "bg-success text-white" : "border border-border bg-surface-2 text-muted hover:text-foreground"
+                          savedNow
+                            ? "bg-success text-white"
+                            : row.queued
+                              ? "bg-[#f59e0b] text-white"
+                              : "border border-border bg-surface-2 text-muted hover:text-foreground"
                         }`}
                       >
-                        {row.pending ? "…" : "✓"}
+                        {row.pending ? "…" : row.queued ? "⏳" : "✓"}
                       </button>
                     </div>
                   );
@@ -291,17 +385,27 @@ export function TodayWorkoutPlan({
       ))}
 
       {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+      {queuedCount > 0 && (
+        <div className="flex items-center justify-between gap-3 rounded-lg bg-[#f59e0b]/15 px-3 py-2 text-sm">
+          <span>
+            📶 {queuedCount} set tersimpan di HP, dikirim otomatis saat ada sinyal.
+          </span>
+          <button type="button" onClick={() => void flush()} className="shrink-0 text-sm font-semibold text-accent hover:underline">
+            Kirim sekarang
+          </button>
+        </div>
+      )}
 
       <div className="sticky bottom-[5.5rem] z-20 sm:bottom-4">
         <button
           type="button"
           onClick={() => setFinishing(true)}
-          disabled={done.length === 0}
+          disabled={done.length === 0 || queuedCount > 0}
           className="flex w-full flex-col items-center rounded-2xl bg-accent py-3 text-white shadow-overlay transition hover:bg-accent-2 disabled:opacity-60"
         >
           <span className="text-base font-bold">{date ? "🏁 Selesai & simpan latihan" : "🏁 Selesai latihan hari ini"}</span>
           <span className="text-[11px] opacity-85">
-            {done.length} set tercatat · {formatKg(volume)} kg
+            {queuedCount > 0 ? `Tunggu ${queuedCount} set terkirim dulu` : `${done.length} set tercatat · ${formatKg(volume)} kg`}
           </span>
         </button>
       </div>

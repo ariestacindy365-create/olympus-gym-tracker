@@ -26,7 +26,7 @@ export interface FeedPost {
   kudos: number;
   kudoed: boolean;
   comments: number;
-  summary: Pick<DaySummary, "lines" | "levels">;
+  summary: Pick<DaySummary, "lines" | "levels" | "muscleSets">;
 }
 
 /** `classOf`: only workouts saved from that coach's classes ("Coach Ari · …"). */
@@ -86,7 +86,7 @@ export async function getFeed(viewer: { id: string; role: Role }, take = 30, cla
         kudos: w.kudos.length,
         kudoed: w.kudos.some((k) => k.memberId === viewer.id),
         comments: w._count.comments,
-        summary: { lines: s.lines, levels: s.levels },
+        summary: { lines: s.lines, levels: s.levels, muscleSets: s.muscleSets },
       };
     })
   );

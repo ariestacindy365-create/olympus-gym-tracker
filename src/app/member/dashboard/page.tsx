@@ -19,6 +19,9 @@ import { TrainingHeatmap, TrainingStats } from "@/components/member/TrainingSumm
 import { getTodayPlan } from "@/lib/todayPlan";
 import { getMemberClassOn, getMemberTodayClass } from "@/lib/memberClass";
 import { BackfillPicker } from "@/components/member/BackfillPicker";
+import { getMonthlyChallenge } from "@/lib/challenge";
+import { ChallengeCard } from "@/components/member/ChallengeCard";
+import { PushPrompt } from "@/components/member/PushPrompt";
 import { TodayWorkoutPlan, type LoggedSet } from "@/components/member/TodayWorkoutPlan";
 import type { SetUnit } from "@/lib/setUnits";
 
@@ -66,6 +69,7 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
     getThisWeekProgram(todayClass.current?.coach?.id ?? null),
     getTodayPlan(todayClass, pastDay ?? undefined),
   ]);
+  const challenge = pastDay ? null : await getMonthlyChallenge(user.id);
   const programToday = pastDay ? null : (weekProgram.days.find((d) => d.isToday) ?? null);
   // The day being logged: today, or the past day being filled in.
   const todayTs = (pastDay ?? todayDateKey()).getTime();
@@ -207,6 +211,7 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
       ) : (
         <>
           <PageHeader eyebrow={todayLabel()} title={`Halo, ${user.name}`} subtitle="Berikut latihan hari ini." />
+          <PushPrompt />
           <TrainingStats summary={summary} />
           <CoachNotesCard notes={coachNotes} />
         </>
@@ -258,6 +263,8 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
       )}
 
       <BackfillPicker days={backfill} active={dateStr} />
+
+      {challenge && <ChallengeCard challenge={challenge} compact />}
 
       {!pastDay && <TrainingHeatmap summary={summary} />}
 

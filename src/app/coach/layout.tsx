@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/coach/feed", label: "Feed" },
   { href: "/coach/programs", label: "Program" },
   { href: "/coach/board", label: "Live Board" },
+  { href: "/coach/pengumuman", label: "Info" },
   { href: "/coach/timer", label: "Timer" },
   { href: "/coach/import", label: "Import" },
 ];

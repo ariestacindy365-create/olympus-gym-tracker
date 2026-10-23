@@ -11,6 +11,8 @@ import { todayLabel } from "@/lib/dateLabel";
 import { SlideShowButton } from "@/components/coach/SlideShowButton";
 import { getThisWeekProgram } from "@/lib/weekProgram";
 import { formatRecord } from "@/lib/setUnits";
+import { getClassRecap } from "@/lib/classRecap";
+import { ClassRecap } from "@/components/coach/ClassRecap";
 
 // Members who haven't logged a set for this many days show up under
 // "Perlu Disapa" so a coach can reach out before they drop off.
@@ -33,6 +35,7 @@ export default async function CoachDashboardPage() {
     prisma.setEntry.groupBy({ by: ["memberId"], _max: { workoutDate: true } }),
     getCurrentUser().then((u) => getThisWeekProgram(u?.id ?? null)),
   ]);
+  const recap = coach ? await getClassRecap(coach.id) : [];
 
   const today = todayDateKey();
   const lastByMember = new Map(lastSets.map((l) => [l.memberId, l._max.workoutDate]));
@@ -101,6 +104,16 @@ export default async function CoachDashboardPage() {
         />
         <StatTile label="Belum Catat" value={members.length - loggedMemberIds.size} />
       </div>
+
+      {recap.length > 0 && (
+        <Card>
+          <div className="mb-3">
+            <h2 className="font-display text-lg font-semibold">Rekap Kelas Hari Ini</h2>
+            <p className="text-xs text-muted">Siapa yang latihan di kelasmu, rekornya, dan 💪 atau catatan untuk semua sekaligus.</p>
+          </div>
+          <ClassRecap classes={recap} />
+        </Card>
+      )}
 
       <Card>
         <div className="mb-3 flex items-start justify-between gap-3">

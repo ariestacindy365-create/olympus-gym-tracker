@@ -184,7 +184,10 @@ function PostCard({ post }: { post: FeedPost }) {
           title={post.title}
           lines={post.summary.lines}
           levels={post.summary.levels}
-          stats={`${formatKg(post.totalVolume)} kg · ${post.summary.lines.reduce((a, l) => a + l.sets, 0)} set${post.prCount ? ` · ${post.prCount} PR` : ""}`}
+          muscleSets={post.summary.muscleSets}
+          totalVolume={post.totalVolume}
+          totalSets={post.summary.lines.reduce((a, l) => a + l.sets, 0)}
+          prCount={post.prCount}
           memberName={post.memberName}
           onClose={() => setSticker(false)}
         />
