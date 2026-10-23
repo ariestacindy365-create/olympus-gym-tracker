@@ -77,8 +77,12 @@ export async function resolveTodayClass(opts: {
   picked?: string | null;
   firstSetAt?: Date | null;
   now?: Date;
+  /** A past day (filling in a forgotten workout): its timetable, no clock to go by. */
+  pastDay?: Date;
+  /** "09:00", the member's usual class time, the default for a past day. */
+  usualTime?: string | null;
 }): Promise<TodayClasses> {
-  const weekday = todayDateKey().getUTCDay();
+  const weekday = (opts.pastDay ?? todayDateKey()).getUTCDay();
   const schedule = await getClassSchedule();
   const bySession = new Map(schedule.filter((e) => e.weekday === weekday).map((e) => [e.sessionId, e.coach]));
   if (bySession.size === 0) return { current: null, options: [] };
@@ -87,10 +91,14 @@ export async function resolveTodayClass(opts: {
     coach: bySession.get(session.id) ?? null,
   }));
 
-  const today = todayDateKey().toISOString().slice(0, 10);
+  const today = (opts.pastDay ?? todayDateKey()).toISOString().slice(0, 10);
   const [pickedDate, pickedId] = (opts.picked ?? "").split("|");
   const picked = pickedDate === today ? options.find((o) => o.session.id === pickedId) : undefined;
   if (picked) return { current: picked, options };
+  if (opts.pastDay) {
+    const usual = opts.usualTime ? options.find((o) => o.session.name.startsWith(opts.usualTime!)) : undefined;
+    return { current: usual ?? options[0], options };
+  }
 
   const at = (m: number) => {
     // Latest class that started at or before minute m.

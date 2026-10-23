@@ -41,6 +41,8 @@ interface TodayWorkoutPlanProps {
   storyCharacter: LifterCharacter | null;
   storySkinTone: SkinTone | null;
   defaultVisibility: "ALL" | "COACH" | "PRIVATE";
+  /** "YYYY-MM-DD" when filling in a past day instead of today. */
+  date?: string | null;
 }
 
 /**
@@ -56,6 +58,7 @@ export function TodayWorkoutPlan({
   storyCharacter,
   storySkinTone,
   defaultVisibility,
+  date = null,
 }: TodayWorkoutPlanProps) {
   const router = useRouter();
   const items = useMemo(() => plan.rounds.flatMap((r) => r.items), [plan]);
@@ -117,7 +120,7 @@ export function TodayWorkoutPlan({
       const res = await fetch("/api/member/sets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ exerciseId: it.exerciseId, weight, reps, unit: it.unit, perSide: it.perSide, setNumber: j + 1 }),
+        body: JSON.stringify({ exerciseId: it.exerciseId, weight, reps, unit: it.unit, perSide: it.perSide, setNumber: j + 1, date: date ?? undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Gagal menyimpan set.");
@@ -148,6 +151,10 @@ export function TodayWorkoutPlan({
               <select
                 value={plan.klass?.sessionId ?? ""}
                 onChange={(e) => {
+                  if (date) {
+                    router.push(`/member/dashboard?tgl=${date}&kelas=${encodeURIComponent(e.target.value)}`);
+                    return;
+                  }
                   // Remembered for today only; the server reads it on refresh.
                   const day = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
                   document.cookie = `${CLASS_COOKIE}=${encodeURIComponent(`${day}|${e.target.value}`)}; path=/; max-age=86400; samesite=lax`;
@@ -180,14 +187,18 @@ export function TodayWorkoutPlan({
         </div>
         <div className="mt-3 flex items-center gap-3">
           <MuscleMap levels={levels} height={104} tone="dark" />
-          <p className="text-[13px] text-white/70">Otot yang dilatih hari ini. Menyala lebih terang saat set kamu tercatat.</p>
+          <p className="text-[13px] text-white/70">
+            Otot yang dilatih{date ? "" : " hari ini"}. Menyala lebih terang saat set kamu tercatat.
+          </p>
         </div>
-        <Link
-          href="/member/program"
-          className="mt-3 flex h-10 items-center justify-center rounded-lg bg-white/10 text-sm font-semibold ring-1 ring-white/20 transition hover:bg-white/20"
-        >
-          📋 Lihat slide program · ▶ Slideshow
-        </Link>
+        {!date && (
+          <Link
+            href="/member/program"
+            className="mt-3 flex h-10 items-center justify-center rounded-lg bg-white/10 text-sm font-semibold ring-1 ring-white/20 transition hover:bg-white/20"
+          >
+            📋 Lihat slide program · ▶ Slideshow
+          </Link>
+        )}
       </div>
 
       {plan.rounds.map((round, r) => (
@@ -205,6 +216,7 @@ export function TodayWorkoutPlan({
                 <p className="flex flex-wrap items-baseline gap-x-2">
                   <span className="font-display text-sm font-bold text-accent">{it.label}</span>
                   <span className="font-semibold">{it.name}</span>
+                  {it.note && <span className="text-sm text-foreground/80">({it.note})</span>}
                   {it.target && <span className="text-xs text-muted">· {it.target}</span>}
                 </p>
                 {muscles.length > 0 && <p className="text-[11.5px] font-semibold text-accent">🎯 {muscles.join(" · ")}</p>}
@@ -287,7 +299,7 @@ export function TodayWorkoutPlan({
           disabled={done.length === 0}
           className="flex w-full flex-col items-center rounded-2xl bg-accent py-3 text-white shadow-overlay transition hover:bg-accent-2 disabled:opacity-60"
         >
-          <span className="text-base font-bold">🏁 Selesai latihan hari ini</span>
+          <span className="text-base font-bold">{date ? "🏁 Selesai & simpan latihan" : "🏁 Selesai latihan hari ini"}</span>
           <span className="text-[11px] opacity-85">
             {done.length} set tercatat · {formatKg(volume)} kg
           </span>
@@ -302,6 +314,7 @@ export function TodayWorkoutPlan({
           storySkinTone={storySkinTone}
           defaultVisibility={defaultVisibility}
           classLabel={plan.klass?.label ?? null}
+          date={date}
           onClose={() => setFinishing(false)}
         />
       )}

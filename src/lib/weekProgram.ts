@@ -28,8 +28,9 @@ const programInclude = {
  * for the week is used instead (program.coach says whose it is). "Today"
  * uses the gym's Jakarta date.
  */
-export async function getThisWeekProgramRaw(coachId: string | null, needWeekday?: string) {
-  const key = todayDateKey();
+export async function getThisWeekProgramRaw(coachId: string | null, needWeekday?: string, on?: Date) {
+  // `on`: a past day key (filling in a forgotten workout) — that day's week of the rotation.
+  const key = on ?? todayDateKey();
   const today = new Date(key.getUTCFullYear(), key.getUTCMonth(), key.getUTCDate());
   const [rotation, override] = await Promise.all([
     getOrCreateRotation(),
@@ -67,6 +68,7 @@ export async function getThisWeekProgram(
         sets: s.sets,
         repTarget: s.repTarget,
         roundScheme: s.roundScheme,
+        note: s.note,
       }))
     ),
   }));

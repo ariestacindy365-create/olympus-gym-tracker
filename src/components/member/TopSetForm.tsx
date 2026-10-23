@@ -60,6 +60,8 @@ interface TopSetFormProps {
   /** Heaviest weight per exercise before today, for the PR "+N kg". */
   priorBestWeights?: Record<string, number>;
   onExerciseChange?: (exerciseId: string) => void;
+  /** "YYYY-MM-DD" when filling in a past day. */
+  date?: string | null;
 }
 
 export function TopSetForm({
@@ -72,6 +74,7 @@ export function TopSetForm({
   storySkinTone,
   priorBestWeights = {},
   onExerciseChange,
+  date,
 }: TopSetFormProps) {
   const confirmDialog = useConfirm();
   const initialExerciseId = defaultExerciseId ?? exercises[0]?.id ?? "";
@@ -124,7 +127,7 @@ export function TopSetForm({
       const res = await fetch("/api/member/sets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ exerciseId, weight: weightNum, reps: repsNum, note: note || undefined }),
+        body: JSON.stringify({ exerciseId, weight: weightNum, reps: repsNum, note: note || undefined, date: date ?? undefined }),
       });
       const data = await res.json();
       if (!res.ok) {

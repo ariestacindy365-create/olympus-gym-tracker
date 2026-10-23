@@ -39,7 +39,7 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/member
     });
     await recomputeExerciseRecords(tx, user.id, existing.exerciseId);
     return tx.setEntry.findMany({
-      where: { memberId: user.id, exerciseId: existing.exerciseId, workoutDate: todayDateKey() },
+      where: { memberId: user.id, exerciseId: existing.exerciseId, workoutDate: existing.workoutDate },
       orderBy: { setNumber: "asc" },
     });
   });
@@ -67,7 +67,7 @@ export async function DELETE(_request: NextRequest, ctx: RouteContext<"/api/memb
     await recomputeExerciseRecords(tx, user.id, existing.exerciseId);
     const [sets, allSets] = await Promise.all([
       tx.setEntry.findMany({
-        where: { memberId: user.id, exerciseId: existing.exerciseId, workoutDate: todayDateKey() },
+        where: { memberId: user.id, exerciseId: existing.exerciseId, workoutDate: existing.workoutDate },
         orderBy: { setNumber: "asc" },
       }),
       tx.setEntry.findMany({

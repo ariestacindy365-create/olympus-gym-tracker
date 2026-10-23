@@ -36,6 +36,7 @@ export function ProgramDaySlide({ dayLabel, focusLabel, slots, movements }: Prog
           sets: s.sets,
           repTarget: s.repTarget,
           roundScheme: s.roundScheme,
+          note: s.note,
         }))
     ),
   };

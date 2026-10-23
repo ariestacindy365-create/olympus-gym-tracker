@@ -23,6 +23,8 @@ export interface PlanItem {
   /** "10 reps each": the number is per side, and volume counts both sides. */
   perSide: boolean;
   muscles: MuscleWeights;
+  /** Coach's note on the slot (e.g. "tempo 3-1-1"). */
+  note: string | null;
 }
 
 export interface PlanRound {
@@ -66,11 +68,11 @@ function repDefaultOf(rep: string | null): number | null {
  * by name (created when missing) so the sets land in the normal history,
  * PRs and leaderboard.
  */
-export async function getTodayPlan(classes: TodayClasses): Promise<TodayPlan | null> {
+export async function getTodayPlan(classes: TodayClasses, on?: Date): Promise<TodayPlan | null> {
   const coach = classes.current?.coach ?? null;
-  const key = todayDateKey();
+  const key = on ?? todayDateKey();
   const weekday = weekdayLabelForDate(new Date(key.getUTCFullYear(), key.getUTCMonth(), key.getUTCDate()));
-  const { program } = await getThisWeekProgramRaw(coach?.id ?? null, weekday);
+  const { program } = await getThisWeekProgramRaw(coach?.id ?? null, weekday, on);
   const day = program?.days.find((d) => matchesWeekday(d.dayLabel, weekday));
   if (!day || day.slots.length === 0) return null;
 
@@ -107,6 +109,7 @@ export async function getTodayPlan(classes: TodayClasses): Promise<TodayPlan | n
       unit: unitFromTarget(s.repTarget),
       perSide: perSideFromTarget(s.repTarget),
       muscles: musclesFor(s.movement.name, s.movement.primaryMuscle, s.movement.secondaryMuscle),
+      note: s.note?.trim() || null,
     });
   }
 

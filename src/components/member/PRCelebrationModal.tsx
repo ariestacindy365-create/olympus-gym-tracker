@@ -45,7 +45,7 @@ export function PRCelebrationModal({ data, onClose }: PRCelebrationModalProps) {
   const dateLabel = (data.date ? new Date(data.date) : new Date()).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 
   useEffect(() => {
-    fetchAsDataUrl("/olympus-logo.png")
+    fetchAsDataUrl("/olympus-logo-bw.png")
       .then(setLogoSrc)
       .catch(() => {});
   }, []);

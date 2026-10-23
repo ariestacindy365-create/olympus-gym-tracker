@@ -41,7 +41,7 @@ export function AchievementCelebrationModal({ data, onClose }: AchievementCelebr
   const multiple = data.badges.length > 1;
 
   useEffect(() => {
-    fetchAsDataUrl("/olympus-logo.png")
+    fetchAsDataUrl("/olympus-logo-bw.png")
       .then(setLogoSrc)
       .catch(() => {});
   }, []);
