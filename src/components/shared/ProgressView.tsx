@@ -18,6 +18,7 @@ import { VolumeStoryModal } from "@/components/member/VolumeStoryModal";
 import { ProgressStoryModal } from "@/components/member/ProgressStoryModal";
 import { bestE1RMByDay, progressDelta, type ProgressStoryData } from "@/lib/progressStory";
 import { formatKg, totalVolume, type LifterCharacter, type SkinTone, type VolumeStoryData } from "@/lib/volumeStory";
+import { formatAmount, type SetUnit } from "@/lib/setUnits";
 
 type ChartMode = "weight" | "e1rm" | "volume";
 
@@ -35,6 +36,7 @@ export interface ProgressSession {
   setNumber: number;
   weight: number;
   reps: number;
+  unit?: SetUnit;
   note: string | null;
   isPR: boolean;
 }
@@ -485,7 +487,7 @@ export function ProgressView({
                         ))}
                     </td>
                     <td className="py-2 pr-3">
-                      <Badge tone="muted">{s.reps} rep</Badge>
+                      <Badge tone="muted">{formatAmount(s.reps, s.unit)}</Badge>
                     </td>
                     <td className="py-2 pr-3 text-muted">{s.note ?? "—"}</td>
                     {(canEdit || canDelete) && (

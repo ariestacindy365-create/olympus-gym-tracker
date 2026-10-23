@@ -10,6 +10,7 @@ import { MUSCLE_LABEL, type MuscleKey } from "@/lib/muscles";
 import type { DaySummary } from "@/lib/workoutSummary";
 import { formatDuration } from "@/lib/duration";
 import { estimateCalories } from "@/lib/calories";
+import { formatAmount } from "@/lib/setUnits";
 
 type Visibility = "ALL" | "COACH" | "PRIVATE";
 
@@ -169,6 +170,9 @@ export function DayFinishFlow({
                 <Tile value={String(summary.lines.length)} label="Gerakan" />
                 <Tile value={String(summary.prCount)} label="🏆 PR" />
               </div>
+              {summary.durationSec >= 2 * 3600 && (
+                <p className="-mt-2 text-center text-xs text-muted">⏱️ Durasi otomatis berhenti di 2 jam.</p>
+              )}
               {cal && (
                 <div className="flex items-center gap-3 rounded-2xl border border-[#f97316]/25 bg-[#f97316]/10 px-4 py-3">
                   <span className="text-3xl" aria-hidden>
@@ -209,7 +213,9 @@ export function DayFinishFlow({
                       <span className="font-semibold">{l.sets}×</span> {l.exercise}
                       {l.pr && " 🏆"}
                     </span>
-                    <span className="shrink-0 text-muted">{formatKg(l.volume)} kg</span>
+                    <span className="shrink-0 text-muted">
+                      {l.unit === "REPS" ? `${formatKg(l.volume)} kg` : formatAmount(l.amount, l.unit)}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -366,7 +372,7 @@ export function DayFinishFlow({
       )}
       {story && summary && (
         <VolumeStoryModal
-          data={{ memberName, exerciseName: title || defaultTitle, sets: summary.sets }}
+          data={{ memberName, exerciseName: title || defaultTitle, sets: summary.sets.filter((s) => s.unit === "REPS") }}
           character={storyCharacter}
           skinTone={storySkinTone}
           onClose={() => setStory(false)}

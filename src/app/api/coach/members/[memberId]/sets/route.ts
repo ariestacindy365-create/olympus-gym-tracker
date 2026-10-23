@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { epley1RM } from "@/lib/oneRepMax";
+import { estimate1RMFor } from "@/lib/oneRepMax";
 import { checkAndRecordPR } from "@/lib/pr";
 import { todayDateKey } from "@/lib/workout";
 import { setEntrySchema } from "@/lib/validation";
@@ -26,14 +26,14 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/coach/m
   if (!parsed.success) {
     return NextResponse.json({ error: "Pilih gerakan dan isi beban & reps yang valid." }, { status: 400 });
   }
-  const { exerciseId, weight, reps, note } = parsed.data;
+  const { exerciseId, weight, reps, unit, note } = parsed.data;
 
   const exercise = await prisma.exercise.findUnique({ where: { id: exerciseId } });
   if (!exercise) {
     return NextResponse.json({ error: "Gerakan tidak ditemukan." }, { status: 404 });
   }
 
-  const estimated1RM = epley1RM(weight, reps);
+  const estimated1RM = estimate1RMFor(weight, reps, unit);
   const workoutDate = todayDateKey();
 
   const setEntry = await prisma.$transaction(async (tx) => {
@@ -50,8 +50,8 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/coach/m
 
     const saved = await tx.setEntry.upsert({
       where: { memberId_exerciseId_workoutDate_setNumber: { memberId, exerciseId, workoutDate, setNumber } },
-      create: { memberId, exerciseId, workoutDate, setNumber, weight, reps, estimated1RM, note },
-      update: { weight, reps, estimated1RM, note },
+      create: { memberId, exerciseId, workoutDate, setNumber, weight, reps, unit, estimated1RM, note },
+      update: { weight, reps, unit, estimated1RM, note },
     });
 
     const isPR = await checkAndRecordPR(tx, {
@@ -59,6 +59,7 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/coach/m
       exerciseId,
       weight,
       reps,
+      unit,
       estimated1RM,
       setEntryId: saved.id,
     });

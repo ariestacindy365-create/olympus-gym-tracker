@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/Card";
 import { formatKg } from "@/lib/volumeStory";
 import { HEATMAP_WEEKS, type TrainingSummaryData } from "@/lib/trainingSummary";
+import { formatSet } from "@/lib/setUnits";
 
 const LEVEL_CLASS = ["bg-surface-2", "bg-accent/25", "bg-accent/50", "bg-accent/75", "bg-accent"];
 const DAY_LABELS = ["Sen", "", "Rab", "", "Jum", "", "Min"];
@@ -18,7 +19,7 @@ export function TrainingStats({ summary }: { summary: TrainingSummaryData }) {
     summary.latestPR
       ? {
           label: "PR terbaru",
-          value: `${formatKg(summary.latestPR.weight)} kg × ${summary.latestPR.reps}`,
+          value: formatSet(summary.latestPR),
           hint: `${summary.latestPR.exerciseName} · ${formatShortDate(summary.latestPR.date)}`,
         }
       : { label: "PR terbaru", value: "—", hint: "belum ada" },

@@ -12,6 +12,7 @@ import { Role } from "@/generated/prisma/client";
 import { toBodyMetricEntry } from "@/lib/bodyMetricFields";
 import { CoachNotesPanel } from "@/components/coach/CoachNotesPanel";
 import { getCoachNotes } from "@/lib/coachNotes";
+import { formatRecord } from "@/lib/setUnits";
 
 const NOTE_CONTEXT_LIMIT = 12;
 const shortDate = (d: Date) => d.toLocaleDateString("id-ID", { day: "numeric", month: "short", timeZone: "UTC" });
@@ -78,6 +79,7 @@ export default async function CoachMemberDetailPage({
       setNumber: s.setNumber,
       weight: s.weight,
       reps: s.reps,
+      unit: s.unit,
       note: s.note,
       isPR: s.isPR,
     });
@@ -108,7 +110,7 @@ export default async function CoachMemberDetailPage({
                 <div className="flex gap-2">
                   {recs.map((r) => (
                     <Badge key={r.id} tone="accent">
-                      {r.type === "MAX_WEIGHT" ? `${r.weight}kg x ${r.reps}` : `~${r.estimated1RM.toFixed(1)}kg 1RM`}
+                      {formatRecord(r)}
                     </Badge>
                   ))}
                 </div>

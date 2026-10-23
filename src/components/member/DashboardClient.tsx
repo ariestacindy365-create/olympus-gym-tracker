@@ -4,6 +4,7 @@ import { useState } from "react";
 import { TopSetForm } from "@/components/member/TopSetForm";
 import { EstimasiBebanTable } from "@/components/member/EstimasiBebanTable";
 import type { LifterCharacter, SkinTone } from "@/lib/volumeStory";
+import type { SetUnit } from "@/lib/setUnits";
 
 interface ExerciseOption {
   id: string;
@@ -23,6 +24,7 @@ interface LastSet {
   setNumber: number;
   weight: number;
   reps: number;
+  unit?: SetUnit;
   workoutDate: string;
 }
 

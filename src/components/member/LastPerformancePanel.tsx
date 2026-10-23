@@ -1,7 +1,10 @@
+import { formatSet, type SetUnit } from "@/lib/setUnits";
+
 interface LastSet {
   setNumber: number;
   weight: number;
   reps: number;
+  unit?: SetUnit;
   workoutDate: string;
 }
 
@@ -20,7 +23,7 @@ export function LastPerformancePanel({ lastSets }: { lastSets: LastSet[] }) {
       <span>Terakhir ({date}):</span>
       {lastSets.map((s) => (
         <span key={s.setNumber} className="rounded bg-surface-2 px-2 py-0.5 text-foreground">
-          {s.reps} x {s.weight}kg
+          {formatSet(s)}
         </span>
       ))}
     </div>

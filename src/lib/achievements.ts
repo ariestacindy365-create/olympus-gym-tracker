@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { setVolume } from "@/lib/setUnits";
 
 export interface Achievement {
   code: string;
@@ -269,7 +270,7 @@ export async function computeMemberStats(memberId: string): Promise<MemberStats>
   const [sets, bodyMetrics, member] = await Promise.all([
     prisma.setEntry.findMany({
       where: { memberId },
-      select: { workoutDate: true, exerciseId: true, weight: true, reps: true, isPR: true },
+      select: { workoutDate: true, exerciseId: true, weight: true, reps: true, unit: true, isPR: true },
     }),
     prisma.bodyMetric.findMany({
       where: { memberId },
@@ -282,7 +283,7 @@ export async function computeMemberStats(memberId: string): Promise<MemberStats>
   const distinctTrainingDays = new Set(sets.map((s) => s.workoutDate.getTime())).size;
   const distinctExercises = new Set(sets.map((s) => s.exerciseId)).size;
   const totalPRs = sets.filter((s) => s.isPR).length;
-  const totalVolumeKg = sets.reduce((sum, s) => sum + s.weight * s.reps, 0);
+  const totalVolumeKg = sets.reduce((sum, s) => sum + setVolume(s), 0);
 
   const bodyMetricEntries = bodyMetrics.length;
   const weightLostKg =

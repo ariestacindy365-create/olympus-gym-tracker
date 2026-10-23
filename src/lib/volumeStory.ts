@@ -11,6 +11,8 @@
 // The lifter is one of three looks (cowok / cewek / cewek berhijab) that
 // the member picks in the share popup.
 
+import { setVolume, type SetUnit } from "@/lib/setUnits";
+
 export const STORY_WIDTH = 1080;
 export const STORY_HEIGHT = 1920;
 export const STORY_DURATION = 9;
@@ -18,6 +20,7 @@ export const STORY_DURATION = 9;
 export interface VolumeStorySet {
   weight: number;
   reps: number;
+  unit?: SetUnit;
 }
 
 export interface VolumeStoryData {
@@ -63,7 +66,7 @@ export const COLORS = {
 };
 
 export function totalVolume(sets: VolumeStorySet[]) {
-  return sets.reduce((sum, s) => sum + s.weight * s.reps, 0);
+  return sets.reduce((sum, s) => sum + setVolume(s), 0);
 }
 
 export function pickEquivalent(volume: number) {

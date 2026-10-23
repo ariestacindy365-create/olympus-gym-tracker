@@ -20,6 +20,7 @@ import { epley1RM } from "@/lib/oneRepMax";
 import { StepperInput } from "@/components/member/StepperInput";
 import { ExercisePicker } from "@/components/member/ExercisePicker";
 import { WorkoutDoneSheet } from "@/components/member/WorkoutDoneSheet";
+import type { SetUnit } from "@/lib/setUnits";
 
 const WEIGHT_STEP = 2.5;
 const SAVED_FLASH_MS = 1400;
@@ -42,6 +43,7 @@ interface LastSet {
   setNumber: number;
   weight: number;
   reps: number;
+  unit?: SetUnit;
   workoutDate: string;
 }
 

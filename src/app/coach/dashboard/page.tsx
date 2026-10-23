@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { todayLabel } from "@/lib/dateLabel";
 import { SlideShowButton } from "@/components/coach/SlideShowButton";
 import { getThisWeekProgram } from "@/lib/weekProgram";
+import { formatRecord } from "@/lib/setUnits";
 
 // Members who haven't logged a set for this many days show up under
 // "Perlu Disapa" so a coach can reach out before they drop off.
@@ -147,7 +148,7 @@ export default async function CoachDashboardPage() {
                   <span className="text-muted">- {pr.exercise.name}</span>
                 </span>
                 <span className="tabular shrink-0 font-semibold text-accent">
-                  {pr.type === "MAX_WEIGHT" ? `${pr.weight}kg x ${pr.reps}` : `~${pr.estimated1RM.toFixed(1)}kg 1RM`}
+                  {formatRecord(pr)}
                 </span>
               </li>
             ))}

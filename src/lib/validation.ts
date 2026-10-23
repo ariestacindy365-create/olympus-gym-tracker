@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { UNIT_MAX, type SetUnit } from "@/lib/setUnits";
 
 // Some phones (notably Indonesian keyboard layouts) type "," instead of "."
 // for decimals on a numeric input, which a plain z.number() rejects outright.
@@ -36,23 +37,33 @@ export const registerAdminSchema = z.object({
   inviteCode: z.string().trim().min(1, { error: "Isi kode registrasi admin." }),
 });
 
-export const setEntrySchema = z.object({
-  exerciseId: z.string().min(1),
-  setNumber: z.number().int().positive().optional(),
-  weight: liftWeight,
-  reps: z.number().int().positive().max(200),
-  note: z.string().trim().max(280).optional(),
-});
+const SET_UNITS = ["REPS", "SECONDS", "LAPS", "METERS", "CALORIES"] as const;
+/** reps = the amount in `unit`; each unit has its own upper limit. */
+export function amountFitsUnit(amount: number, unit: SetUnit) {
+  return amount <= UNIT_MAX[unit];
+}
 
+export const setEntrySchema = z
+  .object({
+    exerciseId: z.string().min(1),
+    setNumber: z.number().int().positive().optional(),
+    weight: liftWeight,
+    reps: z.number().int().positive().max(20000),
+    unit: z.enum(SET_UNITS).default("REPS"),
+    note: z.string().trim().max(280).optional(),
+  })
+  .refine((d) => amountFitsUnit(d.reps, d.unit), { path: ["reps"] });
+
+// Edits keep the set's unit; the route checks the amount against it.
 export const editSetEntrySchema = z.object({
   weight: liftWeight,
-  reps: z.number().int().positive().max(200),
+  reps: z.number().int().positive().max(20000),
   note: z.string().trim().max(280).optional(),
 });
 
 export const coachEditSetEntrySchema = z.object({
   weight: liftWeight,
-  reps: z.number().int().positive().max(200),
+  reps: z.number().int().positive().max(20000),
   note: z.string().trim().max(280).optional(),
 });
 

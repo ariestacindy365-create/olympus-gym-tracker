@@ -1,9 +1,11 @@
+import { formatSet, type SetUnit } from "@/lib/setUnits";
 export interface PREvent {
   id: string;
   memberName: string;
   exerciseName: string;
   weight: number;
   reps: number;
+  unit?: SetUnit;
   estimated1RM: number;
   createdAt: string;
 }
@@ -15,7 +17,7 @@ export function PRToast({ event, onDismiss }: { event: PREvent; onDismiss: () =>
       <div>
         <p className="text-sm font-semibold text-accent">New PR!</p>
         <p className="text-sm">
-          {event.memberName} - {event.exerciseName}: {event.weight}kg x {event.reps}
+          {event.memberName} - {event.exerciseName}: {formatSet(event)}
         </p>
       </div>
       <button onClick={onDismiss} className="ml-2 text-muted hover:text-foreground cursor-pointer">

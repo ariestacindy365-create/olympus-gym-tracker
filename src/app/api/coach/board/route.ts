@@ -50,6 +50,7 @@ export async function GET() {
       exerciseName: setEntry.exercise.name,
       weight: setEntry.weight,
       reps: setEntry.reps,
+      unit: setEntry.unit,
       estimated1RM: setEntry.estimated1RM,
       note: setEntry.note,
       isPR: setEntry.isPR,
@@ -74,6 +75,7 @@ export async function GET() {
       exerciseName: s.exercise.name,
       weight: s.weight,
       reps: s.reps,
+      unit: s.unit,
       estimated1RM: s.estimated1RM,
       createdAt: s.updatedAt.toISOString(),
     }));

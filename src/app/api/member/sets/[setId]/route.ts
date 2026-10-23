@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { epley1RM } from "@/lib/oneRepMax";
+import { estimate1RMFor } from "@/lib/oneRepMax";
 import { recomputeExerciseRecords } from "@/lib/recomputeRecords";
 import { invalidatePriorBests } from "@/lib/priorBests";
 import { todayDateKey } from "@/lib/workout";
-import { editSetEntrySchema } from "@/lib/validation";
+import { editSetEntrySchema, amountFitsUnit } from "@/lib/validation";
 import { Role } from "@/generated/prisma/client";
 
 export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/member/sets/[setId]">) {
@@ -27,7 +27,10 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/member
     return NextResponse.json({ error: "Isi beban dan reps yang valid." }, { status: 400 });
   }
   const { weight, reps, note } = parsed.data;
-  const estimated1RM = epley1RM(weight, reps);
+  if (!amountFitsUnit(reps, existing.unit)) {
+    return NextResponse.json({ error: "Isi beban dan jumlah yang valid." }, { status: 400 });
+  }
+  const estimated1RM = estimate1RMFor(weight, reps, existing.unit);
 
   const sets = await prisma.$transaction(async (tx) => {
     await tx.setEntry.update({

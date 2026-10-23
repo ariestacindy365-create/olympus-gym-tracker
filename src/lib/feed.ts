@@ -50,7 +50,7 @@ export async function getFeed(viewer: { id: string; role: Role }, take = 30, cla
   const allSets = workouts.length
     ? await prisma.setEntry.findMany({
         where: { OR: workouts.map((w) => ({ memberId: w.memberId, workoutDate: w.workoutDate })) },
-        select: { memberId: true, workoutDate: true, weight: true, reps: true, isPR: true, createdAt: true, exercise: { select: { name: true } } },
+        select: { memberId: true, workoutDate: true, weight: true, reps: true, unit: true, isPR: true, createdAt: true, exercise: { select: { name: true } } },
         orderBy: { createdAt: "asc" },
       })
     : [];

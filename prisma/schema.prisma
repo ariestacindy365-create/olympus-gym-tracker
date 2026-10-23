@@ -36,6 +36,18 @@ enum StorySkinTone {
 enum PRType {
   MAX_WEIGHT
   MAX_1RM
+  // Longest / most for timed, lap, distance and calorie sets without load.
+  MAX_AMOUNT
+}
+
+// What a set's number counts: reps, or seconds / laps / meters / calories
+// for movements done for time or distance (plank 30", 1 lap, 7 kal).
+enum SetUnit {
+  REPS
+  SECONDS
+  LAPS
+  METERS
+  CALORIES
 }
 
 model User {
@@ -143,7 +155,9 @@ model SetEntry {
   workoutDate  DateTime
   setNumber    Int
   weight       Float
+  // The amount, in `unit` (reps unless it's a timed / lap / distance set).
   reps         Int
+  unit         SetUnit  @default(REPS)
   estimated1RM Float
   note         String?
   isPR         Boolean  @default(false)
@@ -188,6 +202,8 @@ model PersonalRecord {
   type         PRType
   weight       Float
   reps         Int
+  // Unit of the record set (MAX_AMOUNT records are seconds / laps / …).
+  unit         SetUnit  @default(REPS)
   estimated1RM Float
   setEntryId   String
   achievedAt   DateTime @default(now())

@@ -1,27 +1,33 @@
 import { prisma } from "@/lib/prisma";
 import { musclesFor, muscleLoad, muscleLevels, type MuscleKey, type MuscleWeights } from "@/lib/muscles";
+import { setVolume, type SetUnit } from "@/lib/setUnits";
 
 export interface DaySummaryLine {
   exercise: string;
   sets: number;
+  /** kg (rep sets only). */
   volume: number;
   pr: boolean;
+  /** Unit of this exercise's sets; for non-rep units `amount` is their total (e.g. 90 detik). */
+  unit: SetUnit;
+  amount: number;
 }
 
 export interface DaySummary {
   totalVolume: number;
   totalSets: number;
   prCount: number;
-  /** Active time: first → last set (long pauses capped) plus a rest after it, max 4h. */
+  /** Active time: first → last set (long pauses capped) plus a rest after it, max 2h. */
   durationSec: number;
   lines: DaySummaryLine[];
   muscleSets: MuscleWeights;
   levels: Partial<Record<MuscleKey, number>>;
-  /** Every set (weight × reps), for the volume story card. */
-  sets: { weight: number; reps: number }[];
+  /** Every set, for the volume story card. */
+  sets: { weight: number; reps: number; unit: SetUnit }[];
 }
 
-const MAX_DURATION_SEC = 4 * 3600;
+// A workout stops counting at 2 hours.
+export const MAX_DURATION_SEC = 2 * 3600;
 // Time counted after the last logged set (finishing it, last rest).
 const AFTER_LAST_SET_SEC = 3 * 60;
 // A gap longer than this between two sets is a break (left the gym, came
@@ -43,7 +49,7 @@ export async function musclesByExerciseName(names: string[]): Promise<Map<string
   );
 }
 
-type SetRow = { weight: number; reps: number; isPR: boolean; createdAt: Date; exercise: { name: string } };
+type SetRow = { weight: number; reps: number; unit: SetUnit; isPR: boolean; createdAt: Date; exercise: { name: string } };
 
 /**
  * `muscles`: exercise name → muscles, when the caller already looked them up
@@ -52,9 +58,10 @@ type SetRow = { weight: number; reps: number; isPR: boolean; createdAt: Date; ex
 export async function summarizeSets(sets: SetRow[], muscles?: Map<string, MuscleWeights>): Promise<DaySummary> {
   const byExercise = new Map<string, DaySummaryLine>();
   for (const s of sets) {
-    const line = byExercise.get(s.exercise.name) ?? { exercise: s.exercise.name, sets: 0, volume: 0, pr: false };
+    const line = byExercise.get(s.exercise.name) ?? { exercise: s.exercise.name, sets: 0, volume: 0, pr: false, unit: s.unit, amount: 0 };
     line.sets += 1;
-    line.volume += s.weight * s.reps;
+    line.volume += setVolume(s);
+    if (s.unit !== "REPS") line.amount += s.reps;
     line.pr ||= s.isPR;
     byExercise.set(s.exercise.name, line);
   }
@@ -75,14 +82,14 @@ export async function summarizeSets(sets: SetRow[], muscles?: Map<string, Muscle
     lines,
     muscleSets,
     levels: muscleLevels(muscleSets),
-    sets: sets.map((s) => ({ weight: s.weight, reps: s.reps })),
+    sets: sets.map((s) => ({ weight: s.weight, reps: s.reps, unit: s.unit })),
   };
 }
 
 export async function summarizeDay(memberId: string, workoutDate: Date): Promise<DaySummary> {
   const sets = await prisma.setEntry.findMany({
     where: { memberId, workoutDate },
-    select: { weight: true, reps: true, isPR: true, createdAt: true, exercise: { select: { name: true } } },
+    select: { weight: true, reps: true, unit: true, isPR: true, createdAt: true, exercise: { select: { name: true } } },
     orderBy: [{ createdAt: "asc" }],
   });
   return summarizeSets(sets);

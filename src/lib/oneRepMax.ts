@@ -1,3 +1,8 @@
+/** Estimated 1RM of a set; only rep sets have one (timed / lap / distance sets → 0). */
+export function estimate1RMFor(weight: number, reps: number, unit: string = "REPS"): number {
+  return unit === "REPS" ? epley1RM(weight, reps) : 0;
+}
+
 export function epley1RM(weight: number, reps: number): number {
   if (reps <= 1) return weight;
   return weight * (1 + reps / 30);
