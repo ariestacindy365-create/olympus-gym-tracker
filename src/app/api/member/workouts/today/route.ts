@@ -13,7 +13,7 @@ export async function GET() {
     return NextResponse.json({ error: "Not authorized." }, { status: 401 });
   }
   const [summary, lastWeighIn] = await Promise.all([
-    summarizeDay(user.id, todayDateKey(), true),
+    summarizeDay(user.id, todayDateKey()),
     prisma.bodyMetric.findFirst({ where: { memberId: user.id }, orderBy: { recordedDate: "desc" }, select: { weight: true } }),
   ]);
   // Latest weigh-in, for the calorie estimate.

@@ -14,7 +14,8 @@ const schema = z.object({
   category: z.enum(["PENGUMUMAN", "PROMO", "ARTIKEL", "LAINNYA"]),
   title: z.string().trim().min(3, { error: "Judul minimal 3 huruf." }).max(100),
   body: z.string().trim().min(1, { error: "Tulis isinya dulu." }).max(3000),
-  linkUrl: z.union([z.url({ error: "Link harus diawali https://" }), z.literal("")]).optional(),
+  // http(s) only: a javascript: link would run code on the member's phone.
+  linkUrl: z.union([z.url({ protocol: /^https?$/, error: "Link harus diawali https://" }), z.literal("")]).optional(),
 });
 
 // Admin/owner: send an announcement / promo / article to every member.

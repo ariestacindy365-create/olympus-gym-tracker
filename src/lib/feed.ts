@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { Role, WorkoutVisibility } from "@/generated/prisma/client";
-import { summarizeSets, type DaySummary } from "@/lib/workoutSummary";
+import { musclesByExerciseName, summarizeSets, type DaySummary } from "@/lib/workoutSummary";
 
 /** Feed rules: ALL = every member and coach, COACH = owner + coaches, PRIVATE = owner only. */
 export function canSeeWorkout(w: { memberId: string; visibility: WorkoutVisibility }, viewer: { id: string; role: Role }) {
@@ -44,13 +44,26 @@ export async function getFeed(viewer: { id: string; role: Role }, take = 30, cla
       _count: { select: { comments: true } },
     },
   });
+  // Every post's sets in one query, and the muscles of all their exercises
+  // in one more (instead of two queries per post).
+  const dayKey = (memberId: string, date: Date) => `${memberId}|${date.getTime()}`;
+  const allSets = workouts.length
+    ? await prisma.setEntry.findMany({
+        where: { OR: workouts.map((w) => ({ memberId: w.memberId, workoutDate: w.workoutDate })) },
+        select: { memberId: true, workoutDate: true, weight: true, reps: true, isPR: true, createdAt: true, exercise: { select: { name: true } } },
+        orderBy: { createdAt: "asc" },
+      })
+    : [];
+  const setsByDay = new Map<string, typeof allSets>();
+  for (const st of allSets) {
+    const k = dayKey(st.memberId, st.workoutDate);
+    setsByDay.set(k, [...(setsByDay.get(k) ?? []), st]);
+  }
+  const muscles = await musclesByExerciseName([...new Set(allSets.map((st) => st.exercise.name))]);
+
   return Promise.all(
     workouts.map(async (w) => {
-      const sets = await prisma.setEntry.findMany({
-        where: { memberId: w.memberId, workoutDate: w.workoutDate },
-        select: { weight: true, reps: true, isPR: true, createdAt: true, exercise: { select: { name: true } } },
-      });
-      const s = await summarizeSets(sets, false);
+      const s = await summarizeSets(setsByDay.get(dayKey(w.memberId, w.workoutDate)) ?? [], muscles);
       return {
         id: w.id,
         memberName: w.member.name,
@@ -59,7 +72,8 @@ export async function getFeed(viewer: { id: string; role: Role }, take = 30, cla
         note: w.note,
         classLabel: w.classLabel,
         createdAt: w.createdAt.toISOString(),
-        durationSec: w.durationSec,
+        // From the sets themselves, so posts saved late show the real length.
+        durationSec: s.durationSec,
         totalVolume: w.totalVolume,
         prCount: w.prCount,
         visibility: w.visibility,

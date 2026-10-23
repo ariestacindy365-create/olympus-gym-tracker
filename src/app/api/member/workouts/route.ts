@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Isi judul latihan." }, { status: 400 });
   }
   const workoutDate = todayDateKey();
-  const summary = await summarizeDay(user.id, workoutDate, true);
+  const summary = await summarizeDay(user.id, workoutDate);
   if (summary.totalSets === 0) {
     return NextResponse.json({ error: "Belum ada set yang dicatat hari ini." }, { status: 400 });
   }
