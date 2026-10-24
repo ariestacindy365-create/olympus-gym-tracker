@@ -7,6 +7,7 @@ import { schemeLine } from "@/lib/roundScheme";
 import { musclesFor, type MuscleWeights } from "@/lib/muscles";
 import { amountFromTarget, perSideFromTarget, unitFromTarget, type SetUnit } from "@/lib/setUnits";
 import { classLabel, type TodayClasses } from "@/lib/classSchedule";
+import { needsLoadInput } from "@/lib/loadInput";
 
 export interface PlanItem {
   label: string;
@@ -25,6 +26,8 @@ export interface PlanItem {
   muscles: MuscleWeights;
   /** Coach's note on the slot (e.g. "tempo 3-1-1"). */
   note: string | null;
+  /** TABATA finisher or a bodyweight / banded move: just done, not logged (the member can still log it). */
+  noInput: boolean;
 }
 
 export interface PlanRound {
@@ -110,6 +113,7 @@ export async function getTodayPlan(classes: TodayClasses, on?: Date): Promise<To
       perSide: perSideFromTarget(s.repTarget),
       muscles: musclesFor(s.movement.name, s.movement.primaryMuscle, s.movement.secondaryMuscle),
       note: s.note?.trim() || null,
+      noInput: !needsLoadInput(s.movement.name, s.movement.equipment, round.scheme),
     });
   }
 
