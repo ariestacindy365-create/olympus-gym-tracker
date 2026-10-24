@@ -90,8 +90,8 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
 
   const now = new Date();
   // A request made while a class session is running "checks the member in"
-  // for the rest of the calendar day, so the Live Board keeps showing them
-  // even after they stop actively using the app mid-session.
+  // for the rest of the calendar day; the evening "jangan lupa catat"
+  // reminder uses it to tell who was at the gym.
   const presentDate = getCurrentClassSession(now) ? todayDateKey() : undefined;
 
   let user = await prisma.user.findUnique({ where: { id: session.sub } });

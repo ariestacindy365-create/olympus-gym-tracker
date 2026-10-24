@@ -4,8 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { estimate1RMFor } from "@/lib/oneRepMax";
 import { checkAndRecordPR } from "@/lib/pr";
-import { BACKFILL_DAYS, loggableDateKey, todayDateKey } from "@/lib/workout";
-import { invalidatePriorBests } from "@/lib/priorBests";
+import { BACKFILL_DAYS, loggableDateKey } from "@/lib/workout";
 import { setEntrySchema } from "@/lib/validation";
 import { syncMemberAchievements } from "@/lib/achievements";
 import { Role } from "@/generated/prisma/client";
@@ -74,8 +73,6 @@ export async function POST(request: NextRequest) {
     return saved;
   });
 
-  // A set on a past day can change the Live Board's "previous best".
-  if (workoutDate < todayDateKey()) invalidatePriorBests();
   const newAchievements = await syncMemberAchievements(user.id);
 
   return NextResponse.json({ setEntry, exercise, newAchievements });
