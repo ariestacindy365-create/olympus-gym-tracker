@@ -29,14 +29,20 @@ function loadImage(src: string) {
   });
 }
 
-/** The app's next/font families (their names are hashed), read off the page. */
+/**
+ * The app's next/font families (their names are hashed), read off the page
+ * once: probing the DOM on every animation frame forces a style recalc.
+ */
+let fonts: { display: string; body: string } | null = null;
 function fontFamilies() {
+  if (fonts) return fonts;
   const probe = document.createElement("span");
   probe.className = "font-display";
   document.body.appendChild(probe);
   const display = getComputedStyle(probe).fontFamily;
   probe.remove();
-  return { display, body: getComputedStyle(document.body).fontFamily };
+  fonts = { display, body: getComputedStyle(document.body).fontFamily };
+  return fonts;
 }
 
 function wrap(ctx: CanvasRenderingContext2D, text: string, max: number): string[] {

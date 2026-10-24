@@ -15,10 +15,10 @@ export async function GET() {
   const [todaysSets, allMembers] = await Promise.all([
     prisma.setEntry.findMany({
       where: { workoutDate: todayDateKey() },
-      include: { member: true, exercise: true },
+      include: { member: { select: { name: true, presentDate: true } }, exercise: { select: { name: true } } },
       orderBy: { updatedAt: "desc" },
     }),
-    prisma.user.findMany({ where: { role: Role.MEMBER }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: { role: Role.MEMBER }, orderBy: { name: "asc" }, select: { id: true, name: true, presentDate: true } }),
   ]);
 
   // Rank by each member's heaviest set of the day per exercise (tie-break by reps).

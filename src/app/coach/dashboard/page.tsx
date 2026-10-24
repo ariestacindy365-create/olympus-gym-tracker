@@ -22,7 +22,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export default async function CoachDashboardPage() {
   const [coach, members, todaysSets, recentPRs, lastSets, thisWeek] = await Promise.all([
     getCurrentUser(),
-    prisma.user.findMany({ where: { role: Role.MEMBER } }),
+    prisma.user.findMany({ where: { role: Role.MEMBER }, select: { id: true, name: true, createdAt: true, lastActiveAt: true } }),
     prisma.setEntry.findMany({
       where: { workoutDate: todayDateKey() },
       select: { memberId: true },
