@@ -22,7 +22,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export default async function CoachDashboardPage() {
   const [coach, members, todaysSets, recentPRs, lastSets, thisWeek] = await Promise.all([
     getCurrentUser(),
-    prisma.user.findMany({ where: { role: Role.MEMBER } }),
+    prisma.user.findMany({ where: { role: Role.MEMBER }, select: { id: true, name: true, createdAt: true, lastActiveAt: true } }),
     prisma.setEntry.findMany({
       where: { workoutDate: todayDateKey() },
       select: { memberId: true },
@@ -79,18 +79,7 @@ export default async function CoachDashboardPage() {
         eyebrow={todayLabel()}
         title={coach ? `Halo, ${/^coach\b/i.test(coach.name) ? coach.name : `Coach ${coach.name}`}` : "Coach Dashboard"}
         subtitle="Pantau member yang sedang latihan dan yang mulai jarang datang."
-        actions={
-          <div className="flex flex-wrap gap-2">
-          <SlideShowButton slides={thisWeek.days} label="▶ Slideshow Program" />
-          <Link
-            href="/coach/board"
-            className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-accent/25 transition hover:bg-accent-2"
-          >
-            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" aria-hidden />
-            Buka Live Board
-          </Link>
-          </div>
-        }
+        actions={<SlideShowButton slides={thisWeek.days} label="▶ Slideshow Program" />}
       />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">

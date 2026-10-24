@@ -18,40 +18,33 @@ export async function getMonthlyChallenge(memberId: string): Promise<MonthlyChal
   const today = todayDateKey();
   const monthStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
   const nextMonth = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 1));
-  const sets = await prisma.setEntry.findMany({
-    where: { workoutDate: { gte: monthStart, lt: nextMonth }, member: { role: Role.MEMBER } },
-    select: {
-      memberId: true,
-      workoutDate: true,
-      weight: true,
-      reps: true,
-      unit: true,
-      perSide: true,
-      isPR: true,
-      member: { select: { name: true, leaderboardOptOut: true } },
-    },
-  });
-  const days = new Map<string, Set<number>>();
-  let volume = 0;
-  let prs = 0;
-  for (const s of sets) {
-    const d = days.get(s.memberId) ?? new Set<number>();
-    d.add(s.workoutDate.getTime());
-    days.set(s.memberId, d);
-    if (s.memberId === memberId) {
-      volume += setVolume(s);
-      if (s.isPR) prs += 1;
-    }
-  }
-  const names = new Map(sets.map((s) => [s.memberId, s.member]));
-  const finishers = [...days.entries()]
-    .filter(([id, d]) => d.size >= CHALLENGE.days && !names.get(id)!.leaderboardOptOut)
-    .map(([id]) => ({ id, name: names.get(id)!.name }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const month = { gte: monthStart, lt: nextMonth };
+  // One row per member per training day (not every set), plus this member's
+  // own sets for the bonus goals.
+  const [dayRows, mySets] = await Promise.all([
+    prisma.setEntry.groupBy({ by: ["memberId", "workoutDate"], where: { workoutDate: month, member: { role: Role.MEMBER } } }),
+    prisma.setEntry.findMany({
+      where: { memberId, workoutDate: month },
+      select: { weight: true, reps: true, unit: true, perSide: true, isPR: true },
+    }),
+  ]);
+  const days = new Map<string, number>();
+  for (const r of dayRows) days.set(r.memberId, (days.get(r.memberId) ?? 0) + 1);
+  const volume = mySets.reduce((a, s) => a + setVolume(s), 0);
+  const prs = mySets.filter((s) => s.isPR).length;
+  const doneIds = [...days.entries()].filter(([, n]) => n >= CHALLENGE.days).map(([id]) => id);
+  const finishers =
+    doneIds.length === 0
+      ? []
+      : await prisma.user.findMany({
+          where: { id: { in: doneIds }, leaderboardOptOut: false },
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        });
   return {
     monthLabel: monthStart.toLocaleDateString("id-ID", { month: "long", timeZone: "UTC" }),
     daysLeft: Math.round((nextMonth.getTime() - today.getTime()) / 86_400_000) - 1,
-    mine: { days: days.get(memberId)?.size ?? 0, volume: Math.round(volume), prs },
+    mine: { days: days.get(memberId) ?? 0, volume: Math.round(volume), prs },
     finishers,
   };
 }

@@ -170,6 +170,8 @@ model SetEntry {
 
   @@unique([memberId, exerciseId, workoutDate, setNumber])
   @@index([workoutDate])
+  // "This member's sets on this day" (dashboard, summaries, backfill).
+  @@index([memberId, workoutDate])
 }
 
 // One weigh-in per member per day — weight, body fat %, and skeletal muscle
@@ -213,6 +215,8 @@ model PersonalRecord {
   achievedAt   DateTime @default(now())
 
   @@unique([memberId, exerciseId, type])
+  // "Rekor Terbaru Klub" on the coach dashboard.
+  @@index([achievedAt])
 }
 
 // Master exercise dictionary for building training programs (coach-only).
@@ -312,6 +316,7 @@ model ProgramSnapshot {
   createdAt  DateTime @default(now())
 
   @@index([createdAt])
+  @@index([coachId, weekNumber, createdAt])
 }
 
 // Anchors the Minggu 1-4 rotation to real calendar weeks so the history
@@ -752,6 +757,8 @@ model Notification {
   createdAt      DateTime         @default(now())
 
   @@index([userId, createdAt])
+  // Announcement read counts and withdrawals.
+  @@index([announcementId])
 }
 
 enum AnnouncementCategory {

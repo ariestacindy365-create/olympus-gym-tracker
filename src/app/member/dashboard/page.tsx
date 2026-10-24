@@ -40,36 +40,46 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
   // Membership-duration achievements unlock purely by time passing, not by
   // any set/body-metric action — sync here (unseen, so the celebration
   // still shows) so they're picked up on the page members open most often.
-  await syncMemberAchievements(user.id, { markSeen: false });
+  await syncMemberAchievements(user.id, { markSeen: false, membershipOnly: true });
   const unseenAchievements = await getUnseenAchievements(user.id);
 
   // Bodyweight sets used to be stored as 0.0001 kg because 0 was rejected;
   // turn this member's old ones into a real 0 (no PR). A no-op once done.
-  await prisma.$transaction([
-    prisma.setEntry.updateMany({
-      where: { memberId: user.id, weight: { gt: 0, lt: 0.01 } },
-      data: { weight: 0, estimated1RM: 0, isPR: false },
-    }),
-    prisma.personalRecord.deleteMany({ where: { memberId: user.id, weight: { gt: 0, lt: 0.01 } } }),
-  ]);
+  // A read first, so the usual case (nothing left to fix) writes nothing.
+  const oldBodyweight = await prisma.setEntry.findFirst({
+    where: { memberId: user.id, weight: { gt: 0, lt: 0.01 } },
+    select: { id: true },
+  });
+  if (oldBodyweight) {
+    await prisma.$transaction([
+      prisma.setEntry.updateMany({
+        where: { memberId: user.id, weight: { gt: 0, lt: 0.01 } },
+        data: { weight: 0, estimated1RM: 0, isPR: false },
+      }),
+      prisma.personalRecord.deleteMany({ where: { memberId: user.id, weight: { gt: 0, lt: 0.01 } } }),
+    ]);
+  }
 
   // One query for every set the member has logged; today's sets and each
   // exercise's previous session are derived from it below.
   const todayClass = pastDay ? await getMemberClassOn(user.id, pastDay, pickedClass) : await getMemberTodayClass(user.id);
-  const [dailyWorkout, exercises, personalRecords, allSets, coachNotes, weekProgram, todayPlan] = await Promise.all([
+  const [dailyWorkout, personalRecords, allSets, coachNotes, weekProgram, todayPlan] = await Promise.all([
     getTodayDailyWorkout(),
-    prisma.exercise.findMany({ orderBy: { name: "asc" } }),
     prisma.personalRecord.findMany({ where: { memberId: user.id } }),
     prisma.setEntry.findMany({
       where: { memberId: user.id },
-      include: { exercise: true },
+      include: { exercise: { select: { name: true } } },
       orderBy: [{ workoutDate: "asc" }, { setNumber: "asc" }],
     }),
     getCoachNotes(user.id, 10),
     getThisWeekProgram(todayClass.current?.coach?.id ?? null),
     getTodayPlan(todayClass, pastDay ?? undefined),
   ]);
-  const challenge = pastDay ? null : await getMonthlyChallenge(user.id);
+  const [challenge, exercises] = await Promise.all([
+    pastDay ? null : getMonthlyChallenge(user.id),
+    // The exercise picker is only for days without a class program.
+    todayPlan ? [] : prisma.exercise.findMany({ orderBy: { name: "asc" } }),
+  ]);
   const programToday = pastDay ? null : (weekProgram.days.find((d) => d.isToday) ?? null);
   // The day being logged: today, or the past day being filled in.
   const todayTs = (pastDay ?? todayDateKey()).getTime();
