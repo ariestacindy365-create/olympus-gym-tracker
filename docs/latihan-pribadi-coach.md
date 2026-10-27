@@ -4,9 +4,9 @@ Coach membuka **Latihan Saya** dari navigasi atau dashboard (`/coach/latihan`).
 Akun tetap COACH; tidak perlu membuat akun member.
 
 1. Pilih **Buat program**, tambahkan sesi (misalnya Upper, Lower, atau nama hari),
-   pilih gerakan dari kamus, lalu tentukan target set dan repetisi.
+   pilih gerakan dari kamus, lalu tentukan target set, satuan, jumlah, dan per sisi.
 2. Simpan program, pilih sesi/gerakan, isi beban kg dan repetisi, lalu simpan
-   setiap set. Beban 0 kg berarti bodyweight. Desimal titik dan koma didukung.
+   setiap set. Bodyweight otomatis 0 kg; + kg menambahkan beban. Desimal titik dan koma didukung.
 3. Beban dan repetisi dari latihan terakhir tersedia sebagai acuan.
 4. Lihat hasil hari ini atau Riwayat untuk mengedit/menghapus set dan catatan.
    Riwayat menampilkan hingga 500 set terbaru; acuan latihan sebelumnya
@@ -31,7 +31,7 @@ yang sudah diperbarui. Jangan menjalankan seed terhadap database asli.
 
 ## Verifikasi
 
-- `npm run test:coach-training`: 12 pemeriksaan handler API terisolasi,
+- `npm run test:coach-training`: 15 pemeriksaan handler API terisolasi,
   menggunakan session/database tiruan dan logika validasi/PR asli.
 - `npx prisma validate`
 - `npx next typegen && npx tsc --noEmit`

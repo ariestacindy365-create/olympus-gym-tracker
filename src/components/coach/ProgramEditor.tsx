@@ -10,11 +10,15 @@ import { type MovementOption } from "@/components/coach/MovementCombobox";
 import { type SlotState } from "@/components/coach/SortableSlotRow";
 import { SortableDayBlock, type DayState } from "@/components/coach/SortableDayBlock";
 import { ProgramWeekPreview } from "@/components/coach/ProgramWeekPreview";
+import { useProgramDraft } from "@/hooks/useProgramDraft";
+import { DraftNotice } from "@/components/coach/DraftNotice";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 export type { DayState };
 
 interface ProgramEditorProps {
+  draftKey: string;
+  initialVersions: Record<number, string | null>;
   movements: MovementOption[];
   // Days come from the server without a client-side drag id yet — assigned
   // once on mount (see the weeks state initializer below).
@@ -83,9 +87,14 @@ function withDayIds(weeks: Record<number, Omit<DayState, "id">[]>): Record<numbe
   return result;
 }
 
-export function ProgramEditor({ movements: initialMovements, initialWeeks }: ProgramEditorProps) {
+export function ProgramEditor({ movements: initialMovements, initialWeeks, draftKey, initialVersions }: ProgramEditorProps) {
   const confirmDialog = useConfirm();
-  const [weeks, setWeeks] = useState(() => withDayIds(initialWeeks));
+  const [initial] = useState(() => withDayIds(initialWeeks));
+  const draft = useProgramDraft(draftKey, initial, initialVersions, (value) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+    return Object.values(value).every((days) => Array.isArray(days) && days.every((day) => day && typeof day.id === "string" && typeof day.dayLabel === "string" && typeof day.focusLabel === "string" && Array.isArray(day.slots) && day.slots.every((slot: Record<string, unknown>) => ["id", "slotLabel", "movementId", "sets", "repTarget", "targetWeight", "note", "roundScheme"].every((field) => typeof slot?.[field] === "string"))));
+  });
+  const { value: weeks, setValue: setWeeks } = draft;
   const [movements, setMovements] = useState(initialMovements);
   const [activeWeek, setActiveWeek] = useState(1);
   const [pending, setPending] = useState(false);
@@ -236,7 +245,7 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
       const res = await fetch(`/api/coach/programs/${activeWeek}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, expectedVersion: draft.version[activeWeek] }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -273,7 +282,7 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
           roundScheme: s.roundScheme ?? "",
         })),
       }));
-      setWeeks((prev) => ({ ...prev, [activeWeek]: mapped }));
+      draft.acknowledge({ ...weeks, [activeWeek]: mapped }, { ...draft.version, [activeWeek]: data.version }, { ...draft.baseline, [activeWeek]: mapped });
       setSaved(true);
       setShowPreview(true);
     } catch {
@@ -284,7 +293,9 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4" aria-busy={!draft.ready || pending}>
+      <DraftNotice status={draft.status} dirty={draft.dirty} onDownload={draft.download} onDiscard={() => { draft.clear(); window.location.reload(); }} />
+      <fieldset disabled={!draft.ready || pending} className="contents">
       <div className="flex gap-2">
         {WEEKS.map((w) => (
           <button
@@ -422,6 +433,7 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks }: Pro
       </div>
         </>
       )}
+      </fieldset>
     </div>
   );
 }

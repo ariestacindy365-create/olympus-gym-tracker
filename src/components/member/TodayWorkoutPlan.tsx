@@ -17,7 +17,7 @@ import { parseLiftWeight } from "@/lib/parseWeight";
 import { mainMuscles, muscleLoad, muscleLevels, type MuscleKey } from "@/lib/muscles";
 import type { TodayPlan } from "@/lib/todayPlan";
 import { CLASS_COOKIE } from "@/lib/classCookie";
-import { addPending, jakartaToday, loadPending, removePending, type PendingSet } from "@/lib/pendingSets";
+import { getPendingStorageError, downloadPending, addPending, jakartaToday, loadPending, removePending, type PendingSet } from "@/lib/pendingSets";
 
 export interface LoggedSet {
   id: string;
@@ -79,6 +79,7 @@ export function TodayWorkoutPlan({
     })
   );
   const [kgOpen, setKgOpen] = useState<Record<number, boolean>>({});
+  const [storageWarning, setStorageWarning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<AchievementCelebrationData | null>(null);
   const [finishing, setFinishing] = useState(false);
@@ -146,17 +147,28 @@ export function TodayWorkoutPlan({
     const result = await send(p);
     if (result === "offline") {
       // Keep the tap time so the late set still counts at the right moment.
-      addPending({ ...p, body: { ...p.body, loggedAt: tappedAt } });
+      const stored = addPending({ ...p, body: { ...p.body, loggedAt: tappedAt } });
+      setStorageWarning(stored.error);
       update(i, j, { pending: false, queued: true });
-    } else if (result !== "ok") {
+    } else if (result === "ok") {
+      if (row.queued) {
+        const stored = removePending(p);
+        setStorageWarning(stored.error);
+      }
+    } else {
       update(i, j, { pending: false });
       setError(result);
     }
   }
 
+  const requesting = useRef(false);
+
   /** POSTs one set and fills its row; "offline" when the network failed, else an error message. */
   const send = useCallback(
     async (p: PendingSet): Promise<"ok" | "offline" | string> => {
+      if (requesting.current) return "Sedang mengirim set lain. Coba lagi sebentar.";
+      requesting.current = true;
+      try {
       let res: Response;
       try {
         res = await fetch("/api/member/sets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p.body) });
@@ -165,6 +177,7 @@ export function TodayWorkoutPlan({
       }
       const data = await res.json().catch(() => ({}));
       if (!res.ok) return data.error ?? "Gagal menyimpan set.";
+      if (!data.setEntry?.id) return "Server belum mengonfirmasi set. Isian tetap dipertahankan.";
       const i = items.findIndex((it) => it.exerciseId === p.exerciseId);
       if (i >= 0) {
         setRows((prev) =>
@@ -187,9 +200,19 @@ export function TodayWorkoutPlan({
       const badges: UnlockedBadge[] = data.newAchievements ?? [];
       if (badges.length > 0) setCelebration({ memberName, badges });
       return "ok";
+      } finally { requesting.current = false; }
     },
     [items, memberName]
   );
+
+  useEffect(() => {
+    function guard(event: BeforeUnloadEvent) {
+      const unsaved = rows.some((list) => list.some((row) => row.queued || ((row.w || row.r) && (!row.saved || row.w !== String(row.saved.weight) || row.r !== String(row.saved.reps)))));
+      if (unsaved) { event.preventDefault(); event.returnValue = ""; }
+    }
+    window.addEventListener("beforeunload", guard);
+    return () => window.removeEventListener("beforeunload", guard);
+  }, [rows]);
 
   // Queued sets go out on load, when the phone gets signal back, and every
   // 15 s while any are waiting.
@@ -201,8 +224,9 @@ export function TodayWorkoutPlan({
       for (const p of loadPending(memberName, day)) {
         const result = await send(p);
         if (result === "offline") break;
-        removePending(p);
-        if (result !== "ok") setError(`Set ${p.setNumber} gagal dikirim: ${result}`);
+        if (result !== "ok") { setError(`Set ${p.setNumber} belum terkirim: ${result}. Isian tetap disimpan untuk dicoba lagi.`); break; }
+        const stored = removePending(p);
+        setStorageWarning(stored.error);
       }
     } finally {
       flushing.current = false;
@@ -213,14 +237,17 @@ export function TodayWorkoutPlan({
     // Show what's still waiting from an earlier visit, then try to send it.
     const waiting = loadPending(memberName, day);
     const t = setTimeout(() => {
+      setStorageWarning(getPendingStorageError());
       if (waiting.length > 0) {
         setRows((prev) =>
-          prev.map((rs, i) =>
-            rs.map((r, j) => {
-              const p = waiting.find((w) => w.exerciseId === items[i]?.exerciseId && w.setNumber === j + 1);
-              return p && !r.saved ? { ...r, w: String(p.body.weight), r: String(p.body.reps), queued: true } : r;
-            })
-          )
+          prev.map((existing, i) => {
+            const count = Math.max(existing.length, ...waiting.filter((p) => p.exerciseId === items[i]?.exerciseId).map((p) => p.setNumber));
+            return Array.from({ length: count }, (_, j) => {
+              const row = existing[j] ?? { w: "", r: "", saved: null, pending: false };
+              const queued = waiting.find((p) => p.exerciseId === items[i]?.exerciseId && p.setNumber === j + 1);
+              return queued && !row.saved ? { ...row, w: String(queued.body.weight), r: String(queued.body.reps), queued: true } : row;
+            });
+          })
         );
       }
       void flush();
@@ -430,11 +457,12 @@ export function TodayWorkoutPlan({
         </div>
       ))}
 
+      {storageWarning && <div role="alert" className="rounded-xl border border-danger/40 bg-danger/10 p-3 text-sm"><p>{storageWarning}</p><button type="button" onClick={() => downloadPending(memberName, day)} className="mt-2 min-h-11 font-semibold text-accent">Unduh cadangan set</button></div>}
       {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
       {queuedCount > 0 && (
         <div className="flex items-center justify-between gap-3 rounded-lg bg-[#f59e0b]/15 px-3 py-2 text-sm">
           <span>
-            📶 {queuedCount} set tersimpan di HP, dikirim otomatis saat ada sinyal.
+            📶 {queuedCount} set {storageWarning ? "di memori sementara" : "tersimpan di HP"}, dikirim otomatis saat ada sinyal.
           </span>
           <button type="button" onClick={() => void flush()} className="shrink-0 text-sm font-semibold text-accent hover:underline">
             Kirim sekarang

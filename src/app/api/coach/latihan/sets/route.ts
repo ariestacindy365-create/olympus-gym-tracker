@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => null);
   const parsed = setEntrySchema.safeParse(body);
-  if (!parsed.success || parsed.data.unit !== "REPS" || parsed.data.perSide) {
+  if (!parsed.success) {
     return NextResponse.json({ error: "Pilih gerakan dan isi beban & reps yang valid." }, { status: 400 });
   }
   const { weight, reps, unit, perSide, note } = parsed.data;
