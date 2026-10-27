@@ -54,6 +54,8 @@ export const setEntrySchema = z
     note: z.string().trim().max(280).optional(),
     // "YYYY-MM-DD" when filling in a past day; the route checks the range.
     date: z.string().max(10).optional(),
+    // When ✓ was tapped, for a set that waited on the phone for signal.
+    loggedAt: z.iso.datetime().optional(),
   })
   .refine((d) => amountFitsUnit(d.reps, d.unit), { path: ["reps"] });
 

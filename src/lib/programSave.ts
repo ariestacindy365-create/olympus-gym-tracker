@@ -78,11 +78,25 @@ export async function writeProgramWeek(
     include: { slots: { orderBy: { order: "asc" }, include: { movement: true } } },
   });
 
-  await tx.programSnapshot.create({
-    data: { weekNumber, coachId, data: toSnapshotData(savedDays) as unknown as Prisma.InputJsonValue },
+  // Saving again without changes shouldn't stack identical versions.
+  const data = toSnapshotData(savedDays);
+  const latest = await tx.programSnapshot.findFirst({
+    where: { coachId, weekNumber },
+    orderBy: { createdAt: "desc" },
+    select: { data: true },
   });
+  if (stableJson(latest?.data) !== stableJson(data)) {
+    await tx.programSnapshot.create({ data: { weekNumber, coachId, data: data as unknown as Prisma.InputJsonValue } });
+  }
 
   return savedDays;
+}
+
+/** JSON with object keys sorted: Postgres jsonb doesn't keep key order. */
+function stableJson(v: unknown): string {
+  return JSON.stringify(v, (_k, x) =>
+    x && typeof x === "object" && !Array.isArray(x) ? Object.fromEntries(Object.entries(x).sort(([a], [b]) => a.localeCompare(b))) : x
+  );
 }
 
 type DayWithSlots = {

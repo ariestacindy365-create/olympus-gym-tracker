@@ -15,6 +15,19 @@ export async function GET(request: NextRequest) {
   if (!cronSecret || request.headers.get("authorization") !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Not authorized." }, { status: 401 });
   }
+  // Housekeeping, once a day: notifications would otherwise pile up forever
+  // (this reminder alone adds one row per member per day). Reminders are
+  // stale after a few days; everything else goes after 90.
+  const DAY_MS = 86_400_000;
+  await prisma.notification.deleteMany({
+    where: {
+      OR: [
+        { type: { in: ["PROGRAM_TODAY", "LOG_REMINDER"] }, createdAt: { lt: new Date(Date.now() - 3 * DAY_MS) } },
+        { createdAt: { lt: new Date(Date.now() - 90 * DAY_MS) } },
+      ],
+    },
+  });
+
   const key = todayDateKey();
   const weekday = key.getUTCDay();
   const weekdayLabel = weekdayLabelForDate(new Date(key.getUTCFullYear(), key.getUTCMonth(), key.getUTCDate()));

@@ -5,7 +5,6 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { epley1RM } from "@/lib/oneRepMax";
 import { checkAndRecordPR } from "@/lib/pr";
-import { invalidatePriorBests } from "@/lib/priorBests";
 import { Role } from "@/generated/prisma/client";
 
 const HEADER_ALIASES = {
@@ -295,8 +294,6 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Imported sets are usually backdated, which changes the Live Board's "previous best".
-  if (setsCreated + setsUpdated > 0) invalidatePriorBests();
 
   return NextResponse.json({
     totalRows: parsed.length,

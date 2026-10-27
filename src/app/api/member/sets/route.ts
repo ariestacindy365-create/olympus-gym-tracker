@@ -4,8 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { estimate1RMFor } from "@/lib/oneRepMax";
 import { checkAndRecordPR } from "@/lib/pr";
-import { BACKFILL_DAYS, loggableDateKey, todayDateKey } from "@/lib/workout";
-import { invalidatePriorBests } from "@/lib/priorBests";
+import { BACKFILL_DAYS, loggableDateKey } from "@/lib/workout";
 import { setEntrySchema } from "@/lib/validation";
 import { syncMemberAchievements } from "@/lib/achievements";
 import { Role } from "@/generated/prisma/client";
@@ -33,6 +32,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `Latihan hanya bisa diisi sampai ${BACKFILL_DAYS} hari ke belakang.` }, { status: 400 });
   }
   const estimated1RM = estimate1RMFor(weight, reps, unit);
+  // A set sent late (no signal at the gym) keeps the time ✓ was tapped, so
+  // the workout's duration and class come out right. Ignored if the phone's
+  // clock says the future or more than 4 days ago.
+  const now = Date.now();
+  const tapped = parsed.data.loggedAt ? new Date(parsed.data.loggedAt).getTime() : NaN;
+  const createdAt = tapped <= now + 60_000 && tapped >= now - 4 * 86_400_000 ? new Date(Math.min(tapped, now)) : undefined;
 
   const setEntry = await prisma.$transaction(async (tx) => {
     let setNumber = parsed.data.setNumber;
@@ -48,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     const saved = await tx.setEntry.upsert({
       where: { memberId_exerciseId_workoutDate_setNumber: { memberId: user.id, exerciseId, workoutDate, setNumber } },
-      create: { memberId: user.id, exerciseId, workoutDate, setNumber, weight, reps, unit, perSide, estimated1RM, note },
+      create: { memberId: user.id, exerciseId, workoutDate, setNumber, weight, reps, unit, perSide, estimated1RM, note, createdAt },
       update: { weight, reps, unit, perSide, estimated1RM, note },
     });
 
@@ -68,8 +73,6 @@ export async function POST(request: NextRequest) {
     return saved;
   });
 
-  // A set on a past day can change the Live Board's "previous best".
-  if (workoutDate < todayDateKey()) invalidatePriorBests();
   const newAchievements = await syncMemberAchievements(user.id);
 
   return NextResponse.json({ setEntry, exercise, newAchievements });

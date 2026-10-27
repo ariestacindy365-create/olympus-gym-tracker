@@ -365,18 +365,26 @@ export interface UnlockedAchievement extends Achievement {
 // further notification needed. Pass false when a coach logs on the
 // member's behalf, so it surfaces as an unseen notification next time the
 // member opens the app instead of unlocking silently.
+//
+// membershipOnly: just the badges that unlock by time passing (how long
+// they've been a member), which needs no set history. The dashboard uses it
+// on every load; everything else is synced when sets / weigh-ins are saved.
 export async function syncMemberAchievements(
   memberId: string,
-  { markSeen = true }: { markSeen?: boolean } = {}
+  { markSeen = true, membershipOnly = false }: { markSeen?: boolean; membershipOnly?: boolean } = {}
 ): Promise<Achievement[]> {
   const [stats, existing] = await Promise.all([
-    computeMemberStats(memberId),
+    membershipOnly
+      ? prisma.user
+          .findUnique({ where: { id: memberId }, select: { createdAt: true } })
+          .then((m): Partial<MemberStats> => ({ membershipDays: m ? Math.floor((Date.now() - m.createdAt.getTime()) / 86400000) : 0 }))
+      : computeMemberStats(memberId),
     prisma.achievementUnlock.findMany({ where: { memberId }, select: { achievementCode: true } }),
   ]);
   const existingCodes = new Set(existing.map((e) => e.achievementCode));
 
   const newlyEarned = ACHIEVEMENTS.filter(
-    (a) => !existingCodes.has(a.code) && stats[a.statKey] >= a.threshold
+    (a) => !existingCodes.has(a.code) && stats[a.statKey] !== undefined && stats[a.statKey]! >= a.threshold
   );
   if (newlyEarned.length === 0) return [];
 

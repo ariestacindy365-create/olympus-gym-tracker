@@ -18,7 +18,7 @@ digunakan yang ditambahkan ke daftar pencatatan beban.
 Program pribadi disimpan pada `CoachPersonalProgram`, terpisah dari
 `TrainingProgram` kelas. Set dan personal record menggunakan akun coach
 sendiri. Endpoint selalu mengambil identitas dari sesi. Latihan pribadi
-coach tidak masuk Live Board, statistik member, leaderboard member, atau
+coach tidak masuk statistik member, leaderboard member, atau
 feed kelas. Mengubah program tidak menghapus hasil latihan.
 
 ## Penerapan schema

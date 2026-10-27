@@ -55,7 +55,7 @@ for (const date of [undefined,'2026-10-26']) {
 }
 assert.equal((await save({durationMin:999})).status,400);
 state.user=null;assert.equal((await save({durationMin:60})).status,401);
-state.prisma.workout.findMany = async () => [{...state.saved,id:'post',durationSec:5400,memberId:'member-a',member:{name:'Member'},workoutDate:new Date('2026-10-27'),createdAt:new Date('2026-10-27T08:00:00Z'),updatedAt:new Date('2026-10-27T08:00:00Z'),kudos:[],_count:{comments:0}}];
+state.prisma.workout.findMany = async () => [{...state.saved,id:'post',durationManual:true,durationSec:5400,memberId:'member-a',member:{name:'Member'},workoutDate:new Date('2026-10-27'),createdAt:new Date('2026-10-27T08:00:00Z'),updatedAt:new Date('2026-10-27T08:00:00Z'),kudos:[],_count:{comments:0}}];
 const {getFeed} = await load('src/lib/feed.ts',[plugin]);
 const posts = await getFeed({id:'member-a',role:'MEMBER'});
 assert.equal(posts[0].durationSec,5400,'Feed keeps chosen duration instead of recalculating from set timestamps');

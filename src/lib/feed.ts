@@ -78,8 +78,9 @@ export async function getFeed(viewer: { id: string; role: Role }, take = 30, cla
         classLabel: w.classLabel,
         createdAt: w.createdAt.toISOString(),
         backfilledDate: backfilled ? w.workoutDate.toISOString().slice(0, 10) : null,
-        // Honor the session duration selected when the workout was saved.
-        durationSec: w.durationSec,
+        // From the sets themselves, so posts saved late show the real length,
+        // unless the member set it.
+        durationSec: w.durationManual || backfilled ? w.durationSec : s.durationSec,
         totalVolume: w.totalVolume,
         prCount: w.prCount,
         visibility: w.visibility,

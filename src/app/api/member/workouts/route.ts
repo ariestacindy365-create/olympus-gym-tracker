@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
     note: parsed.data.note || null,
     classLabel: parsed.data.classLabel || null,
     durationSec: summary.durationSec,
+    durationManual: true,
     totalVolume: summary.totalVolume,
     totalSets: summary.totalSets,
     prCount: summary.prCount,

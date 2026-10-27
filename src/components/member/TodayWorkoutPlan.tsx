@@ -83,9 +83,14 @@ export function TodayWorkoutPlan({
   const [celebration, setCelebration] = useState<AchievementCelebrationData | null>(null);
   const [finishing, setFinishing] = useState(false);
 
+  // TABATA and other movements without logging stay collapsed until opened.
+  // Bodyweight and banded movements keep their reps rows and optional + kg.
+  const [logAnyway, setLogAnyway] = useState<Set<number>>(() => new Set());
+  const logged = (i: number) => !items[i].noInput || logAnyway.has(i) || rows[i].some((r) => r.saved || r.queued);
+  const inputRows = rows.filter((_, i) => logged(i)).flat();
   const done = rows.flat().filter((r) => r.saved);
   const queuedCount = rows.flat().filter((r) => r.queued).length;
-  const total = rows.flat().length;
+  const total = inputRows.length;
   // Volume counts rep sets only (timed / lap / distance sets add 0 kg).
   // and a per-side ("each") set counts both sides.
   const itemOfRow = new Map(rows.flatMap((rs, i) => rs.map((r) => [r, items[i]] as const)));
@@ -137,9 +142,11 @@ export function TodayWorkoutPlan({
       // Always the explicit day, so a set sent after midnight keeps its date.
       body: { exerciseId: it.exerciseId, weight, reps, unit: it.unit, perSide: it.perSide, setNumber: j + 1, date: day },
     };
+    const tappedAt = new Date().toISOString();
     const result = await send(p);
     if (result === "offline") {
-      addPending(p);
+      // Keep the tap time so the late set still counts at the right moment.
+      addPending({ ...p, body: { ...p.body, loggedAt: tappedAt } });
       update(i, j, { pending: false, queued: true });
     } else if (result !== "ok") {
       update(i, j, { pending: false });
@@ -300,7 +307,12 @@ export function TodayWorkoutPlan({
         <div key={round.number} className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
           <div className="flex items-baseline justify-between gap-2 border-b border-border bg-surface-2 px-4 py-2.5">
             <span className="font-display text-lg font-bold">Round {round.number}</span>
-            {round.schemeLine && <span className="text-xs font-bold uppercase tracking-wide text-accent">{round.schemeLine}</span>}
+            <span className="flex items-baseline gap-2">
+              {round.items.every((_, k) => !logged(roundStart[r] + k)) && (
+                <span className="rounded-full bg-success/10 px-2 py-0.5 text-[10.5px] font-bold uppercase text-success">Tanpa catat</span>
+              )}
+              {round.schemeLine && <span className="text-xs font-bold uppercase tracking-wide text-accent">{round.schemeLine}</span>}
+            </span>
           </div>
           {round.items.map((it, k) => {
             const i = roundStart[r] + k;
@@ -315,21 +327,34 @@ export function TodayWorkoutPlan({
                   {it.target && <span className="text-xs text-muted">· {it.target}</span>}
                 </p>
                 {muscles.length > 0 && <p className="text-[11.5px] font-semibold text-accent">🎯 {muscles.join(" · ")}</p>}
-                <p className="mb-1 text-[11.5px] text-muted">
-                  {!showKg(i) ? "Tanpa beban" : last != null ? `Terakhir: ${formatKg(last)} kg` : "Belum pernah dicatat"}
-                  {it.repDefault != null
-                    ? ` · target ${it.repDefault} ${UNIT_LABEL[it.unit]}${it.perSide ? " tiap sisi" : ""}`
-                    : ` · isi ${UNIT_LABEL[it.unit]} yang selesai`}
-                </p>
-                {rows[i].map((row, j) => {
-                  const savedNow = row.saved && row.w === String(row.saved.weight) && row.r === String(row.saved.reps);
-                  const field = savedNow ? "border-transparent bg-success/10" : row.queued ? "border-transparent bg-[#f59e0b]/15" : "border-border bg-surface";
-                  return (
-                    <div key={j} className="mt-1.5 grid grid-cols-[52px_1fr_1fr_44px] items-center gap-1.5">
-                      <span className="text-[11px] font-bold uppercase text-muted">
-                        Set {j + 1}
-                        {row.saved?.isPR && " 🏆"}
-                      </span>
+                {!logged(i) ? (
+                  <div className="mt-1 flex items-center justify-between gap-3 text-[12px]">
+                    <span className="font-semibold text-success">✓ Cukup dikerjakan, tidak perlu dicatat</span>
+                    <button
+                      type="button"
+                      onClick={() => setLogAnyway((prev) => new Set(prev).add(i))}
+                      className="shrink-0 font-semibold text-accent hover:underline"
+                    >
+                      Catat beban
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="mb-1 text-[11.5px] text-muted">
+                      {!showKg(i) ? "Tanpa beban" : last != null ? `Terakhir: ${formatKg(last)} kg` : "Belum pernah dicatat"}
+                      {it.repDefault != null
+                        ? ` · target ${it.repDefault} ${UNIT_LABEL[it.unit]}${it.perSide ? " tiap sisi" : ""}`
+                        : ` · isi ${UNIT_LABEL[it.unit]} yang selesai`}
+                    </p>
+                    {rows[i].map((row, j) => {
+                      const savedNow = row.saved && row.w === String(row.saved.weight) && row.r === String(row.saved.reps);
+                      const field = savedNow ? "border-transparent bg-success/10" : row.queued ? "border-transparent bg-[#f59e0b]/15" : "border-border bg-surface";
+                      return (
+                        <div key={j} className="mt-1.5 grid grid-cols-[52px_1fr_1fr_44px] items-center gap-1.5">
+                          <span className="text-[11px] font-bold uppercase text-muted">
+                            Set {j + 1}
+                            {row.saved?.isPR && " 🏆"}
+                          </span>
                       {showKg(i) ? (
                       <label className="relative">
                         <input
@@ -355,48 +380,50 @@ export function TodayWorkoutPlan({
                           <span className="font-semibold text-accent">+ kg</span>
                         </button>
                       )}
-                      <label className="relative">
-                        <input
-                          inputMode="numeric"
-                          value={row.r}
-                          placeholder={it.repDefault != null ? String(it.repDefault) : UNIT_LABEL[it.unit]}
-                          onChange={(e) => update(i, j, { r: e.target.value })}
-                          aria-label={`${it.label} set ${j + 1} ${UNIT_LABEL[it.unit]}`}
-                          className={`h-11 w-full min-w-0 rounded-lg border px-2 pr-9 text-center text-base font-semibold text-foreground placeholder:text-muted/70 focus:border-accent focus:outline-none ${
-                            field
-                          }`}
-                        />
-                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-muted">
-                          {UNIT_LABEL[it.unit]}
-                          {it.perSide && "/sisi"}
-                        </span>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => save(i, j)}
-                        disabled={row.pending}
-                        aria-label={`Simpan ${it.label} set ${j + 1}`}
-                        title={row.queued ? "Menunggu sinyal" : undefined}
-                        className={`h-11 rounded-lg text-lg font-bold transition disabled:opacity-60 ${
-                          savedNow
-                            ? "bg-success text-white"
-                            : row.queued
-                              ? "bg-[#f59e0b] text-white"
-                              : "border border-border bg-surface-2 text-muted hover:text-foreground"
-                        }`}
-                      >
-                        {row.pending ? "…" : row.queued ? "⏳" : "✓"}
-                      </button>
-                    </div>
-                  );
-                })}
-                <button
-                  type="button"
-                  onClick={() => setRows((prev) => prev.map((rs, a) => (a === i ? [...rs, { w: "", r: "", saved: null, pending: false }] : rs)))}
-                  className="mt-2 text-xs font-semibold text-accent hover:underline"
-                >
-                  + Tambah set
-                </button>
+                          <label className="relative">
+                            <input
+                              inputMode="numeric"
+                              value={row.r}
+                              placeholder={it.repDefault != null ? String(it.repDefault) : UNIT_LABEL[it.unit]}
+                              onChange={(e) => update(i, j, { r: e.target.value })}
+                              aria-label={`${it.label} set ${j + 1} ${UNIT_LABEL[it.unit]}`}
+                              className={`h-11 w-full min-w-0 rounded-lg border px-2 pr-9 text-center text-base font-semibold text-foreground placeholder:text-muted/70 focus:border-accent focus:outline-none ${
+                                field
+                              }`}
+                            />
+                            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-muted">
+                              {UNIT_LABEL[it.unit]}
+                              {it.perSide && "/sisi"}
+                            </span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => save(i, j)}
+                            disabled={row.pending}
+                            aria-label={`Simpan ${it.label} set ${j + 1}`}
+                            title={row.queued ? "Menunggu sinyal" : undefined}
+                            className={`h-11 rounded-lg text-lg font-bold transition disabled:opacity-60 ${
+                              savedNow
+                                ? "bg-success text-white"
+                                : row.queued
+                                  ? "bg-[#f59e0b] text-white"
+                                  : "border border-border bg-surface-2 text-muted hover:text-foreground"
+                            }`}
+                          >
+                            {row.pending ? "…" : row.queued ? "⏳" : "✓"}
+                          </button>
+                        </div>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => setRows((prev) => prev.map((rs, a) => (a === i ? [...rs, { w: "", r: "", saved: null, pending: false }] : rs)))}
+                      className="mt-2 text-xs font-semibold text-accent hover:underline"
+                    >
+                      + Tambah set
+                    </button>
+                  </>
+                )}
               </div>
             );
           })}
