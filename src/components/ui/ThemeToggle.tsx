@@ -77,7 +77,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       onClick={cycle}
       aria-label={`Tema: ${LABEL[theme]}. Klik untuk ganti.`}
       title={`Tema: ${LABEL[theme]}`}
-      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-nav-muted transition hover:bg-white/10 hover:text-nav-foreground ${className}`}
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-nav-muted transition hover:bg-white/10 hover:text-nav-foreground ${className}`}
     >
       <Icon className="text-base" />
     </button>

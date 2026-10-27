@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useState } from "react";
+import { Dialog } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 
 export interface ConfirmOptions {
@@ -64,36 +65,28 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
     <ConfirmContext.Provider value={confirmDialog}>
       {children}
       {pending && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-fade-in"
-          onClick={() => settle(false)}
+        <Dialog
+          role="alertdialog"
+          title={pending.title}
+          description={pending.description}
+          onClose={() => settle(false)}
+          className="max-w-sm"
         >
-          <div
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="confirm-dialog-title"
-            className="w-full max-w-sm rounded-xl border border-border bg-surface p-5 shadow-overlay animate-pop-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="confirm-dialog-title" className="font-display text-lg font-bold">
-              {pending.title}
-            </h2>
-            <p className="mt-2 text-sm text-muted">{pending.description}</p>
-            <div className="mt-5 flex justify-end gap-2">
-              <Button variant="secondary" className="px-4 py-2 text-sm" onClick={() => settle(false)}>
-                {pending.cancelLabel}
-              </Button>
-              <Button
-                variant={pending.danger ? "danger" : "primary"}
-                className="px-4 py-2 text-sm"
-                onClick={() => settle(true)}
-                autoFocus={pending.autoFocusConfirm}
-              >
-                {pending.confirmLabel}
-              </Button>
-            </div>
+          <div className="mt-5 flex flex-wrap justify-end gap-2">
+            <Button variant="secondary" className="px-4 py-2 text-sm" onClick={() => settle(false)} autoFocus={!pending.autoFocusConfirm} data-dialog-autofocus={!pending.autoFocusConfirm ? "" : undefined}>
+              {pending.cancelLabel}
+            </Button>
+            <Button
+              variant={pending.danger ? "danger" : "primary"}
+              className="px-4 py-2 text-sm"
+              onClick={() => settle(true)}
+              autoFocus={pending.autoFocusConfirm}
+              data-dialog-autofocus={pending.autoFocusConfirm ? "" : undefined}
+            >
+              {pending.confirmLabel}
+            </Button>
           </div>
-        </div>
+        </Dialog>
       )}
     </ConfirmContext.Provider>
   );

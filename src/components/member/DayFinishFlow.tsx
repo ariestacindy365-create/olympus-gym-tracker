@@ -8,6 +8,7 @@ import { WorkoutStickerModal } from "@/components/shared/WorkoutStickerModal";
 import { formatKg, pickEquivalent, type LifterCharacter, type SkinTone } from "@/lib/volumeStory";
 import { MUSCLE_LABEL, type MuscleKey } from "@/lib/muscles";
 import type { DaySummary } from "@/lib/workoutSummary";
+import { DEFAULT_WORKOUT_MINUTES, WORKOUT_DURATION_OPTIONS } from "@/lib/workoutDuration";
 import { formatDuration } from "@/lib/duration";
 import { estimateCalories, foodEquivalent } from "@/lib/calories";
 import { CalorieShareModal } from "@/components/member/CalorieShareModal";
@@ -77,7 +78,7 @@ export function DayFinishFlow({
   const [calCard, setCalCard] = useState(false);
   const [copied, setCopied] = useState(false);
   const [bodyWeightKg, setBodyWeightKg] = useState<number | null>(null);
-  const [durationMin, setDurationMin] = useState(60);
+  const [durationMin, setDurationMin] = useState(DEFAULT_WORKOUT_MINUTES);
 
   useEffect(() => {
     let cancelled = false;
@@ -107,7 +108,8 @@ export function DayFinishFlow({
           note: note.trim() || undefined,
           visibility,
           classLabel: classLabel ?? undefined,
-          ...(date ? { date, durationMin } : {}),
+          durationMin,
+          ...(date ? { date } : {}),
         }),
       });
       const data = await res.json();
@@ -123,8 +125,8 @@ export function DayFinishFlow({
   }
 
   const firstName = memberName.split(" ")[0];
-  // A filled-in day's sets were typed in later, so the member says how long it took.
-  const durationSec = summary ? (date ? durationMin * 60 : summary.durationSec) : 0;
+  // A gym session defaults to one hour; the member can choose another duration.
+  const durationSec = summary ? (step === "done" ? summary.durationSec : durationMin * 60) : 0;
   const cal = summary ? estimateCalories(durationSec, bodyWeightKg) : null;
   const food = cal ? foodEquivalent(cal.kcal) : null;
   const eq = summary ? pickEquivalent(summary.totalVolume) : null;
@@ -181,25 +183,23 @@ export function DayFinishFlow({
                 <Tile value={String(summary.lines.length)} label="Gerakan" />
                 <Tile value={String(summary.prCount)} label="🏆 PR" />
               </div>
-              {date && (
-                <label className="-mt-1 flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2 text-sm font-semibold">
-                  ⏱️ Berapa lama latihannya?
-                  <select
-                    value={durationMin}
-                    onChange={(e) => setDurationMin(Number(e.target.value))}
-                    className="h-9 rounded-lg border border-border bg-surface px-2 text-sm focus:border-accent focus:outline-none"
-                  >
-                    {[15, 30, 45, 60, 75, 90, 105, 120].map((m) => (
-                      <option key={m} value={m}>
-                        {formatDuration(m * 60)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              {!date && summary.durationSec >= 2 * 3600 && (
-                <p className="-mt-2 text-center text-xs text-muted">⏱️ Durasi otomatis berhenti di 2 jam.</p>
-              )}
+              <fieldset className="space-y-2">
+                <legend className="mb-2 text-sm font-semibold">Berapa lama latihannya?</legend>
+                <div className="flex flex-wrap gap-2">
+                  {WORKOUT_DURATION_OPTIONS.map((minutes) => (
+                    <button
+                      key={minutes}
+                      type="button"
+                      aria-pressed={durationMin === minutes}
+                      onClick={() => setDurationMin(minutes)}
+                      className={`min-h-11 rounded-full border px-3 py-2 text-sm font-semibold transition ${durationMin === minutes ? "border-accent bg-accent text-white" : "border-border bg-surface-2 text-foreground hover:border-accent"}`}
+                    >
+                      {formatDuration(minutes * 60)}{minutes === DEFAULT_WORKOUT_MINUTES ? " · default" : ""}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted">Otomatis 1 jam sesuai durasi sesi gym. Pilih durasi lain jika latihanmu lebih singkat atau lebih lama.</p>
+              </fieldset>
               {cal && (
                 <div className="flex items-center gap-3 rounded-2xl border border-[#f97316]/25 bg-[#f97316]/10 px-4 py-3">
                   <span className="text-3xl" aria-hidden>

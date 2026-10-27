@@ -45,7 +45,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="id"
       className={`${inter.variable} ${oswald.variable} h-full antialiased`}
       // The inline script below sets data-theme on this element before React
       // hydrates, so the client's first paint intentionally differs from the

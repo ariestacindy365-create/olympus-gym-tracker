@@ -16,8 +16,8 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/coach/
   }
 
   const { memberId, setId } = await ctx.params;
-  const existing = await prisma.setEntry.findUnique({ where: { id: setId } });
-  if (!existing || existing.memberId !== memberId) {
+  const existing = await prisma.setEntry.findUnique({ where: { id: setId }, include: { member: { select: { role: true } } } });
+  if (!existing || existing.memberId !== memberId || existing.member.role !== Role.MEMBER) {
     return NextResponse.json({ error: "Set tidak ditemukan." }, { status: 404 });
   }
 
@@ -57,8 +57,8 @@ export async function DELETE(_request: NextRequest, ctx: RouteContext<"/api/coac
   }
 
   const { memberId, setId } = await ctx.params;
-  const existing = await prisma.setEntry.findUnique({ where: { id: setId } });
-  if (!existing || existing.memberId !== memberId) {
+  const existing = await prisma.setEntry.findUnique({ where: { id: setId }, include: { member: { select: { role: true } } } });
+  if (!existing || existing.memberId !== memberId || existing.member.role !== Role.MEMBER) {
     return NextResponse.json({ error: "Set tidak ditemukan." }, { status: 404 });
   }
 

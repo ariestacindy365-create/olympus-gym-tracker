@@ -24,15 +24,16 @@ export default async function CoachDashboardPage() {
     getCurrentUser(),
     prisma.user.findMany({ where: { role: Role.MEMBER } }),
     prisma.setEntry.findMany({
-      where: { workoutDate: todayDateKey() },
+      where: { workoutDate: todayDateKey(), member: { role: Role.MEMBER } },
       select: { memberId: true },
     }),
     prisma.personalRecord.findMany({
+      where: { member: { role: Role.MEMBER } },
       orderBy: { achievedAt: "desc" },
       take: 5,
       include: { member: { select: { name: true } }, exercise: true },
     }),
-    prisma.setEntry.groupBy({ by: ["memberId"], _max: { workoutDate: true } }),
+    prisma.setEntry.groupBy({ by: ["memberId"], where: { member: { role: Role.MEMBER } }, _max: { workoutDate: true } }),
     getCurrentUser().then((u) => getThisWeekProgram(u?.id ?? null)),
   ]);
   const recap = coach ? await getClassRecap(coach.id) : [];
@@ -81,6 +82,7 @@ export default async function CoachDashboardPage() {
         subtitle="Pantau member yang sedang latihan dan yang mulai jarang datang."
         actions={
           <div className="flex flex-wrap gap-2">
+          <Link href="/coach/latihan" className="inline-flex min-h-11 items-center rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-semibold hover:bg-surface-2">Latihan Saya</Link>
           <SlideShowButton slides={thisWeek.days} label="▶ Slideshow Program" />
           <Link
             href="/coach/board"

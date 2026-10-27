@@ -12,6 +12,7 @@ import {
   type AchievementCelebrationData,
   type UnlockedBadge,
 } from "@/components/shared/AchievementCelebrationModal";
+import { isNoWeightExercise, shouldShowWeight } from "@/lib/bodyweight";
 import { parseLiftWeight } from "@/lib/parseWeight";
 import { EditIcon, TrashIcon } from "@/components/ui/Icons";
 import { VolumeStoryModal } from "@/components/member/VolumeStoryModal";
@@ -80,6 +81,7 @@ export function TopSetForm({
   const initialExerciseId = defaultExerciseId ?? exercises[0]?.id ?? "";
   const [exerciseId, setExerciseId] = useState(initialExerciseId);
   const [saved, setSaved] = useState(todaysSets);
+  const [kgOpen, setKgOpen] = useState<Record<string, boolean>>({});
   const [weight, setWeight] = useState("");
   const [reps, setReps] = useState("");
   const [note, setNote] = useState("");
@@ -115,7 +117,7 @@ export function TopSetForm({
     e.preventDefault();
     setError(null);
 
-    const weightNum = parseLiftWeight(weight);
+    const weightNum = showWeight ? parseLiftWeight(weight) : 0;
     const repsNum = Number(reps);
     if (weightNum === null || !repsNum || repsNum <= 0) {
       setError("Isi beban dan reps yang valid.");
@@ -268,6 +270,8 @@ export function TopSetForm({
     repeatSource != null && parseLiftWeight(weight) === repeatSource.weight && Number(reps) === repeatSource.reps;
 
   const exerciseName = exercises.find((ex) => ex.id === exerciseId)?.name ?? "";
+  const showWeight = shouldShowWeight(isNoWeightExercise(exerciseName), !!kgOpen[exerciseId], lastExerciseSets[0]?.weight,
+    [...currentSets.map((set) => ({ w: String(set.weight), saved: set })), { w: weight, saved: null }]);
   const storySets = currentSets.map((s) => ({ weight: s.weight, reps: s.reps }));
   const prSets = currentSets.filter((s) => s.isPR);
   const bestPR = prSets.reduce<ExistingSet | null>(
@@ -422,7 +426,7 @@ export function TopSetForm({
 
         <div>
           <div className="flex gap-3">
-            <StepperInput label="Beban (kg)" value={weight} onChange={setWeight} step={WEIGHT_STEP} decimal placeholder="mis. 40" />
+            {showWeight ? <StepperInput label="Beban (kg)" value={weight} onChange={setWeight} step={WEIGHT_STEP} decimal placeholder="mis. 40" /> : <button type="button" onClick={() => setKgOpen((current) => ({ ...current, [exerciseId]: true }))} aria-label={`${exerciseName}: tambah beban`} className="flex min-h-11 flex-1 flex-col items-center justify-center self-end rounded-lg border border-dashed border-border py-2 text-xs text-muted hover:border-accent"><span>Tanpa beban</span><span className="font-semibold text-accent">+ kg</span></button>}
             <StepperInput label="Reps" value={reps} onChange={setReps} step={1} placeholder="mis. 8" />
           </div>
           <p className="mt-1.5 text-[11px] text-muted">Tombol − / + mengubah beban 2,5 kg dan reps 1.</p>

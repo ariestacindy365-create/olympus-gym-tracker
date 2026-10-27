@@ -17,7 +17,7 @@ const programInclude = {
     include: {
       slots: {
         orderBy: { order: "asc" as const },
-        include: { movement: { select: { name: true, primaryMuscle: true, secondaryMuscle: true } } },
+        include: { movement: { select: { name: true, primaryMuscle: true, secondaryMuscle: true, equipment: true } } },
       },
     },
   },

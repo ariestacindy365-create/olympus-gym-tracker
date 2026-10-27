@@ -72,6 +72,7 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  personalTraining     CoachPersonalProgram?
   setEntries           SetEntry[]
   personalRecords      PersonalRecord[]
   bodyMetrics          BodyMetric[]
@@ -793,4 +794,12 @@ model PushConfig {
   publicKey  String
   privateJwk Json
   createdAt  DateTime @default(now())
+}
+
+// Private template for the coach's own workouts, separate from class programs.
+model CoachPersonalProgram {
+  coachId   String   @id
+  coach     User     @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  days      Json
+  updatedAt DateTime @updatedAt
 }

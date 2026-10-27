@@ -60,8 +60,10 @@ export default function LoginPage() {
           <p className="mt-3 text-sm font-medium uppercase tracking-[0.2em] text-nav-muted">Lifting Club Gym Tracker</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5 rounded-2xl border border-border bg-surface p-6 shadow-raised">
+        <form aria-busy={pending} onSubmit={handleSubmit} className="flex flex-col gap-5 rounded-2xl border border-border bg-surface p-6 shadow-raised">
           <div>
+            <h1 className="mb-1 text-2xl font-semibold">Selamat datang kembali</h1>
+            <p className="mb-5 text-sm text-muted">Masuk untuk melanjutkan aktivitas gym Anda.</p>
             <label htmlFor="email" className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
               Email
             </label>
@@ -72,15 +74,19 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              disabled={pending}
               autoFocus
             />
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
+            <p id="login-pin-label" className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
               PIN 4 Digit
-            </label>
-            <PinInput value={pin} onChange={setPin} disabled={pending} />
+            </p>
+            <PinInput value={pin} onChange={setPin} disabled={pending} labelledBy="login-pin-label" />
           </div>
 
           {error && (

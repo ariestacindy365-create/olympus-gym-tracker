@@ -1,3 +1,4 @@
+import { isNoWeightExercise } from "@/lib/bodyweight";
 import { prisma } from "@/lib/prisma";
 import { todayDateKey } from "@/lib/workout";
 import { getThisWeekProgramRaw } from "@/lib/weekProgram";
@@ -12,6 +13,7 @@ export interface PlanItem {
   label: string;
   exerciseId: string;
   name: string;
+  noWeight: boolean;
   /** Rows to show (the round's set count; 1 for AMRAP / TABATA / FOR TIME rounds). */
   sets: number;
   /** As written on the slide, e.g. "12 reps", "30\\"", "1 lap". */
@@ -103,6 +105,7 @@ export async function getTodayPlan(classes: TodayClasses, on?: Date): Promise<To
       label,
       exerciseId: exercise.id,
       name: s.movement.name,
+      noWeight: isNoWeightExercise(s.movement.name, s.movement.equipment),
       sets: Math.min(10, Math.max(1, setCount)),
       target: formatRepTarget(s.repTarget),
       repDefault: unitFromTarget(s.repTarget) === "REPS" ? repDefaultOf(s.repTarget) : amountFromTarget(s.repTarget),

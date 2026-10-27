@@ -60,7 +60,7 @@
 }
 
 html {
-  color-scheme: light dark;
+  color-scheme: light;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -72,6 +72,7 @@ html {
    contrast) in both themes. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --background: #0b1220;
     --surface: #131c2c;
     --surface-2: #1b2638;
@@ -84,6 +85,7 @@ html {
 }
 
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --background: #0b1220;
   --surface: #131c2c;
   --surface-2: #1b2638;

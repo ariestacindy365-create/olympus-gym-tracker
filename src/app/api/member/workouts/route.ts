@@ -3,7 +3,8 @@ import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { BACKFILL_DAYS, loggableDateKey, todayDateKey } from "@/lib/workout";
+import { BACKFILL_DAYS, loggableDateKey } from "@/lib/workout";
+import { workoutDurationSchema } from "@/lib/workoutDuration";
 import { summarizeDay } from "@/lib/workoutSummary";
 import { mondayOf } from "@/lib/programRotation";
 import { Role, WorkoutVisibility } from "@/generated/prisma/client";
@@ -14,10 +15,9 @@ const saveSchema = z.object({
   note: z.string().trim().max(500).optional(),
   visibility: z.enum(["ALL", "COACH", "PRIVATE"]),
   classLabel: z.string().trim().max(80).optional(),
-  // Filling in a past day: its date, and how long the session was (the sets
-  // were all typed in later, so their timestamps can't tell).
+  // Explicit duration for today or a backfill, defaulting to a one-hour session.
   date: z.string().max(10).optional(),
-  durationMin: z.number().int().min(10).max(120).optional(),
+  durationMin: workoutDurationSchema,
 });
 
 // "Simpan latihan": records today's workout for the feed (one per day —
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   }
   const parsed = saveSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: "Isi judul latihan." }, { status: 400 });
+    return NextResponse.json({ error: "Isi judul dan durasi latihan 10–120 menit yang valid." }, { status: 400 });
   }
   const workoutDate = loggableDateKey(parsed.data.date);
   if (!workoutDate) {
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
   if (summary.totalSets === 0) {
     return NextResponse.json({ error: "Belum ada set yang dicatat di hari itu." }, { status: 400 });
   }
-  if (workoutDate < todayDateKey()) summary.durationSec = (parsed.data.durationMin ?? 60) * 60;
+  summary.durationSec = parsed.data.durationMin * 60;
   const visibility = WorkoutVisibility[parsed.data.visibility];
   const data = {
     title: parsed.data.title,

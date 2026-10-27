@@ -14,7 +14,7 @@ export async function GET() {
 
   const [todaysSets, allMembers] = await Promise.all([
     prisma.setEntry.findMany({
-      where: { workoutDate: todayDateKey() },
+      where: { workoutDate: todayDateKey(), member: { role: Role.MEMBER } },
       include: { member: true, exercise: true },
       orderBy: { updatedAt: "desc" },
     }),

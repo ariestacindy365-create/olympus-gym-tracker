@@ -12,6 +12,7 @@ import {
 } from "@/components/shared/AchievementCelebrationModal";
 import { formatKg, type LifterCharacter, type SkinTone } from "@/lib/volumeStory";
 import { UNIT_LABEL, setVolume } from "@/lib/setUnits";
+import { isNoWeightExercise, shouldShowWeight } from "@/lib/bodyweight";
 import { parseLiftWeight } from "@/lib/parseWeight";
 import { mainMuscles, muscleLoad, muscleLevels, type MuscleKey } from "@/lib/muscles";
 import type { TodayPlan } from "@/lib/todayPlan";
@@ -77,6 +78,7 @@ export function TodayWorkoutPlan({
       });
     })
   );
+  const [kgOpen, setKgOpen] = useState<Record<number, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<AchievementCelebrationData | null>(null);
   const [finishing, setFinishing] = useState(false);
@@ -103,6 +105,11 @@ export function TodayWorkoutPlan({
     setRows((prev) => prev.map((rs, a) => (a !== i ? rs : rs.map((r, b) => (b !== j ? r : { ...r, ...patch })))));
   }
 
+  function showKg(i: number) {
+    const item = items[i];
+    return shouldShowWeight(item.noWeight ?? isNoWeightExercise(item.name), !!kgOpen[i], lastWeights[item.exerciseId], rows[i]);
+  }
+
   function weightHint(i: number, j: number) {
     const prev = j > 0 ? rows[i][j - 1] : null;
     const prevW = prev?.saved ? String(prev.saved.weight) : prev?.w;
@@ -114,7 +121,7 @@ export function TodayWorkoutPlan({
     const row = rows[i][j];
     const wRaw = row.w || weightHint(i, j);
     const rRaw = row.r || (it.repDefault != null ? String(it.repDefault) : "");
-    const weight = parseLiftWeight(wRaw || "");
+    const weight = showKg(i) ? parseLiftWeight(wRaw || "") : 0;
     const reps = Number(rRaw);
     if (weight === null || !reps || reps <= 0) {
       setError(`${it.label} set ${j + 1}: isi beban (0 untuk tanpa beban) dan ${UNIT_LABEL[it.unit]}.`);
@@ -309,7 +316,7 @@ export function TodayWorkoutPlan({
                 </p>
                 {muscles.length > 0 && <p className="text-[11.5px] font-semibold text-accent">🎯 {muscles.join(" · ")}</p>}
                 <p className="mb-1 text-[11.5px] text-muted">
-                  {last != null ? `Terakhir: ${formatKg(last)} kg` : "Belum pernah dicatat"}
+                  {!showKg(i) ? "Tanpa beban" : last != null ? `Terakhir: ${formatKg(last)} kg` : "Belum pernah dicatat"}
                   {it.repDefault != null
                     ? ` · target ${it.repDefault} ${UNIT_LABEL[it.unit]}${it.perSide ? " tiap sisi" : ""}`
                     : ` · isi ${UNIT_LABEL[it.unit]} yang selesai`}
@@ -323,6 +330,7 @@ export function TodayWorkoutPlan({
                         Set {j + 1}
                         {row.saved?.isPR && " 🏆"}
                       </span>
+                      {showKg(i) ? (
                       <label className="relative">
                         <input
                           inputMode="decimal"
@@ -336,6 +344,17 @@ export function TodayWorkoutPlan({
                         />
                         <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-muted">kg</span>
                       </label>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setKgOpen((current) => ({ ...current, [i]: true }))}
+                          aria-label={`${it.name}: tambah beban`}
+                          className="flex h-11 flex-col items-center justify-center rounded-lg border border-dashed border-border text-[11px] leading-tight text-muted hover:border-accent hover:text-foreground"
+                        >
+                          <span>Tanpa beban</span>
+                          <span className="font-semibold text-accent">+ kg</span>
+                        </button>
+                      )}
                       <label className="relative">
                         <input
                           inputMode="numeric"
