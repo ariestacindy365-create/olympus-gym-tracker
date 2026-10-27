@@ -58,7 +58,7 @@ export default async function CoachProgramsPage() {
         </div>
       </div>
 
-      <ProgramEditor movements={movements} initialWeeks={initialWeeks} />
+      <ProgramEditor movements={movements} initialWeeks={initialWeeks} draftKey={`olympus-program-draft:${coach.id}`} initialVersions={Object.fromEntries([1, 2, 3, 4].map((week) => [week, programs.find((program) => program.weekNumber === week)?.updatedAt.toISOString() ?? null]))} />
     </div>
   );
 }

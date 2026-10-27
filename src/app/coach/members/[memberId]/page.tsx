@@ -57,6 +57,11 @@ export default async function CoachMemberDetailPage({
   }
   for (const m of bodyMetrics.slice(-3).reverse()) noteContexts.push(`Body metric · ${shortDate(m.recordedDate)}`);
 
+  const movementEquipment = new Map((await prisma.movement.findMany({
+    where: { name: { in: exercises.map((exercise) => exercise.name), mode: "insensitive" } },
+    select: { name: true, equipment: true },
+  })).map((movement) => [movement.name.toLowerCase(), movement.equipment]));
+
   const mappedBodyMetrics = bodyMetrics.map(toBodyMetricEntry);
 
   const byExercise = new Map<string, typeof records>();
@@ -123,7 +128,7 @@ export default async function CoachMemberDetailPage({
 
       <CoachNotesPanel memberId={memberId} memberName={member.name} contexts={noteContexts} initialNotes={notes} />
 
-      <CoachSetLogger memberId={memberId} exercises={exercises} />
+      <CoachSetLogger memberId={memberId} exercises={exercises.map((exercise) => ({ ...exercise, equipment: movementEquipment.get(exercise.name.toLowerCase()) }))} />
 
       <ProgressView
         key={setEntries.length}

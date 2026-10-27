@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/Button";
 import { StatTile } from "@/components/ui/StatTile";
 import { Badge } from "@/components/ui/Badge";
 import { parseLiftWeight } from "@/lib/parseWeight";
-import { EditIcon, TrashIcon } from "@/components/ui/Icons";
-import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { EditIcon } from "@/components/ui/Icons";
+import { UndoDeleteButton } from "@/components/ui/UndoDeleteButton";
 import { PRShareButton } from "@/components/member/PRShareButton";
 import { PRCelebrationModal, type PRCelebrationData } from "@/components/member/PRCelebrationModal";
 import { epley1RM } from "@/lib/oneRepMax";
@@ -18,7 +18,7 @@ import { VolumeStoryModal } from "@/components/member/VolumeStoryModal";
 import { ProgressStoryModal } from "@/components/member/ProgressStoryModal";
 import { bestE1RMByDay, progressDelta, type ProgressStoryData } from "@/lib/progressStory";
 import { formatKg, totalVolume, type LifterCharacter, type SkinTone, type VolumeStoryData } from "@/lib/volumeStory";
-import { formatAmount, type SetUnit } from "@/lib/setUnits";
+import { formatAmount, UNIT_LABEL, UNIT_MAX, type SetUnit } from "@/lib/setUnits";
 
 type ChartMode = "weight" | "e1rm" | "volume";
 
@@ -81,7 +81,6 @@ export function ProgressView({
   storyCharacter = null,
   storySkinTone = null,
 }: ProgressViewProps) {
-  const confirmDialog = useConfirm();
   const [data, setData] = useState(exercises);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editWeight, setEditWeight] = useState("");
@@ -112,7 +111,7 @@ export function ProgressView({
 
   function applySessions(exerciseId: string, rawSessions: unknown[]) {
     const sessions: ProgressSession[] = (
-      rawSessions as { id: string; workoutDate: string; setNumber: number; weight: number; reps: number; note: string | null; isPR: boolean }[]
+      rawSessions as { id: string; workoutDate: string; setNumber: number; weight: number; reps: number; note: string | null; isPR: boolean; unit?: SetUnit; perSide?: boolean }[]
     ).map((s) => ({
       id: s.id,
       workoutDate: s.workoutDate,
@@ -121,20 +120,20 @@ export function ProgressView({
       reps: s.reps,
       note: s.note,
       isPR: s.isPR,
+      unit: s.unit,
+      perSide: s.perSide,
     }));
     setData((prev) => prev.map((ex) => (ex.exerciseId === exerciseId ? { ...ex, sessions, allSessions: undefined } : ex)));
   }
 
   async function handleDelete(setId: string, exerciseId: string) {
-    const ok = await confirmDialog({ description: "Hapus sesi ini? Rekor akan dihitung ulang.", confirmLabel: "Hapus", danger: true });
-    if (!ok) return;
     setPendingId(setId);
     setDeleteError(null);
     try {
       const res = await fetch(`${basePath}/${setId}`, { method: "DELETE" });
       const body = await res.json();
       if (!res.ok) {
-        setDeleteError(body.error ?? "Gagal menghapus sesi.");
+        setDeleteError(body.error ?? "Gagal menghapus set.");
         return;
       }
       applySessions(exerciseId, body.allSets ?? body.sets);
@@ -219,11 +218,11 @@ export function ProgressView({
 
   // One entry per training day, newest first — for the chart's volume mode
   // and the "share a past session" list.
-  const dayMap = new Map<string, { date: string; sets: { weight: number; reps: number }[] }>();
+  const dayMap = new Map<string, { date: string; sets: { weight: number; reps: number; unit?: SetUnit; perSide?: boolean }[] }>();
   for (const s of everySet) {
     const key = s.workoutDate.slice(0, 10);
     const day = dayMap.get(key) ?? { date: s.workoutDate, sets: [] };
-    day.sets.push({ weight: s.weight, reps: s.reps });
+    day.sets.push({ weight: s.weight, reps: s.reps, unit: s.unit, perSide: s.perSide });
     dayMap.set(key, day);
   }
   const days = [...dayMap.values()].sort((a, b) => b.date.localeCompare(a.date));
@@ -242,7 +241,7 @@ export function ProgressView({
   const lastIndex = chartData.length - 1;
   const visibleDays = showAllDays ? days : days.slice(0, HISTORY_PREVIEW_DAYS);
 
-  const tableRows = [...sessions].reverse();
+  const tableRows = [...everySet].reverse();
 
   return (
     <div className="flex flex-col gap-4">
@@ -400,7 +399,7 @@ export function ProgressView({
       )}
 
       <Card>
-        <h3 className="mb-3 font-display text-lg font-semibold">Riwayat Sesi</h3>
+        <h3 className="mb-3 font-display text-lg font-semibold">Riwayat per Set</h3>
         {deleteError && <p className="mb-2 text-sm text-danger">{deleteError}</p>}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -409,7 +408,7 @@ export function ProgressView({
                 <th className="pb-2 pr-3">Tanggal</th>
                 <th className="pb-2 pr-3">Set</th>
                 <th className="pb-2 pr-3">Beban</th>
-                <th className="pb-2 pr-3">Rep</th>
+                <th className="pb-2 pr-3">Jumlah</th>
                 <th className="pb-2 pr-3">Catatan</th>
                 {(canEdit || canDelete) && <th className="pb-2" />}
               </tr>
@@ -437,7 +436,7 @@ export function ProgressView({
                         value={editReps}
                         onChange={(e) => setEditReps(e.target.value)}
                         className="!py-1 w-16"
-                        placeholder="reps"
+                        max={UNIT_MAX[s.unit ?? "REPS"]} min={1} step={1} aria-label={`Jumlah (${UNIT_LABEL[s.unit ?? "REPS"]})`} placeholder={UNIT_LABEL[s.unit ?? "REPS"]}
                       />
                     </td>
                     <td className="py-2 pr-3 text-muted">{s.note ?? "—"}</td>
@@ -499,22 +498,14 @@ export function ProgressView({
                               type="button"
                               onClick={() => startEdit(s)}
                               disabled={pendingId === s.id}
-                              aria-label="Edit sesi"
+                              aria-label={`Edit set ${s.setNumber}`}
                               className="rounded-md p-1.5 text-base text-muted transition hover:bg-surface-2 hover:text-foreground disabled:opacity-50"
                             >
                               <EditIcon />
                             </button>
                           )}
                           {canDelete && (
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(s.id, current.exerciseId)}
-                              disabled={pendingId === s.id}
-                              aria-label="Hapus sesi"
-                              className="rounded-md p-1.5 text-base text-muted transition hover:bg-surface-2 hover:text-danger disabled:opacity-50"
-                            >
-                              <TrashIcon />
-                            </button>
+                            <UndoDeleteButton label={`${current.exerciseName}, ${formatDate(s.workoutDate)}, set ${s.setNumber}: ${s.weight} kg × ${formatAmount(s.reps, s.unit, s.perSide)}`} onDelete={() => handleDelete(s.id, current.exerciseId)} disabled={pendingId === s.id} />
                           )}
                         </div>
                       </td>

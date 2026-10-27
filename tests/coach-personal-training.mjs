@@ -37,8 +37,9 @@ state.prisma = {
     },
   },
   movement: {findUnique: async ({where}) => where.id === 'move-row' ? {name:'Barbell Row'} : null},
-  coachPersonalProgram: { upsert: async args => { state.calls.push(['program',args]); state.program=args.create; return args.create;} },
+  coachPersonalProgram: { findUnique: async () => state.program, upsert: async args => { state.calls.push(['program',args]); state.program=state.program ? {...state.program,...args.update} : {...args.create,updatedAt:new Date()}; return state.program;} },
 };
+tx.coachPersonalProgram = state.prisma.coachPersonalProgram;
 const plugin = {name:'isolated-dependencies', setup(b) {
   b.onResolve({filter:/^@\/lib\/(auth|prisma|workout|priorBests)$/}, args => ({path:args.path,namespace:'stub'}));
   b.onResolve({filter:/^@\/generated\/prisma\/client$/}, args => ({path:args.path,namespace:'stub'}));
@@ -53,7 +54,7 @@ const program = await route('src/app/api/coach/latihan/program/route.ts');
 const sets = await route('src/app/api/coach/latihan/sets/route.ts');
 const edit = await route('src/app/api/coach/latihan/sets/[setId]/route.ts');
 const manage = await route('src/app/api/coach/members/[memberId]/sets/[setId]/route.ts');
-const request = body => new Request('http://localhost/test',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+const request = body => new Request('http://localhost/test',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({expectedVersion:state.program?.updatedAt?.toISOString()??null,...body})});
 const ctx = id => ({params:Promise.resolve({setId:id})});
 const valid = {exerciseId:'squat',weight:'42,5',reps:10,date:'2026-10-27'};
 let passed=0;
@@ -62,7 +63,7 @@ await check('anonymous and member cannot create personal programs or sets',async
 state.user={id:'coach-a',role:'COACH'};
 await check('program validates targets and rejects duplicate or missing exercises',async()=>{for(const slots of [[{exerciseId:'squat',sets:3,reps:201}],[{exerciseId:'squat',sets:3,reps:10},{exerciseId:'squat',sets:4,reps:8}],[{exerciseId:'unknown',sets:3,reps:10}]])assert.equal((await program.PUT(request({days:[{name:'Upper',slots}]}))).status,400);});
 await check('program ownership always comes from session',async()=>{assert.equal((await program.PUT(request({coachId:'coach-b',days:[{name:'Sesi A',slots:[{exerciseId:'squat',sets:3,reps:10}]}]}))).status,200);assert.equal(state.program.coachId,'coach-a');assert.equal(state.program.days[0].name,'Sesi A');});
-await check('invalid sets, dates and nonexistent exercises rejected',async()=>{for(const body of [{...valid,weight:-1},{...valid,reps:0},{...valid,reps:201},{...valid,unit:'SECONDS'},{...valid,date:'2026-10-26'},{...valid,exerciseId:'unknown'}])assert.ok((await sets.POST(request(body))).status>=400);assert.equal(state.rows.length,0);});
+await check('invalid sets, dates and nonexistent exercises rejected',async()=>{for(const body of [{...valid,weight:-1},{...valid,reps:0},{...valid,reps:201},{...valid,date:'2026-10-26'},{...valid,exerciseId:'unknown'}])assert.ok((await sets.POST(request(body))).status>=400);assert.equal(state.rows.length,0);});
 await check('decimal comma loads saved to coach account and PR recorded',async()=>{const response=await sets.POST(request({...valid,memberId:'member-a'}));assert.equal(response.status,200);const data=await response.json();assert.equal(data.setEntry.memberId,'coach-a');assert.equal(data.setEntry.weight,42.5);assert.equal(data.setEntry.setNumber,1);assert.equal(data.setEntry.isPR,true);assert.ok(state.calls.some(c=>c[0]==='lock'));});
 await check('bodyweight allowed and new set follows MAX across numbering gaps',async()=>{state.rows[0].setNumber=3;const data=await (await sets.POST(request({...valid,weight:0,setNumber:1}))).json();assert.equal(data.setEntry.setNumber,4);assert.equal(data.setEntry.weight,0);});
 await check('other coaches cannot edit or delete private sets',async()=>{state.user={id:'coach-b',role:'COACH'};assert.equal((await edit.PATCH(request({weight:50,reps:8}),ctx('set-1'))).status,404);assert.equal((await edit.DELETE(request({}),ctx('set-1'))).status,404);state.user={id:'coach-a',role:'COACH'};});
@@ -80,5 +81,21 @@ await check('only selected library movements are registered for logging',async()
   assert.equal(logged.status,200);
   assert.equal((await logged.json()).setEntry.exerciseId,'row');
   assert.equal(state.exercises.size,2);
+});
+await check('stale personal program version is rejected without replacing current program',async()=>{
+  const before=JSON.stringify(state.program);
+  const response=await program.PUT(request({expectedVersion:null,days:[{name:'Stale',slots:[{exerciseId:'squat',sets:1,reps:5}]}]}));
+  assert.equal(response.status,409);assert.equal(JSON.stringify(state.program),before);
+});
+await check('coach saves timed, distance, lap, and per-side sets with their units',async()=>{
+  for(const [unit,reps] of [['SECONDS',60],['METERS',500],['LAPS',4],['CALORIES',20],['REPS',12]]) {
+    const response=await sets.POST(request({...valid,unit,reps,weight:0,perSide:true}));
+    assert.equal(response.status,200);const data=await response.json();assert.equal(data.setEntry.unit,unit);assert.equal(data.setEntry.perSide,true);
+  }
+});
+await check('coach member-delete endpoint deletes only selected set among same-day siblings',async()=>{
+  state.rows.push({id:'m1',memberId:'member-a',exerciseId:'squat',workoutDate:new Date('2026-10-27'),setNumber:1,weight:20,reps:10,unit:'REPS',isPR:false,estimated1RM:25}, {id:'m2',memberId:'member-a',exerciseId:'squat',workoutDate:new Date('2026-10-27'),setNumber:2,weight:20,reps:10,unit:'REPS',isPR:false,estimated1RM:25});
+  const response=await manage.DELETE(request({}),{params:Promise.resolve({memberId:'member-a',setId:'m1'})});
+  assert.equal(response.status,200);assert.ok(state.rows.some(row=>row.id==='m2'));assert.ok(!state.rows.some(row=>row.id==='m1'));
 });
 console.log(`${passed} isolated API checks passed. No database was accessed.`);

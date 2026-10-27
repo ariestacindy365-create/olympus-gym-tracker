@@ -4,6 +4,7 @@ import type { ZodError } from "zod";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { saveProgramWeekSchema } from "@/lib/validation";
+import { ProgramConflictError } from "@/lib/programVersion";
 import { writeProgramWeek } from "@/lib/programSave";
 import { Role } from "@/generated/prisma/client";
 
@@ -62,12 +63,21 @@ export async function PUT(
   }
 
   const body = await request.json().catch(() => null);
+  if (!body || typeof body !== "object" || Array.isArray(body) || !("expectedVersion" in body) || (body.expectedVersion !== null && typeof body.expectedVersion !== "string")) return NextResponse.json({ error: "Muat ulang program untuk mengambil versinya sebelum menyimpan." }, { status: 428 });
   const parsed = saveProgramWeekSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: describeValidationError(parsed.error, body) }, { status: 400 });
   }
 
-  const days = await prisma.$transaction((tx) => writeProgramWeek(tx, coach.id, weekNumber, parsed.data.days));
-
-  return NextResponse.json({ days });
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const days = await writeProgramWeek(tx, coach.id, weekNumber, parsed.data.days, body.expectedVersion);
+      const program = await tx.trainingProgram.findFirst({ where: { coachId: coach.id, weekNumber }, select: { updatedAt: true } });
+      return { days, version: program!.updatedAt.toISOString() };
+    });
+    return NextResponse.json(result);
+  } catch (error) {
+    if (error instanceof ProgramConflictError) return NextResponse.json({ error: error.message }, { status: 409 });
+    throw error;
+  }
 }

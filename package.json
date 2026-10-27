@@ -10,7 +10,8 @@
     "lint": "eslint",
     "postinstall": "prisma generate",
     "test:coach-training": "node tests/coach-personal-training.mjs",
-    "test:workout-inputs": "node tests/workout-inputs.mjs"
+    "test:workout-inputs": "node tests/workout-inputs.mjs",
+    "test:training-resilience": "node tests/training-resilience.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

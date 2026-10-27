@@ -6,11 +6,15 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
+import { SetFields } from "@/components/shared/SetFields";
+import { isNoWeightExercise } from "@/lib/bodyweight";
+import { UNIT_MAX, type SetUnit } from "@/lib/setUnits";
 import { parseLiftWeight } from "@/lib/parseWeight";
 
 interface ExerciseOption {
   id: string;
   name: string;
+  equipment?: string | null;
 }
 
 interface CoachSetLoggerProps {
@@ -23,6 +27,11 @@ export function CoachSetLogger({ memberId, exercises }: CoachSetLoggerProps) {
   const [exerciseId, setExerciseId] = useState(exercises[0]?.id ?? "");
   const [weight, setWeight] = useState("");
   const [reps, setReps] = useState("");
+  const [unit, setUnit] = useState<SetUnit>("REPS");
+  const [perSide, setPerSide] = useState(false);
+  const [kgOpen, setKgOpen] = useState(false);
+  const selectedExercise = exercises.find((exercise) => exercise.id === exerciseId);
+  const showWeight = kgOpen || !isNoWeightExercise(selectedExercise?.name ?? "", selectedExercise?.equipment);
   const [note, setNote] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,10 +42,10 @@ export function CoachSetLogger({ memberId, exercises }: CoachSetLoggerProps) {
     setError(null);
     setSaved(false);
 
-    const weightNum = parseLiftWeight(weight);
+    const weightNum = showWeight ? parseLiftWeight(weight) : 0;
     const repsNum = Number(reps);
-    if (!exerciseId || weightNum === null || !repsNum || repsNum <= 0) {
-      setError("Pilih gerakan dan isi beban & reps yang valid.");
+    if (!exerciseId || weightNum === null || !Number.isInteger(repsNum) || repsNum <= 0 || repsNum > UNIT_MAX[unit]) {
+      setError("Pilih gerakan dan isi beban serta jumlah sesuai satuannya.");
       return;
     }
 
@@ -45,7 +54,7 @@ export function CoachSetLogger({ memberId, exercises }: CoachSetLoggerProps) {
       const res = await fetch(`/api/coach/members/${memberId}/sets`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ exerciseId, weight: weightNum, reps: repsNum, note: note || undefined }),
+        body: JSON.stringify({ exerciseId, weight: weightNum, reps: repsNum, unit, perSide, note: note || undefined }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -76,7 +85,7 @@ export function CoachSetLogger({ memberId, exercises }: CoachSetLoggerProps) {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
           <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">Gerakan</label>
-          <Select value={exerciseId} onChange={(e) => setExerciseId(e.target.value)}>
+          <Select disabled={pending} value={exerciseId} onChange={(e) => { setExerciseId(e.target.value); setWeight(""); setKgOpen(false); }}>
             {exercises.map((ex) => (
               <option key={ex.id} value={ex.id}>
                 {ex.name}
@@ -85,24 +94,13 @@ export function CoachSetLogger({ memberId, exercises }: CoachSetLoggerProps) {
           </Select>
         </div>
 
-        <div className="flex gap-3">
-          <div className="flex-1">
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
-              Beban (kg)
-            </label>
-            <Input type="text" inputMode="decimal" value={weight} onChange={(e) => setWeight(e.target.value)} />
-          </div>
-          <div className="flex-1">
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">Reps</label>
-            <Input type="number" inputMode="numeric" value={reps} onChange={(e) => setReps(e.target.value)} />
-          </div>
-        </div>
+        <SetFields weight={weight} amount={reps} unit={unit} perSide={perSide} showWeight={showWeight} disabled={pending} onWeight={setWeight} onAmount={setReps} onUnit={setUnit} onPerSide={setPerSide} onOpenWeight={() => setKgOpen(true)} />
 
         <div>
           <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
             Catatan (opsional)
           </label>
-          <Input type="text" placeholder="mis. dibantu spot" value={note} onChange={(e) => setNote(e.target.value)} />
+          <Input disabled={pending} type="text" placeholder="mis. dibantu spot" value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
 
         {error && <p className="text-sm text-danger">{error}</p>}
