@@ -84,8 +84,8 @@ export function TodayWorkoutPlan({
   const [celebration, setCelebration] = useState<AchievementCelebrationData | null>(null);
   const [finishing, setFinishing] = useState(false);
 
-  // TABATA and other movements without logging stay collapsed until opened.
-  // Bodyweight and banded movements keep their reps rows and optional + kg.
+  // TABATA, bodyweight and banded movements need no logging and stay
+  // collapsed until opened ("Catat beban"), then show reps with optional + kg.
   const [logAnyway, setLogAnyway] = useState<Set<number>>(() => new Set());
   const logged = (i: number) => !items[i].noInput || logAnyway.has(i) || rows[i].some((r) => r.saved || r.queued);
   const inputRows = rows.filter((_, i) => logged(i)).flat();
@@ -161,14 +161,13 @@ export function TodayWorkoutPlan({
     }
   }
 
-  const requesting = useRef(false);
+  // Sets go out one at a time: a tap while another set is still sending
+  // waits its turn instead of being dropped.
+  const sendQueue = useRef<Promise<unknown>>(Promise.resolve());
 
   /** POSTs one set and fills its row; "offline" when the network failed, else an error message. */
-  const send = useCallback(
+  const sendNow = useCallback(
     async (p: PendingSet): Promise<"ok" | "offline" | string> => {
-      if (requesting.current) return "Sedang mengirim set lain. Coba lagi sebentar.";
-      requesting.current = true;
-      try {
       let res: Response;
       try {
         res = await fetch("/api/member/sets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p.body) });
@@ -200,9 +199,17 @@ export function TodayWorkoutPlan({
       const badges: UnlockedBadge[] = data.newAchievements ?? [];
       if (badges.length > 0) setCelebration({ memberName, badges });
       return "ok";
-      } finally { requesting.current = false; }
     },
     [items, memberName]
+  );
+
+  const send = useCallback(
+    (p: PendingSet): Promise<"ok" | "offline" | string> => {
+      const run = sendQueue.current.then(() => sendNow(p));
+      sendQueue.current = run.catch(() => undefined);
+      return run;
+    },
+    [sendNow]
   );
 
   useEffect(() => {
