@@ -116,7 +116,12 @@ export async function getTodayPlan(classes: TodayClasses, on?: Date): Promise<To
       perSide: perSideFromTarget(s.repTarget),
       muscles: musclesFor(s.movement.name, s.movement.primaryMuscle, s.movement.secondaryMuscle),
       note: s.note?.trim() || null,
-      noInput: /\btabata\b/i.test(round.scheme) || (!needsLoadInput(s.movement.name, s.movement.equipment, round.scheme) && !isNoWeightExercise(s.movement.name, s.movement.equipment)),
+      // Nothing to log: TABATA finishers and bodyweight / banded / no-load
+      // cardio moves, by either detector ("Catat beban" still opens the rows).
+      noInput:
+        /\btabata\b/i.test(round.scheme) ||
+        !needsLoadInput(s.movement.name, s.movement.equipment, round.scheme) ||
+        isNoWeightExercise(s.movement.name, s.movement.equipment),
     });
   }
 

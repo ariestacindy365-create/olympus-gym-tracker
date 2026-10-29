@@ -4,9 +4,13 @@ import { matchesWeekday, mondayOf, weekNumberForDate, weekdayLabelForDate } from
 export async function getOrCreateRotation() {
   const existing = await prisma.programRotation.findUnique({ where: { id: "singleton" } });
   if (existing) return existing;
-  return prisma.programRotation.create({
-    data: { id: "singleton", anchorMonday: mondayOf(new Date()), anchorWeekNumber: 1 },
+  // Two first requests at once (the dashboard asks twice in parallel): the
+  // second insert is skipped and both read the row that won.
+  await prisma.programRotation.createMany({
+    data: [{ id: "singleton", anchorMonday: mondayOf(new Date()), anchorWeekNumber: 1 }],
+    skipDuplicates: true,
   });
+  return prisma.programRotation.findUniqueOrThrow({ where: { id: "singleton" } });
 }
 
 // The Minggu that applies to the week containing `date`: a one-off
