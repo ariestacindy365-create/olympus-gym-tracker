@@ -5,12 +5,17 @@ import { ProgramSlide, useAppQrCode } from "@/components/shared/ProgramSlide";
 import type { ProgramSlideData } from "@/lib/programSlide";
 import { ClassTimer } from "@/components/shared/ClassTimer";
 import { timerFromScheme, type TimerConfig } from "@/lib/classTimer";
+import { PRCelebration } from "@/components/shared/PRCelebration";
 
 interface SlideShowProps {
   slides: (ProgramSlideData & { isToday?: boolean })[];
   startIndex?: number;
+  /** Coach's class TV: celebrate members' barbell PRs over the slide. */
+  celebratePRs?: boolean;
   onClose: () => void;
 }
+
+const PR_SOUND_KEY = "olympus-pr-sound";
 
 const HIDE_CONTROLS_MS = 2500;
 
@@ -20,7 +25,7 @@ const HIDE_CONTROLS_MS = 2500;
  * full screen, keeps the screen awake, and moves with ← → / space / a tap
  * on either half of the screen.
  */
-export function SlideShow({ slides, startIndex = 0, onClose }: SlideShowProps) {
+export function SlideShow({ slides, startIndex = 0, celebratePRs = false, onClose }: SlideShowProps) {
   const qr = useAppQrCode();
   const rootRef = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(Math.min(Math.max(0, startIndex), slides.length - 1));
@@ -31,6 +36,24 @@ export function SlideShow({ slides, startIndex = 0, onClose }: SlideShowProps) {
   // another round's ⏱ is tapped.
   const [timer, setTimer] = useState<{ key: number; config: TimerConfig; subtitle: string; slide: number; round: number } | null>(null);
   const [timerBig, setTimerBig] = useState(false);
+  // PR celebration sound, remembered on this device (the gym TV).
+  const [prSound, setPrSound] = useState(() => {
+    try {
+      return localStorage.getItem(PR_SOUND_KEY) !== "off";
+    } catch {
+      return true;
+    }
+  });
+  function togglePrSound() {
+    setPrSound((on) => {
+      try {
+        localStorage.setItem(PR_SOUND_KEY, on ? "off" : "on");
+      } catch {
+        // Storage blocked: the choice lasts for this slideshow only.
+      }
+      return !on;
+    });
+  }
 
   const showControls = useCallback(() => {
     setControls(true);
@@ -107,13 +130,15 @@ export function SlideShow({ slides, startIndex = 0, onClose }: SlideShowProps) {
     >
       <div className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center">
       <div
-        className={
+        className={`relative ${
           timer && !timerBig
             ? "w-[min(100vw,calc(58dvh*16/9))] landscape:w-[min(75vw,calc(100dvh*16/9))]"
             : "w-[min(100vw,calc(100dvh*16/9))]"
-        }
+        }`}
       >
         <ProgramSlide data={slide} qrDataUrl={qr} highlightRound={timer && timer.slide === index ? timer.round : null} />
+        {/* Over the slide only: the layout and the timer beside it never move. */}
+        {celebratePRs && <PRCelebration sound={prSound} />}
       </div>
 
       {/* Tap left / right half to move */}
@@ -157,6 +182,17 @@ export function SlideShow({ slides, startIndex = 0, onClose }: SlideShowProps) {
               </button>
             );
           })}
+          {celebratePRs && (
+            <button
+              type="button"
+              onClick={togglePrSound}
+              aria-pressed={prSound}
+              title="Suara selebrasi PR"
+              className="rounded-full bg-black/70 px-3 py-2 text-xs font-semibold ring-1 ring-white/30 hover:bg-black/85"
+            >
+              {prSound ? "🔊 PR" : "🔇 PR"}
+            </button>
+          )}
           <button type="button" onClick={() => go(-1)} disabled={index === 0} className="rounded-full bg-black/70 px-4 py-2 text-sm font-semibold ring-1 ring-white/30 hover:bg-black/85 disabled:opacity-30">
             ‹
           </button>

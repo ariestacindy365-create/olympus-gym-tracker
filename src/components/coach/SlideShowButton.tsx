@@ -10,7 +10,7 @@ interface SlideShowButtonProps {
   className?: string;
 }
 
-/** "▶ Slideshow" — presents the slides full screen, starting at today's day. */
+/** "▶ Slideshow" — presents the slides full screen, starting at today's day, with barbell PR celebrations. */
 export function SlideShowButton({ slides, label = "▶ Slideshow", className = "" }: SlideShowButtonProps) {
   const [open, setOpen] = useState(false);
   const start = Math.max(0, slides.findIndex((s) => s.isToday));
@@ -24,7 +24,7 @@ export function SlideShowButton({ slides, label = "▶ Slideshow", className = "
       >
         {label}
       </button>
-      {open && <SlideShow slides={slides} startIndex={start} onClose={() => setOpen(false)} />}
+      {open && <SlideShow slides={slides} startIndex={start} celebratePRs onClose={() => setOpen(false)} />}
     </>
   );
 }
