@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MuscleMap } from "@/components/shared/MuscleMap";
+import { UndoDeleteButton } from "@/components/ui/UndoDeleteButton";
 import { DayFinishFlow } from "@/components/member/DayFinishFlow";
 import {
   AchievementCelebrationModal,
@@ -83,6 +84,26 @@ export function TodayWorkoutPlan({
   const [error, setError] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<AchievementCelebrationData | null>(null);
   const [finishing, setFinishing] = useState(false);
+
+  // A mistaken set: delete it here. Its row goes back to empty (rows are set
+  // numbers), and an extra row past the program's sets goes away.
+  async function removeSet(i: number, j: number, id: string) {
+    const res = await fetch(`/api/member/sets/${id}`, { method: "DELETE", keepalive: true }).catch(() => null);
+    if (!res?.ok) {
+      setError("Gagal menghapus set. Coba lagi.");
+      return;
+    }
+    setError(null);
+    setRows((prev) =>
+      prev.map((rs, a) => {
+        if (a !== i) return rs;
+        const next = rs.map((row, b) => (b === j ? { w: "", r: "", saved: null, pending: false } : row));
+        while (next.length > items[i].sets && !next[next.length - 1].saved && !next[next.length - 1].queued) next.pop();
+        return next;
+      })
+    );
+    router.refresh();
+  }
 
   // TABATA, bodyweight and banded movements need no logging and stay
   // collapsed until opened ("Catat beban"), then show reps with optional + kg.
@@ -384,7 +405,7 @@ export function TodayWorkoutPlan({
                       const savedNow = row.saved && row.w === String(row.saved.weight) && row.r === String(row.saved.reps);
                       const field = savedNow ? "border-transparent bg-success/10" : row.queued ? "border-transparent bg-[#f59e0b]/15" : "border-border bg-surface";
                       return (
-                        <div key={j} className="mt-1.5 grid grid-cols-[52px_1fr_1fr_44px] items-center gap-1.5">
+                        <div key={j} className="mt-1.5 grid grid-cols-[52px_1fr_1fr_44px_44px] items-center gap-1.5">
                           <span className="text-[11px] font-bold uppercase text-muted">
                             Set {j + 1}
                             {row.saved?.isPR && " 🏆"}
@@ -446,6 +467,15 @@ export function TodayWorkoutPlan({
                           >
                             {row.pending ? "…" : row.queued ? "⏳" : "✓"}
                           </button>
+                          {row.saved ? (
+                            <UndoDeleteButton
+                              label={`${it.name}, set ${j + 1}: ${row.saved.weight} kg × ${row.saved.reps} ${UNIT_LABEL[it.unit]}`}
+                              disabled={row.pending}
+                              onDelete={() => removeSet(i, j, row.saved!.id)}
+                            />
+                          ) : (
+                            <span />
+                          )}
                         </div>
                       );
                     })}
