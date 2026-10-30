@@ -109,7 +109,7 @@ export function PersonalTraining({ exercises: initialExercises, initialDays, ini
   async function deleteSet(set: PersonalTrainingSet) {
     setPending(true);
     try {
-      const response = await fetch(`/api/coach/latihan/sets/${set.id}`, { method: "DELETE" });
+      const response = await fetch(`/api/coach/latihan/sets/${set.id}`, { method: "DELETE", keepalive: true });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Gagal menghapus set.");
       setSets((current) => current.filter((item) => item.id !== set.id).map((item) => {
