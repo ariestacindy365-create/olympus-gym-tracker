@@ -130,7 +130,8 @@ export function ProgressView({
     setPendingId(setId);
     setDeleteError(null);
     try {
-      const res = await fetch(`${basePath}/${setId}`, { method: "DELETE" });
+      // keepalive: a delete flushed as the page closes still reaches the server.
+      const res = await fetch(`${basePath}/${setId}`, { method: "DELETE", keepalive: true });
       const body = await res.json();
       if (!res.ok) {
         setDeleteError(body.error ?? "Gagal menghapus set.");
