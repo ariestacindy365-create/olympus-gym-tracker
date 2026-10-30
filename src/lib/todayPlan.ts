@@ -4,7 +4,7 @@ import { todayDateKey } from "@/lib/workout";
 import { getThisWeekProgramRaw } from "@/lib/weekProgram";
 import { matchesWeekday, weekdayLabelForDate } from "@/lib/programRotation";
 import { formatRepTarget } from "@/lib/programSlide";
-import { schemeLine } from "@/lib/roundScheme";
+import { parseScheme, schemeLine, schemeUsesSets } from "@/lib/roundScheme";
 import { musclesFor, type MuscleWeights } from "@/lib/muscles";
 import { amountFromTarget, perSideFromTarget, unitFromTarget, type SetUnit } from "@/lib/setUnits";
 import { classLabel, type TodayClasses } from "@/lib/classSchedule";
@@ -15,7 +15,7 @@ export interface PlanItem {
   exerciseId: string;
   name: string;
   noWeight: boolean;
-  /** Rows to show (the round's set count; 1 for AMRAP / TABATA / FOR TIME rounds). */
+  /** Rows to show: the set count the slide shows for the round; 1 for AMRAP / TABATA rounds. */
   sets: number;
   /** As written on the slide, e.g. "12 reps", "30\\"", "1 lap". */
   target: string;
@@ -103,7 +103,10 @@ export async function getTodayPlan(classes: TodayClasses, on?: Date): Promise<To
     const round = rounds[rounds.length - 1];
     const exercise = exerciseByName.get(s.movement.name.trim().toLowerCase());
     if (!exercise) continue;
-    const setCount = Number(s.sets ?? round.sets) || 1;
+    // As many rows as the slide shows ("E3MOM (2 set)"), not a movement's own
+    // set column, which the slide never shows and may still hold an old value.
+    const shown = schemeUsesSets(parseScheme(round.scheme).kind) ? Number(round.sets) : 1;
+    const setCount = shown > 0 ? shown : Number(s.sets) || 1;
     round.items.push({
       label,
       exerciseId: exercise.id,
