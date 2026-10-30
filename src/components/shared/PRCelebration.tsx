@@ -9,6 +9,8 @@ import type { PREvent } from "@/lib/barbell";
 // the slideshow layout and the timer beside it never move or get covered.
 
 const POLL_MS = 12_000;
+// PRs already walked across this TV, so reopening the slideshow doesn't replay them.
+const SEEN_KEY = "olympus-pr-seen";
 const IN = 2.4;
 const HOLD = 2.4;
 const OUT = 2.2;
@@ -148,6 +150,11 @@ export function PRCelebration({ sound }: { sound: boolean }) {
   useEffect(() => {
     let since: string | null = null;
     let stopped = false;
+    try {
+      for (const id of JSON.parse(sessionStorage.getItem(SEEN_KEY) ?? "[]") as string[]) seen.current.add(id);
+    } catch {
+      // Nothing remembered yet.
+    }
     async function poll() {
       if (document.visibilityState !== "visible") return;
       const res = await fetch(`/api/coach/pr-events${since ? `?since=${encodeURIComponent(since)}` : ""}`, { cache: "no-store" }).catch(() => null);
@@ -158,6 +165,11 @@ export function PRCelebration({ sound }: { sound: boolean }) {
         if (seen.current.has(e.id)) continue;
         seen.current.add(e.id);
         queue.current.push(e);
+      }
+      try {
+        sessionStorage.setItem(SEEN_KEY, JSON.stringify([...seen.current].slice(-50)));
+      } catch {
+        // Storage blocked: only this slideshow remembers them.
       }
       setCurrent((c) => c ?? queue.current.shift() ?? null);
     }
