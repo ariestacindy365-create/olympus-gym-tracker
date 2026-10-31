@@ -11,7 +11,9 @@
     "postinstall": "prisma generate",
     "test:coach-training": "node tests/coach-personal-training.mjs",
     "test:workout-inputs": "node tests/workout-inputs.mjs",
-    "test:training-resilience": "node tests/training-resilience.mjs"
+    "test:training-resilience": "node tests/training-resilience.mjs",
+    "test:guard": "node tests/feature-guard.mjs",
+    "test": "npm run test:guard && npm run test:coach-training && npm run test:workout-inputs && npm run test:training-resilience"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

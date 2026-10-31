@@ -1,3 +1,12 @@
+# Before every PR
+
+Run `npm test`. It starts with the feature guard (`tests/feature-guard.mjs`),
+which fails when a live page, API route or feature is missing — usually a
+sign the change was made from an older copy of the code. Restore what went
+missing rather than editing the guard. When a feature ships, add its line to
+`FEATURES` there; a new page or API route goes into `tests/feature-routes.json`.
+CI (`.github/workflows/ci.yml`) runs the same checks on every PR.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

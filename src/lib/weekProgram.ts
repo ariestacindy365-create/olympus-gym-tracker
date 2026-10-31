@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { todayDateKey } from "@/lib/workout";
-import { effectiveWeek, getOrCreateRotation } from "@/lib/programHistory";
+import { effectiveWeek, getProgramCycles, getWeekOverrides } from "@/lib/programHistory";
 import { matchesWeekday, mondayOf, weekdayLabelForDate } from "@/lib/programRotation";
 import { buildSlideRounds, type ProgramSlideData } from "@/lib/programSlide";
 import { getClassSchedule } from "@/lib/classSchedule";
@@ -23,29 +23,31 @@ const programInclude = {
   },
 };
 
+/** Which Minggu each coach runs in the week containing `day`: their own rotation and override. */
+async function weekOfCoach(day: Date): Promise<(coachId: string | null) => number> {
+  const monday = mondayOf(day);
+  const [cycleOf, overridesOf] = await Promise.all([getProgramCycles(), getWeekOverrides(monday, monday)]);
+  return (coachId) => effectiveWeek(day, cycleOf(coachId), overridesOf(coachId)).weekNumber;
+}
+
 /**
- * This week's program (rotation Minggu, or a one-off override) of one
- * coach, with full slot + movement data. When that coach hasn't written
- * this week (or, with `needWeekday`, that day) yet, another coach's program
- * for the week is used instead (program.coach says whose it is). "Today"
- * uses the gym's Jakarta date.
+ * This week's program (the coach's rotation Minggu, or their one-off
+ * override) of one coach, with full slot + movement data. When that coach
+ * hasn't written this week (or, with `needWeekday`, that day) yet, another
+ * coach's program for their own week is used instead (program.coach says
+ * whose it is). "Today" uses the gym's Jakarta date.
  */
 export async function getThisWeekProgramRaw(coachId: string | null, needWeekday?: string, on?: Date) {
   // `on`: a past day key (filling in a forgotten workout) — that day's week of the rotation.
   const key = on ?? todayDateKey();
   const today = new Date(key.getUTCFullYear(), key.getUTCMonth(), key.getUTCDate());
-  const [rotation, override] = await Promise.all([
-    getOrCreateRotation(),
-    prisma.programWeekOverride.findUnique({ where: { weekStart: mondayOf(today) } }),
-  ]);
-  const overrides = new Map(override ? [[override.weekStart.getTime(), override.weekNumber]] : []);
-  const { weekNumber } = effectiveWeek(today, rotation, overrides);
+  const weekOf = await weekOfCoach(today);
+  const weekNumber = weekOf(coachId);
 
-  const all = await prisma.trainingProgram.findMany({
-    where: { weekNumber },
-    orderBy: { updatedAt: "desc" },
-    include: programInclude,
-  });
+  // Every coach runs their own Minggu this week; keep each one's current program.
+  const all = (
+    await prisma.trainingProgram.findMany({ orderBy: { updatedAt: "desc" }, include: programInclude })
+  ).filter((p) => p.weekNumber === weekOf(p.coachId));
   const usable = (p: (typeof all)[number]) =>
     p.days.some((d) => d.slots.length > 0 && (!needWeekday || matchesWeekday(d.dayLabel, needWeekday)));
   const own = all.find((p) => p.coachId === coachId) ?? null;
@@ -78,18 +80,21 @@ export async function getThisWeekProgram(
 }
 
 /**
- * Coaches with a program this week (rotation Minggu or override), and the
- * times they teach today, for the member's "program coach lain" tabs.
+ * Coaches with a program this week (their rotation Minggu or override), and
+ * the times they teach today, for the member's "program coach lain" tabs.
  */
-export async function getThisWeekCoaches(weekNumber: number): Promise<{ id: string; name: string; times: string[] }[]> {
-  const [programs, schedule] = await Promise.all([
+export async function getThisWeekCoaches(): Promise<{ id: string; name: string; times: string[] }[]> {
+  const key = todayDateKey();
+  const [weekOf, written, schedule] = await Promise.all([
+    weekOfCoach(new Date(key.getUTCFullYear(), key.getUTCMonth(), key.getUTCDate())),
     prisma.trainingProgram.findMany({
-      where: { weekNumber, days: { some: { slots: { some: {} } } } },
-      select: { coach: { select: { id: true, name: true } } },
+      where: { days: { some: { slots: { some: {} } } } },
+      select: { weekNumber: true, coach: { select: { id: true, name: true } } },
       orderBy: { coach: { name: "asc" } },
     }),
     getClassSchedule(),
   ]);
+  const programs = written.filter((p) => p.weekNumber === weekOf(p.coach.id));
   const weekday = todayDateKey().getUTCDay();
   const seen = new Set<string>();
   return programs.flatMap(({ coach }) => {

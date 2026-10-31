@@ -51,57 +51,59 @@ enum SetUnit {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  name         String
-  email        String    @unique
-  pinHash      String
-  role         Role
-  lastActiveAt DateTime  @default(now())
-  presentDate  DateTime?
+  id                String            @id @default(cuid())
+  name              String
+  email             String            @unique
+  pinHash           String
+  role              Role
+  lastActiveAt      DateTime          @default(now())
+  presentDate       DateTime?
   // Null until the member picks one; the story card asks on first use.
-  storyCharacter StoryCharacter?
-  storySkinTone  StorySkinTone?
+  storyCharacter    StoryCharacter?
+  storySkinTone     StorySkinTone?
   // Members can hide themselves from the monthly leaderboard.
-  leaderboardOptOut Boolean @default(false)
+  leaderboardOptOut Boolean           @default(false)
   // Default "Dilihat oleh" for workouts the member saves to the feed.
-  feedVisibility WorkoutVisibility @default(ALL)
+  feedVisibility    WorkoutVisibility @default(ALL)
   // Morning "program hari ini" reminder.
-  notifyProgram  Boolean           @default(true)
+  notifyProgram     Boolean           @default(true)
   // Evening "jangan lupa catat" reminder when nothing was logged today.
-  notifyReminder Boolean           @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  notifyReminder    Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   personalTraining     CoachPersonalProgram?
   setEntries           SetEntry[]
   personalRecords      PersonalRecord[]
   bodyMetrics          BodyMetric[]
-  dailyWorkoutsCreated DailyWorkout[]      @relation("CoachDailyWorkouts")
-  programsAsCoach      TrainingProgram[]   @relation("CoachPrograms")
-  classSlots           ClassSlot[]         @relation("CoachClassSlots")
+  dailyWorkoutsCreated DailyWorkout[]        @relation("CoachDailyWorkouts")
+  programsAsCoach      TrainingProgram[]     @relation("CoachPrograms")
+  classSlots           ClassSlot[]           @relation("CoachClassSlots")
   notifications        Notification[]
   announcements        Announcement[]
   pushSubscriptions    PushSubscription[]
-  programSnapshots     ProgramSnapshot[]   @relation("CoachProgramSnapshots")
+  programSnapshots     ProgramSnapshot[]     @relation("CoachProgramSnapshots")
   programWeekOverrides ProgramWeekOverride[] @relation("CoachProgramWeekOverrides")
+  programCycle         CoachProgramCycle?    @relation("CoachProgramCycle")
+  weekOverrides        CoachWeekOverride[]   @relation("CoachWeekOverrides")
   achievementUnlocks   AchievementUnlock[]
-  coachNotesReceived   CoachNote[]         @relation("MemberCoachNotes")
-  coachNotesWritten    CoachNote[]         @relation("CoachNotesWritten")
+  coachNotesReceived   CoachNote[]           @relation("MemberCoachNotes")
+  coachNotesWritten    CoachNote[]           @relation("CoachNotesWritten")
   workouts             Workout[]
   workoutKudos         WorkoutKudo[]
   workoutComments      WorkoutComment[]
 
   // CRM (lead capture / follow-up) — used by ADMIN and OWNER roles only.
-  capturedLeads      Lead[]     @relation("CapturedLeads")
-  completedFollowUps FollowUp[] @relation("CompletedFollowUps")
-  deletedLeads       Lead[]     @relation("DeletedLeads")
-  target             Target?    @relation("AdminTarget")
-  paymentsRecorded   Payment[]  @relation("PaymentsRecorded")
-  paymentsDeleted    Payment[]  @relation("PaymentsDeleted")
-  expensesRecorded   Expense[]  @relation("ExpensesRecorded")
-  salesRecorded      Sale[]     @relation("SalesRecorded")
-  salesDeleted       Sale[]     @relation("SalesDeleted")
-  restocksRecorded   Restock[]  @relation("RestocksRecorded")
+  capturedLeads            Lead[]            @relation("CapturedLeads")
+  completedFollowUps       FollowUp[]        @relation("CompletedFollowUps")
+  deletedLeads             Lead[]            @relation("DeletedLeads")
+  target                   Target?           @relation("AdminTarget")
+  paymentsRecorded         Payment[]         @relation("PaymentsRecorded")
+  paymentsDeleted          Payment[]         @relation("PaymentsDeleted")
+  expensesRecorded         Expense[]         @relation("ExpensesRecorded")
+  salesRecorded            Sale[]            @relation("SalesRecorded")
+  salesDeleted             Sale[]            @relation("SalesDeleted")
+  restocksRecorded         Restock[]         @relation("RestocksRecorded")
   stockAdjustmentsRecorded StockAdjustment[] @relation("StockAdjustmentsRecorded")
 }
 
@@ -179,22 +181,22 @@ model SetEntry {
 // mass together, since a smart scale reads all three at once. Re-saving the
 // same day upserts rather than creating a new row.
 model BodyMetric {
-  id                 String   @id @default(cuid())
-  memberId           String
-  member             User     @relation(fields: [memberId], references: [id])
-  recordedDate       DateTime
-  weight             Float
-  bodyFatPercent     Float?
+  id                    String   @id @default(cuid())
+  memberId              String
+  member                User     @relation(fields: [memberId], references: [id])
+  recordedDate          DateTime
+  weight                Float
+  bodyFatPercent        Float?
   // InBody-era reading (kg). The gym now uses an Omron Karada Scan, which
   // reports skeletal muscle as a percentage instead — kept for history.
-  skeletalMuscleMass Float?
-  visceralFat        Float?
+  skeletalMuscleMass    Float?
+  visceralFat           Float?
   // Omron Karada Scan readings.
   skeletalMusclePercent Float?
   bodyAge               Float?
-  note               String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  note                  String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   @@unique([memberId, recordedDate])
   @@index([recordedDate])
@@ -344,6 +346,36 @@ model ProgramWeekOverride {
   updatedAt  DateTime @updatedAt
 }
 
+// A coach's own week rotation: how many Minggu they write (4-12) and which
+// one a given Monday runs ("the week starting anchorMonday is Minggu N").
+// Coaches without a row run 4 weeks on the shared ProgramRotation.
+model CoachProgramCycle {
+  coachId          String   @id
+  coach            User     @relation("CoachProgramCycle", fields: [coachId], references: [id], onDelete: Cascade)
+  weeks            Int      @default(4)
+  anchorMonday     DateTime
+  anchorWeekNumber Int
+  // The rotations this one replaced, so past weeks keep the Minggu they
+  // actually ran: [{ weeks, anchorMonday, anchorWeekNumber, until }] where
+  // `until` is the Monday the next one took over (ISO dates).
+  history          Json     @default("[]")
+  updatedAt        DateTime @updatedAt
+}
+
+// One coach's one-off "this week runs Minggu N instead". Replaces
+// ProgramWeekOverride (one row per week for everyone); a row there still
+// counts for the coach who set it.
+model CoachWeekOverride {
+  coachId    String
+  coach      User     @relation("CoachWeekOverrides", fields: [coachId], references: [id], onDelete: Cascade)
+  weekStart  DateTime
+  weekNumber Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@id([coachId, weekStart])
+}
+
 // --- CRM: WA lead capture & follow-up (ADMIN/OWNER only) -------------------
 
 // The funnel stage an admin moves a lead through by hand. Trial booking
@@ -370,18 +402,18 @@ enum LeadSource {
 
 // A prospective client who DM'd after seeing an ad.
 model Lead {
-  id                 String     @id @default(cuid())
+  id                 String      @id @default(cuid())
   waNumber           String
   // Digits-only, 62-prefixed form of waNumber (see lib/whatsapp.ts). Used to
   // catch duplicate captures regardless of how the number was typed
   // (0812... vs 62812... vs with spaces/dashes) — enforced in the API layer
   // rather than a DB unique constraint so a soft-deleted lead's old number
   // can be re-captured later.
-  waNumberNormalized String     @default("")
+  waNumberNormalized String      @default("")
   name               String
-  status             LeadStatus @default(DM)
+  status             LeadStatus  @default(DM)
   source             LeadSource?
-  replyCount         Int        @default(0)
+  replyCount         Int         @default(0)
   // Set when status is marked TRIAL (booking itself happens in Fitquarter).
   // Base date for the auto-generated H+1/H+3 follow-ups below.
   trialMarkedAt      DateTime?
@@ -393,12 +425,12 @@ model Lead {
   // deletion still shows up in the Riwayat history.
   deletedAt          DateTime?
   deletedById        String?
-  deletedBy          User?      @relation("DeletedLeads", fields: [deletedById], references: [id])
+  deletedBy          User?       @relation("DeletedLeads", fields: [deletedById], references: [id])
   capturedById       String
-  capturedBy         User       @relation("CapturedLeads", fields: [capturedById], references: [id])
-  capturedAt         DateTime   @default(now())
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
+  capturedBy         User        @relation("CapturedLeads", fields: [capturedById], references: [id])
+  capturedAt         DateTime    @default(now())
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
   followUps FollowUp[]
   payments  Payment[]
@@ -683,24 +715,24 @@ enum WorkoutVisibility {
 // the feed doesn't recompute them. One per member per day: finishing again
 // updates it.
 model Workout {
-  id          String            @id @default(cuid())
-  memberId    String
-  member      User              @relation(fields: [memberId], references: [id])
-  workoutDate DateTime
-  title       String
-  note        String?
-  durationSec Int
+  id             String            @id @default(cuid())
+  memberId       String
+  member         User              @relation(fields: [memberId], references: [id])
+  workoutDate    DateTime
+  title          String
+  note           String?
+  durationSec    Int
   // The member set the duration themselves (finish screen or a filled-in
   // past day), so it's kept instead of being worked out from the sets.
-  durationManual Boolean @default(false)
-  totalVolume Float
-  totalSets   Int
-  prCount     Int
-  visibility  WorkoutVisibility @default(ALL)
+  durationManual Boolean           @default(false)
+  totalVolume    Float
+  totalSets      Int
+  prCount        Int
+  visibility     WorkoutVisibility @default(ALL)
   // e.g. "Coach Ari · 09:00", the class the member followed.
-  classLabel  String?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  classLabel     String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 
   kudos    WorkoutKudo[]
   comments WorkoutComment[]

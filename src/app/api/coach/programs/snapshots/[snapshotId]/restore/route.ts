@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ensureSnapshot, writeProgramWeek, type SnapshotData } from "@/lib/programSave";
 import { Role } from "@/generated/prisma/client";
+import { getProgramCycle } from "@/lib/programHistory";
 
 // "Pakai di Minggu N": puts an old saved version of the coach's program
 // into Minggu N (replacing what's there). The replaced version stays in the
@@ -19,8 +20,9 @@ export async function POST(
   const { snapshotId } = await ctx.params;
   const body = await request.json().catch(() => null);
   const weekNumber = Number(body?.weekNumber);
-  if (!Number.isInteger(weekNumber) || weekNumber < 1 || weekNumber > 4) {
-    return NextResponse.json({ error: "Pilih Minggu 1-4." }, { status: 400 });
+  const { weeks } = await getProgramCycle(coach.id);
+  if (!Number.isInteger(weekNumber) || weekNumber < 1 || weekNumber > weeks) {
+    return NextResponse.json({ error: `Pilih Minggu 1-${weeks}.` }, { status: 400 });
   }
   const snapshot = await prisma.programSnapshot.findUnique({ where: { id: snapshotId } });
   if (!snapshot || snapshot.coachId !== coach.id) {

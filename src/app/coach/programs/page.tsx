@@ -4,11 +4,12 @@ import { ProgramEditor } from "@/components/coach/ProgramEditor";
 import { SlideShowButton } from "@/components/coach/SlideShowButton";
 import { getThisWeekProgram } from "@/lib/weekProgram";
 import { getCurrentUser } from "@/lib/auth";
+import { getProgramCycle } from "@/lib/programHistory";
 
 export default async function CoachProgramsPage() {
   const coach = await getCurrentUser();
   if (!coach) return null;
-  const [programs, movements, thisWeek] = await Promise.all([
+  const [programs, movements, thisWeek, cycle] = await Promise.all([
     prisma.trainingProgram.findMany({
       where: { coachId: coach.id },
       include: {
@@ -23,10 +24,12 @@ export default async function CoachProgramsPage() {
       select: { id: true, name: true, category: true, equipment: true, primaryMuscle: true },
     }),
     getThisWeekProgram(coach.id),
+    getProgramCycle(coach.id),
   ]);
+  const weekNumbers = Array.from({ length: cycle.weeks }, (_, i) => i + 1);
 
   const initialWeeks: Record<number, ReturnType<typeof mapDays>> = {};
-  for (let w = 1; w <= 4; w++) {
+  for (const w of weekNumbers) {
     const program = programs.find((p) => p.weekNumber === w);
     initialWeeks[w] = mapDays(program?.days ?? []);
   }
@@ -58,7 +61,7 @@ export default async function CoachProgramsPage() {
         </div>
       </div>
 
-      <ProgramEditor movements={movements} initialWeeks={initialWeeks} draftKey={`olympus-program-draft:${coach.id}`} initialVersions={Object.fromEntries([1, 2, 3, 4].map((week) => [week, programs.find((program) => program.weekNumber === week)?.updatedAt.toISOString() ?? null]))} />
+      <ProgramEditor movements={movements} initialWeeks={initialWeeks} draftKey={`olympus-program-draft:${coach.id}`} weekCount={cycle.weeks} initialVersions={Object.fromEntries(weekNumbers.map((week) => [week, programs.find((program) => program.weekNumber === week)?.updatedAt.toISOString() ?? null]))} />
     </div>
   );
 }

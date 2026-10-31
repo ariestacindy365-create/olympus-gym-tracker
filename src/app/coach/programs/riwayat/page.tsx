@@ -41,11 +41,11 @@ export default async function ProgramHistoryPage() {
         initialYear={year}
         initialMonth={month}
         initialDays={days}
-        initialRotation={{ anchorMonday: rotation.anchorMonday.toISOString(), anchorWeekNumber: rotation.anchorWeekNumber }}
+        initialRotation={{ anchorMonday: rotation.anchorMonday.toISOString(), anchorWeekNumber: rotation.anchorWeekNumber, weeks: rotation.weeks }}
         initialCurrentWeek={currentWeek}
       />
 
-      <ProgramVersionList versions={versions} />
+      <ProgramVersionList versions={versions} weekCount={rotation.weeks} />
     </div>
   );
 }

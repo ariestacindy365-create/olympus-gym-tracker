@@ -7,6 +7,7 @@ import { type MovementOption } from "@/components/coach/MovementCombobox";
 import { computeRoundStarts } from "@/lib/programRounds";
 import { RoundSchemeRow } from "@/components/coach/RoundSchemeRow";
 import { Fragment } from "react";
+import { PROGRAM_DAYS } from "@/lib/programRotation";
 
 export interface DayState {
   id: string;
@@ -88,12 +89,21 @@ export function SortableDayBlock({
                 ▼
               </button>
             </div>
-            <input
-              placeholder="HARI"
+            {/* Picked, not typed: a misspelt day never matches the calendar, so members get no program. */}
+            <select
               value={day.dayLabel}
-              onChange={(e) => onChangeDay({ dayLabel: e.target.value.toUpperCase() })}
-              className={headerInputClass("max-w-[110px] shrink-0")}
-            />
+              onChange={(e) => onChangeDay({ dayLabel: e.target.value })}
+              aria-label="Hari"
+              className={headerInputClass("max-w-[120px] shrink-0 cursor-pointer [&>option]:text-foreground")}
+            >
+              {!day.dayLabel && <option value="">HARI</option>}
+              {day.dayLabel && !PROGRAM_DAYS.includes(day.dayLabel) && <option value={day.dayLabel}>{day.dayLabel}</option>}
+              {PROGRAM_DAYS.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
             <span className="text-white/60">&middot;</span>
             <input
               placeholder="FOKUS"
