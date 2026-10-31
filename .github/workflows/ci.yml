@@ -24,7 +24,8 @@ jobs:
       - name: Penjaga fitur (anti-rollback)
         run: npm run test:guard
       - name: Typecheck
-        run: npx tsc --noEmit
+        # RouteContext / PageProps come from Next's generated route types.
+        run: npx next typegen && npx tsc --noEmit
       - name: Lint
         run: npm run lint
       - name: Tes
