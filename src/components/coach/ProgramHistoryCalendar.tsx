@@ -26,6 +26,8 @@ interface DayEntry {
 interface Rotation {
   anchorMonday: string;
   anchorWeekNumber: number;
+  /** How many Minggu this coach's program has. */
+  weeks: number;
 }
 
 interface CurrentWeek {
@@ -325,7 +327,7 @@ export function ProgramHistoryCalendar({
           onClick={() => setShowRotationForm(!showRotationForm)}
           className="text-xs font-semibold text-muted hover:text-accent hover:underline"
         >
-          {showRotationForm ? "Tutup" : "⚙️ Rotasinya meleset? Atur ulang di sini"}
+          {showRotationForm ? "Tutup" : `⚙️ Urutan minggu programmu (${rotation.weeks} minggu) — meleset? Atur ulang di sini`}
         </button>
         {showRotationForm && (
           <div className="mt-3 flex flex-wrap items-end gap-3">
@@ -340,10 +342,11 @@ export function ProgramHistoryCalendar({
                 onChange={(e) => setRotationWeek(e.target.value)}
                 className="rounded-md border border-border bg-surface-2 px-3 py-2.5 text-sm text-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               >
-                <option value="1">Minggu 1</option>
-                <option value="2">Minggu 2</option>
-                <option value="3">Minggu 3</option>
-                <option value="4">Minggu 4</option>
+                {Array.from({ length: rotation.weeks }, (_, i) => (
+                  <option key={i} value={i + 1}>
+                    Minggu {i + 1}
+                  </option>
+                ))}
               </select>
             </div>
             <Button onClick={saveRotation} disabled={!rotationDate || rotationSaving} className="px-4">
@@ -353,7 +356,7 @@ export function ProgramHistoryCalendar({
         )}
         <p className="mt-2 text-xs text-muted">
           Sekarang: minggu yang dimulai {new Date(rotation.anchorMonday).toLocaleDateString("id-ID")} dianggap Minggu{" "}
-          {rotation.anchorWeekNumber}, lalu berputar otomatis 1→2→3→4 tiap minggu.
+          {rotation.anchorWeekNumber}, lalu berputar otomatis {Array.from({ length: rotation.weeks }, (_, i) => i + 1).join("→")} tiap minggu.
         </p>
       </Card>
     </div>

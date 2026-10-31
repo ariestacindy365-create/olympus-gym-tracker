@@ -16,7 +16,7 @@ export default async function MemberProgramPage(props: PageProps<"/member/progra
   const sp = await props.searchParams;
   const picked = typeof sp.coach === "string" ? sp.coach : null;
   const first = await getThisWeekProgram(myCoachId);
-  const coaches = await getThisWeekCoaches(first.weekNumber);
+  const coaches = await getThisWeekCoaches();
   const pickedCoach = picked && picked !== myCoachId ? coaches.find((c) => c.id === picked) : undefined;
   const { weekNumber, coachName, days } = pickedCoach ? await getThisWeekProgram(pickedCoach.id) : first;
   const borrowed = !pickedCoach && current?.coach && coachName && coachName !== current.coach.name;

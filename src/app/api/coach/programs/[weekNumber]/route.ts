@@ -7,6 +7,7 @@ import { saveProgramWeekSchema } from "@/lib/validation";
 import { ProgramConflictError } from "@/lib/programVersion";
 import { writeProgramWeek } from "@/lib/programSave";
 import { Role } from "@/generated/prisma/client";
+import { getProgramCycle } from "@/lib/programHistory";
 
 const FIELD_LABELS: Record<string, string> = {
   dayLabel: "Nama hari",
@@ -58,8 +59,9 @@ export async function PUT(
 
   const { weekNumber: weekNumberRaw } = await ctx.params;
   const weekNumber = Number(weekNumberRaw);
-  if (!Number.isInteger(weekNumber) || weekNumber < 1 || weekNumber > 4) {
-    return NextResponse.json({ error: "Minggu harus antara 1-4." }, { status: 400 });
+  const { weeks } = await getProgramCycle(coach.id);
+  if (!Number.isInteger(weekNumber) || weekNumber < 1 || weekNumber > weeks) {
+    return NextResponse.json({ error: `Minggu harus antara 1-${weeks}.` }, { status: 400 });
   }
 
   const body = await request.json().catch(() => null);

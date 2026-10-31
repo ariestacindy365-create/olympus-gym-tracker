@@ -15,7 +15,6 @@ export interface ProgramVersion {
   data: SnapshotData;
 }
 
-const WEEKS = [1, 2, 3, 4];
 const PAGE = 15;
 
 function formatSavedAt(iso: string) {
@@ -30,8 +29,9 @@ function formatSavedAt(iso: string) {
   }).format(new Date(iso));
 }
 
-/** Every saved version of the coach's program; any of them can be put back into Minggu 1-4. */
-export function ProgramVersionList({ versions }: { versions: ProgramVersion[] }) {
+/** Every saved version of the coach's program; any of them can be put back into any of the coach's Minggu. */
+export function ProgramVersionList({ versions, weekCount }: { versions: ProgramVersion[]; weekCount: number }) {
+  const WEEKS = Array.from({ length: weekCount }, (_, i) => i + 1);
   const router = useRouter();
   const confirmDialog = useConfirm();
   const toast = useToast();
@@ -73,7 +73,7 @@ export function ProgramVersionList({ versions }: { versions: ProgramVersion[] })
       <div>
         <h2 className="font-display text-xl font-bold">Pakai ulang program lama</h2>
         <p className="text-sm text-muted">
-          Setiap kali kamu menekan Simpan, versinya tersimpan di sini. Pilih versi, lalu pakai di Minggu 1, 2, 3, atau 4.
+          Setiap kali kamu menekan Simpan, versinya tersimpan di sini. Pilih versi, lalu pakai di Minggu mana pun (1–{weekCount}).
         </p>
       </div>
       <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Filter minggu">

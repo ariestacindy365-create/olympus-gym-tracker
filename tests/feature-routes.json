@@ -31,6 +31,7 @@
   "api/coach/programs/riwayat/route.ts",
   "api/coach/programs/rotation/route.ts",
   "api/coach/programs/snapshots/[snapshotId]/restore/route.ts",
+  "api/coach/programs/weeks/route.ts",
   "api/coach/schedule/route.ts",
   "api/cron/daily-report/route.ts",
   "api/cron/log-reminder/route.ts",

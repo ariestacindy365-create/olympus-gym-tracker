@@ -13,6 +13,7 @@ import { ProgramWeekPreview } from "@/components/coach/ProgramWeekPreview";
 import { useProgramDraft } from "@/hooks/useProgramDraft";
 import { DraftNotice } from "@/components/coach/DraftNotice";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { DEFAULT_PROGRAM_WEEKS, MAX_PROGRAM_WEEKS, nextProgramDay } from "@/lib/programRotation";
 
 export type { DayState };
 
@@ -23,9 +24,9 @@ interface ProgramEditorProps {
   // Days come from the server without a client-side drag id yet — assigned
   // once on mount (see the weeks state initializer below).
   initialWeeks: Record<number, Omit<DayState, "id">[]>;
+  /** How many Minggu this coach's program has (4-12). */
+  weekCount: number;
 }
-
-const WEEKS = [1, 2, 3, 4];
 
 const DAY_COLORS = ["#1e3a5f", "#7c2d12", "#065f46", "#4c1d95", "#7f1d1d", "#134e4a"];
 
@@ -57,8 +58,8 @@ const MUSCLE_ROLLUP: Record<string, string> = {
   "Dada Atas": "Dada",
 };
 
-function emptyDay(): DayState {
-  return { id: crypto.randomUUID(), dayLabel: "", focusLabel: "", slots: [] };
+function emptyDay(dayLabel = ""): DayState {
+  return { id: crypto.randomUUID(), dayLabel, focusLabel: "", slots: [] };
 }
 
 function emptySlot(): SlotState {
@@ -87,7 +88,7 @@ function withDayIds(weeks: Record<number, Omit<DayState, "id">[]>): Record<numbe
   return result;
 }
 
-export function ProgramEditor({ movements: initialMovements, initialWeeks, draftKey, initialVersions }: ProgramEditorProps) {
+export function ProgramEditor({ movements: initialMovements, initialWeeks, draftKey, initialVersions, weekCount: initialWeekCount }: ProgramEditorProps) {
   const confirmDialog = useConfirm();
   const [initial] = useState(() => withDayIds(initialWeeks));
   const draft = useProgramDraft(draftKey, initial, initialVersions, (value) => {
@@ -97,6 +98,39 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks, draft
   const { value: weeks, setValue: setWeeks } = draft;
   const [movements, setMovements] = useState(initialMovements);
   const [activeWeek, setActiveWeek] = useState(1);
+  const [weekCount, setWeekCount] = useState(initialWeekCount);
+  const weekNumbers = Array.from({ length: weekCount }, (_, i) => i + 1);
+  const [weekPending, setWeekPending] = useState(false);
+
+  // "+ Tambah minggu" / "− Hapus Minggu N": the week running now stays the same.
+  async function changeWeekCount(next: number) {
+    if (next < weekCount) {
+      const ok = await confirmDialog({ description: `Hapus Minggu ${weekCount}? Minggu ini harus kosong.`, confirmLabel: "Hapus minggu", danger: true });
+      if (!ok) return;
+    }
+    setWeekPending(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/coach/programs/weeks", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ weeks: next }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "Gagal mengubah jumlah minggu.");
+        return;
+      }
+      if (next > weekCount) {
+        draft.acknowledge({ ...weeks, [next]: [] }, { ...draft.version, [next]: null }, { ...draft.baseline, [next]: [] });
+        setActiveWeek(next);
+      } else if (activeWeek > next) {
+        setActiveWeek(next);
+      }
+      setWeekCount(next);
+      setShowPreview(false);
+    } catch {
+      setError("Terjadi kesalahan. Coba lagi.");
+    } finally {
+      setWeekPending(false);
+    }
+  }
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -153,7 +187,7 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks, draft
   }
 
   function addDay() {
-    updateDays([...days, emptyDay()]);
+    updateDays([...days, emptyDay(nextProgramDay(days.map((d) => d.dayLabel)))]);
   }
 
   async function removeDay(dayIndex: number) {
@@ -245,7 +279,7 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks, draft
       const res = await fetch(`/api/coach/programs/${activeWeek}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...payload, expectedVersion: draft.version[activeWeek] }),
+        body: JSON.stringify({ ...payload, expectedVersion: draft.version[activeWeek] ?? null }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -296,8 +330,8 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks, draft
     <div className="flex flex-col gap-4" aria-busy={!draft.ready || pending}>
       <DraftNotice status={draft.status} dirty={draft.dirty} onDownload={draft.download} onDiscard={() => { draft.clear(); window.location.reload(); }} />
       <fieldset disabled={!draft.ready || pending} className="contents">
-      <div className="flex gap-2">
-        {WEEKS.map((w) => (
+      <div className="flex flex-wrap items-center gap-2">
+        {weekNumbers.map((w) => (
           <button
             key={w}
             type="button"
@@ -312,6 +346,26 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks, draft
             Minggu {w}
           </button>
         ))}
+        {weekCount < MAX_PROGRAM_WEEKS && (
+          <button
+            type="button"
+            onClick={() => changeWeekCount(weekCount + 1)}
+            disabled={weekPending}
+            className="rounded-md border border-dashed border-border px-3 py-2 text-sm font-semibold text-accent hover:border-accent disabled:opacity-50"
+          >
+            + Tambah minggu
+          </button>
+        )}
+        {weekCount > DEFAULT_PROGRAM_WEEKS && activeWeek === weekCount && (weeks[weekCount] ?? []).every((d) => d.slots.length === 0) && (
+          <button
+            type="button"
+            onClick={() => changeWeekCount(weekCount - 1)}
+            disabled={weekPending}
+            className="rounded-md px-3 py-2 text-sm font-semibold text-danger hover:bg-danger/10 disabled:opacity-50"
+          >
+            Hapus Minggu {weekCount}
+          </button>
+        )}
       </div>
 
       {showPreview ? (
