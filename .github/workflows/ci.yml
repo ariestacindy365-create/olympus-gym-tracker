@@ -1,0 +1,31 @@
+name: CI
+
+# Every PR (and every push to master) must keep the app type-safe, lint
+# clean, and every live feature in place (tests/feature-guard.mjs).
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      # Placeholders: nothing here connects to a database.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      SESSION_SECRET: ci-only-secret-0123456789abcdef0123456789
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Penjaga fitur (anti-rollback)
+        run: npm run test:guard
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Lint
+        run: npm run lint
+      - name: Tes
+        run: npm run test:coach-training && npm run test:workout-inputs && npm run test:training-resilience
