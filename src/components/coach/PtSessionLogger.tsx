@@ -48,10 +48,11 @@ export function PtSessionLogger({
   async function save(memberId: string, item: PlanRound["items"][number], setNumber: number) {
     const k = key(memberId, item.exerciseId, setNumber);
     const c = cell(k);
-    const weight = item.noWeight && !c.w.trim() ? 0 : parseLiftWeight(c.w || "0");
+    // An empty kg is 0 only for a no-weight move; a loaded lift needs its weight.
+    const weight = !c.w.trim() ? (item.noWeight ? 0 : null) : parseLiftWeight(c.w);
     const reps = Number(c.r || item.repDefault || 0);
     if (weight === null || !Number.isInteger(reps) || reps <= 0) {
-      setError("Isi beban dan jumlah yang valid.");
+      setError(weight === null && !c.w.trim() ? `Isi beban ${item.name} dulu.` : "Isi beban dan jumlah yang valid.");
       return;
     }
     setError(null);

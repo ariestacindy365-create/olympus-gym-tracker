@@ -44,10 +44,16 @@ export async function getThisWeekProgramRaw(coachId: string | null, needWeekday?
   const weekOf = await weekOfCoach(today);
   const weekNumber = weekOf(coachId);
 
-  // Every coach runs their own Minggu this week; keep each one's current program.
-  const all = (
-    await prisma.trainingProgram.findMany({ orderBy: { updatedAt: "desc" }, include: programInclude })
-  ).filter((p) => p.weekNumber === weekOf(p.coachId));
+  // Every coach runs their own Minggu this week: find which program that is
+  // for each (a light query), then load only those in full.
+  const current = (await prisma.trainingProgram.findMany({ select: { id: true, coachId: true, weekNumber: true } }))
+    .filter((p) => p.weekNumber === weekOf(p.coachId))
+    .map((p) => p.id);
+  const all = await prisma.trainingProgram.findMany({
+    where: { id: { in: current } },
+    orderBy: { updatedAt: "desc" },
+    include: programInclude,
+  });
   const usable = (p: (typeof all)[number]) =>
     p.days.some((d) => d.slots.length > 0 && (!needWeekday || matchesWeekday(d.dayLabel, needWeekday)));
   const own = all.find((p) => p.coachId === coachId) ?? null;
