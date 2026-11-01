@@ -46,17 +46,20 @@ export const MUSCLE_LABEL: Record<MuscleKey, string> = {
 export type MuscleWeights = Partial<Record<MuscleKey, number>>;
 
 // Free-text muscle names (Indonesian or English) → keys, for the coach's
-// primaryMuscle / secondaryMuscle fields.
+// primaryMuscle / secondaryMuscle fields, including the Activa movement
+// dictionary's spellings ("Bisep", "Trisep", "Full Body").
 const NAME_TO_KEYS: [RegExp, MuscleKey[]][] = [
+  [/full\s*body|seluruh tubuh/i, ["quads", "glutes", "chest", "upback", "abs"]],
   [/dada|chest|pec/i, ["chest"]],
+  [/rotator/i, ["rdelts"]],
   [/bahu belakang|rear delt|posterior delt/i, ["rdelts"]],
   [/bahu|shoulder|delt/i, ["delts"]],
   [/trap/i, ["traps"]],
   [/punggung bawah|lower back|erector/i, ["lowback"]],
   [/lat|sayap/i, ["lats"]],
-  [/punggung|back|rhomboid/i, ["upback", "lats"]],
-  [/bicep/i, ["biceps"]],
-  [/tricep/i, ["triceps"]],
+  [/punggung|back|rhomboid|thoracic|toraks/i, ["upback", "lats"]],
+  [/bicep|bisep|brachialis/i, ["biceps"]],
+  [/tricep|trisep/i, ["triceps"]],
   [/lengan bawah|forearm|grip/i, ["forearms"]],
   [/oblique|samping perut/i, ["obliques"]],
   [/perut|abs|core|abdom/i, ["abs"]],
@@ -64,7 +67,7 @@ const NAME_TO_KEYS: [RegExp, MuscleKey[]][] = [
   [/paha belakang|hamstring/i, ["hams"]],
   [/paha dalam|adductor/i, ["adductors"]],
   [/paha|quad|kaki|leg/i, ["quads"]],
-  [/betis|calf|calves/i, ["calves"]],
+  [/betis|calf|calves|ankle|pergelangan kaki/i, ["calves"]],
 ];
 
 function keysForMuscleName(name: string | null | undefined): MuscleKey[] {

@@ -95,6 +95,14 @@ check('Sesi PT tidak loncat', () => {
   assert.equal(sessionFor([s(1, day(2))], day(3)), null);
 });
 
+const { musclesFor } = await load('src/lib/muscles.ts');
+check('Kamus otot mengenali ejaan Activa', () => {
+  assert.equal(musclesFor('DB Curl', 'Bisep').biceps, 1);
+  assert.equal(musclesFor('Dips', 'Trisep').triceps, 1);
+  assert.equal(musclesFor('Bench Press', 'Dada', 'Trisep, Bahu').triceps, 0.5);
+  assert.ok(Object.keys(musclesFor('Thruster', 'Full Body')).length >= 4);
+});
+
 if (failures.length) {
   console.error(`Penjaga fitur: ${failures.length} fitur live hilang atau berubah:\n- ${failures.join('\n- ')}`);
   process.exit(1);
