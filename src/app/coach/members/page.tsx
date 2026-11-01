@@ -3,9 +3,10 @@ import { isOnline } from "@/lib/status";
 import { todayDateKey } from "@/lib/workout";
 import { MemberManager } from "@/components/coach/MemberManager";
 import { Role } from "@/generated/prisma/client";
+import { activePtMemberIds } from "@/lib/pt";
 
 export default async function CoachMembersPage() {
-  const [members, todaysSets] = await Promise.all([
+  const [members, todaysSets, ptIds] = await Promise.all([
     prisma.user.findMany({
       where: { role: Role.MEMBER },
       orderBy: { name: "asc" },
@@ -14,6 +15,7 @@ export default async function CoachMembersPage() {
       where: { workoutDate: todayDateKey() },
       select: { memberId: true },
     }),
+    activePtMemberIds(),
   ]);
 
   const loggedMemberIds = new Set(todaysSets.map((t) => t.memberId));
@@ -24,6 +26,7 @@ export default async function CoachMembersPage() {
     email: member.email,
     online: isOnline(member.lastActiveAt),
     loggedToday: loggedMemberIds.has(member.id),
+    pt: ptIds.has(member.id),
   }));
 
   return (

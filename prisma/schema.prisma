@@ -86,6 +86,8 @@ model User {
   programWeekOverrides ProgramWeekOverride[] @relation("CoachProgramWeekOverrides")
   programCycle         CoachProgramCycle?    @relation("CoachProgramCycle")
   weekOverrides        CoachWeekOverride[]   @relation("CoachWeekOverrides")
+  ptPackagesAsCoach    PtPackage[]           @relation("CoachPtPackages")
+  ptMemberships        PtMember[]
   achievementUnlocks   AchievementUnlock[]
   coachNotesReceived   CoachNote[]           @relation("MemberCoachNotes")
   coachNotesWritten    CoachNote[]           @relation("CoachNotesWritten")
@@ -237,7 +239,8 @@ model Movement {
   setRangeHint    String?
   createdAt       DateTime @default(now())
 
-  slots ProgramSlot[]
+  slots   ProgramSlot[]
+  ptSlots PtSlot[]
 }
 
 // A coach's weekly bootcamp-class program (Minggu 1-4). Each coach has
@@ -374,6 +377,71 @@ model CoachWeekOverride {
   updatedAt  DateTime @updatedAt
 
   @@id([coachId, weekStart])
+}
+
+// --- Personal training (PT) -----------------------------------------------
+// A PT package: one coach training one member, or a couple / small group
+// together. Its program is a run of numbered sessions (Sesi 1, 2, 3, …) the
+// coach writes ahead; a session is "held" on the day its first set is
+// logged. Sets stay ordinary SetEntry rows (they count for PRs, the
+// leaderboard and challenges); a member's day with a held PT session is
+// left out of the class recap and the class slideshow.
+model PtPackage {
+  id        String      @id @default(cuid())
+  coachId   String
+  coach     User        @relation("CoachPtPackages", fields: [coachId], references: [id])
+  name      String?
+  createdAt DateTime    @default(now())
+  // Set when the last member is released ("Lepas dari PT"); history stays.
+  endedAt   DateTime?
+  members   PtMember[]
+  sessions  PtSession[]
+
+  @@index([coachId])
+}
+
+model PtMember {
+  packageId String
+  package   PtPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  memberId  String
+  member    User      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  joinedAt  DateTime  @default(now())
+  leftAt    DateTime?
+
+  @@id([packageId, memberId])
+  @@index([memberId])
+}
+
+model PtSession {
+  id        String    @id @default(cuid())
+  packageId String
+  package   PtPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  number    Int
+  title     String?
+  // The day it was trained (date key, like SetEntry.workoutDate).
+  heldOn    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  slots     PtSlot[]
+
+  @@unique([packageId, number])
+}
+
+// Same shape as ProgramSlot, so a session renders like a class day.
+model PtSlot {
+  id          String    @id @default(cuid())
+  sessionId   String
+  session     PtSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  slotLabel   String?
+  movementId  String
+  movement    Movement  @relation(fields: [movementId], references: [id])
+  sets        Int?
+  repTarget   String?
+  note        String?
+  roundScheme String?
+  order       Int
+
+  @@index([sessionId])
 }
 
 // --- CRM: WA lead capture & follow-up (ADMIN/OWNER only) -------------------

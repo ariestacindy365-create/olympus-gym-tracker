@@ -56,6 +56,8 @@ export const setEntrySchema = z
     date: z.string().max(10).optional(),
     // When ✓ was tapped, for a set that waited on the phone for signal.
     loggedAt: z.iso.datetime().optional(),
+    // A set from a PT session: the first one marks the session as trained that day.
+    ptSessionId: z.string().min(1).max(40).optional(),
   })
   .refine((d) => amountFitsUnit(d.reps, d.unit), { path: ["reps"] });
 
@@ -123,6 +125,17 @@ export const programDaySchema = z.object({
 
 export const saveProgramWeekSchema = z.object({
   days: z.array(programDaySchema).max(7),
+});
+
+// Personal training: a package for 1+ members, and one numbered session's program.
+export const createPtPackageSchema = z.object({
+  memberIds: z.array(z.string().min(1)).min(1).max(6),
+  name: z.string().trim().max(60).optional(),
+});
+
+export const savePtSessionSchema = z.object({
+  title: z.string().trim().max(60).optional(),
+  slots: z.array(programSlotSchema.omit({ targetWeight: true })).max(30),
 });
 
 export const bodyMetricSchema = z.object({

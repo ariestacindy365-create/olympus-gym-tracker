@@ -4,6 +4,7 @@ import { getClassSchedule } from "@/lib/classSchedule";
 import { CLASS_SESSIONS, minuteOfDay } from "@/lib/classSessions";
 import { setVolume } from "@/lib/setUnits";
 import { Role } from "@/generated/prisma/client";
+import { ptMemberIdsOn } from "@/lib/pt";
 
 export interface RecapMember {
   id: string;
@@ -41,7 +42,7 @@ export async function getClassRecap(coachId: string): Promise<RecapClass[]> {
   const mine = options.filter((o) => o.coach.id === coachId);
   if (mine.length === 0) return [];
 
-  const [sets, workouts] = await Promise.all([
+  const [sets, workouts, ptToday] = await Promise.all([
     prisma.setEntry.findMany({
       where: { workoutDate: today, member: { role: Role.MEMBER } },
       select: { memberId: true, createdAt: true, weight: true, reps: true, unit: true, perSide: true, isPR: true, member: { select: { name: true } } },
@@ -51,11 +52,14 @@ export async function getClassRecap(coachId: string): Promise<RecapClass[]> {
       where: { workoutDate: today },
       select: { id: true, memberId: true, classLabel: true, kudos: { where: { memberId: coachId }, select: { memberId: true } } },
     }),
+    // A PT session today isn't a class.
+    ptMemberIdsOn(today),
   ]);
   const workoutOf = new Map(workouts.map((w) => [w.memberId, w]));
 
   const byMember = new Map<string, RecapMember & { firstAt: Date }>();
   for (const s of sets) {
+    if (ptToday.has(s.memberId)) continue;
     const m = byMember.get(s.memberId) ?? {
       id: s.memberId,
       name: s.member.name,

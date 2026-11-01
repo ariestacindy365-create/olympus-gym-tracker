@@ -162,7 +162,7 @@ export function TodayWorkoutPlan({
       exerciseId: it.exerciseId,
       setNumber: j + 1,
       // Always the explicit day, so a set sent after midnight keeps its date.
-      body: { exerciseId: it.exerciseId, weight, reps, unit: it.unit, perSide: it.perSide, setNumber: j + 1, date: day },
+      body: { exerciseId: it.exerciseId, weight, reps, unit: it.unit, perSide: it.perSide, setNumber: j + 1, date: day, ...(plan.pt ? { ptSessionId: plan.pt.sessionId } : {}) },
     };
     const tappedAt = new Date().toISOString();
     const result = await send(p);
@@ -300,7 +300,7 @@ export function TodayWorkoutPlan({
       <div className="rounded-2xl bg-nav-bg p-4 text-white shadow-raised [background-image:radial-gradient(28rem_10rem_at_100%_0%,rgb(37_99_235/0.5),transparent)]">
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-nav-muted">
-            {plan.dayLabel} · {plan.klass ? `Kelas ${plan.klass.label}` : "Program dari pelatih"}
+            {plan.dayLabel} · {plan.pt ? `${plan.pt.coachName}${plan.pt.partners.length ? ` · bareng ${plan.pt.partners.join(", ")}` : ""}` : plan.klass ? `Kelas ${plan.klass.label}` : "Program dari pelatih"}
           </p>
           {plan.classOptions.length > 1 && (
             <label className="flex items-center gap-1 text-[11px] text-white/70">
@@ -348,7 +348,7 @@ export function TodayWorkoutPlan({
             Otot yang dilatih{date ? "" : " hari ini"}. Menyala lebih terang saat set kamu tercatat.
           </p>
         </div>
-        {!date && (
+        {!date && !plan.pt && (
           <Link
             href="/member/program"
             className="mt-3 flex h-10 items-center justify-center rounded-lg bg-white/10 text-sm font-semibold ring-1 ring-white/20 transition hover:bg-white/20"

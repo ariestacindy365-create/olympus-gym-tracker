@@ -8,6 +8,7 @@ import { todayDateKey } from "@/lib/workout";
 import { setEntrySchema } from "@/lib/validation";
 import { syncMemberAchievements } from "@/lib/achievements";
 import { Role } from "@/generated/prisma/client";
+import { markPtSessionHeld } from "@/lib/pt";
 
 export async function POST(request: NextRequest, ctx: RouteContext<"/api/coach/members/[memberId]/sets">) {
   const coach = await getCurrentUser();
@@ -72,6 +73,8 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/coach/m
 
   // Coach-initiated: leave unseen so the member gets notified next time
   // they open the app, instead of a celebration the coach would see instead.
+  // "Catat sesi" on a PT package: the first set marks the session as trained today.
+  if (parsed.data.ptSessionId) await markPtSessionHeld(parsed.data.ptSessionId, memberId, workoutDate);
   const newAchievements = await syncMemberAchievements(memberId, { markSeen: false });
 
   return NextResponse.json({ setEntry, exercise, newAchievements });

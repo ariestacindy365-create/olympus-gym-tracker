@@ -8,6 +8,7 @@ import { BACKFILL_DAYS, loggableDateKey } from "@/lib/workout";
 import { setEntrySchema } from "@/lib/validation";
 import { syncMemberAchievements } from "@/lib/achievements";
 import { Role } from "@/generated/prisma/client";
+import { markPtSessionHeld } from "@/lib/pt";
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
@@ -73,6 +74,7 @@ export async function POST(request: NextRequest) {
     return saved;
   });
 
+  if (parsed.data.ptSessionId) await markPtSessionHeld(parsed.data.ptSessionId, user.id, workoutDate);
   const newAchievements = await syncMemberAchievements(user.id);
 
   return NextResponse.json({ setEntry, exercise, newAchievements });

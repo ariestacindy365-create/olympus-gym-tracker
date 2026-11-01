@@ -23,6 +23,8 @@ import { getMonthlyChallenge } from "@/lib/challenge";
 import { ChallengeCard } from "@/components/member/ChallengeCard";
 import { PushPrompt } from "@/components/member/PushPrompt";
 import { TodayWorkoutPlan, type LoggedSet } from "@/components/member/TodayWorkoutPlan";
+import { getActivePtPackage, getPtTodayPlan, sessionFor } from "@/lib/pt";
+import { PtClientCard } from "@/components/member/PtClientCard";
 import type { SetUnit } from "@/lib/setUnits";
 
 export default async function MemberDashboardPage(props: PageProps<"/member/dashboard">) {
@@ -62,7 +64,10 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
 
   // One query for every set the member has logged; today's sets and each
   // exercise's previous session are derived from it below.
-  const todayClass = pastDay ? await getMemberClassOn(user.id, pastDay, pickedClass) : await getMemberTodayClass(user.id);
+  const [todayClass, ptPackage] = await Promise.all([
+    pastDay ? getMemberClassOn(user.id, pastDay, pickedClass) : getMemberTodayClass(user.id),
+    getActivePtPackage(user.id),
+  ]);
   const [dailyWorkout, personalRecords, allSets, coachNotes, weekProgram, todayPlan] = await Promise.all([
     getTodayDailyWorkout(),
     prisma.personalRecord.findMany({ where: { memberId: user.id } }),
@@ -73,7 +78,8 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
     }),
     getCoachNotes(user.id, 10),
     getThisWeekProgram(todayClass.current?.coach?.id ?? null),
-    getTodayPlan(todayClass, pastDay ?? undefined),
+    // A PT client trains their PT session instead of the class program.
+    ptPackage ? getPtTodayPlan(ptPackage, user.id, pastDay ?? undefined) : getTodayPlan(todayClass, pastDay ?? undefined),
   ]);
   const [challenge, exercises] = await Promise.all([
     pastDay ? null : getMonthlyChallenge(user.id),
@@ -224,6 +230,17 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
           <PushPrompt />
           <TrainingStats summary={summary} />
           <CoachNotesCard notes={coachNotes} />
+          {ptPackage && (
+            <PtClientCard
+              coachName={ptPackage.coach.name}
+              partners={ptPackage.members.filter((m) => m.memberId !== user.id).map((m) => m.member.name)}
+              sessionsDone={ptPackage.sessions.filter((x) => x.heldOn).length}
+              today={(() => {
+                const s = sessionFor(ptPackage.sessions, todayDateKey());
+                return s ? { number: s.number, title: s.title } : null;
+              })()}
+            />
+          )}
         </>
       )}
 
@@ -240,7 +257,7 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
           date={dateStr}
         />
       ) : (
-        programToday && <ProgramTodayCard day={programToday} />
+        programToday && !ptPackage && <ProgramTodayCard day={programToday} />
       )}
 
       {dailyWorkout && !todayPlan && !pastDay && (

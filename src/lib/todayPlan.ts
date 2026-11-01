@@ -53,6 +53,18 @@ export interface TodayPlan {
   classOptions: PlanClass[];
   /** Whose program this is, when it isn't the class coach's own (they haven't written this week). */
   borrowedFrom: string | null;
+  /** A PT session instead of a class: logging its sets marks it as trained today. */
+  pt?: { sessionId: string; number: number; coachName: string; partners: string[] } | null;
+}
+
+/** A program slot (class day or PT session), with its movement. */
+export interface PlanSlot {
+  slotLabel: string | null;
+  sets: number | null;
+  repTarget: string | null;
+  note: string | null;
+  roundScheme: string | null;
+  movement: { name: string; equipment: string | null; primaryMuscle: string | null; secondaryMuscle: string | null };
 }
 
 function roundKey(label: string): string {
@@ -81,7 +93,23 @@ export async function getTodayPlan(classes: TodayClasses, on?: Date): Promise<To
   const day = program?.days.find((d) => matchesWeekday(d.dayLabel, weekday));
   if (!day || day.slots.length === 0) return null;
 
-  const names = [...new Set(day.slots.map((s) => s.movement.name.trim()))];
+  return {
+    dayLabel: day.dayLabel,
+    title: day.focusLabel?.trim() || day.dayLabel,
+    rounds: await planRounds(day.slots),
+    klass: classes.current ? { sessionId: classes.current.session.id, label: classLabel(classes.current) } : null,
+    classOptions: classes.options.map((o) => ({ sessionId: o.session.id, label: classLabel(o) })),
+    borrowedFrom: coach && program && program.coachId !== coach.id ? program.coach.name : null,
+  };
+}
+
+/**
+ * Slots as fill-in rounds with their set rows. Movements are matched to the
+ * member log's exercises by name (created when missing) so the sets land in
+ * the normal history, PRs and leaderboard.
+ */
+export async function planRounds(slots: PlanSlot[]): Promise<PlanRound[]> {
+  const names = [...new Set(slots.map((s) => s.movement.name.trim()))];
   let exercises = await prisma.exercise.findMany({ where: { name: { in: names, mode: "insensitive" } } });
   const have = new Set(exercises.map((e) => e.name.toLowerCase()));
   const missing = names.filter((n) => !have.has(n.toLowerCase()));
@@ -93,7 +121,7 @@ export async function getTodayPlan(classes: TodayClasses, on?: Date): Promise<To
 
   const rounds: { scheme: string; sets: string; items: PlanItem[] }[] = [];
   let currentKey: string | null = null;
-  for (const s of day.slots) {
+  for (const s of slots) {
     const label = (s.slotLabel ?? "").trim();
     const key: string | null = label ? roundKey(label) : currentKey;
     if (rounds.length === 0 || key !== currentKey) {
@@ -128,14 +156,7 @@ export async function getTodayPlan(classes: TodayClasses, on?: Date): Promise<To
     });
   }
 
-  return {
-    dayLabel: day.dayLabel,
-    title: day.focusLabel?.trim() || day.dayLabel,
-    rounds: rounds
-      .filter((r) => r.items.length > 0)
-      .map((r, i) => ({ number: i + 1, schemeLine: schemeLine(r.scheme, r.sets), items: r.items })),
-    klass: classes.current ? { sessionId: classes.current.session.id, label: classLabel(classes.current) } : null,
-    classOptions: classes.options.map((o) => ({ sessionId: o.session.id, label: classLabel(o) })),
-    borrowedFrom: coach && program && program.coachId !== coach.id ? program.coach.name : null,
-  };
+  return rounds
+    .filter((r) => r.items.length > 0)
+    .map((r, i) => ({ number: i + 1, schemeLine: schemeLine(r.scheme, r.sets), items: r.items }));
 }
