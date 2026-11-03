@@ -133,6 +133,34 @@ export function muscleLoad(entries: { muscles: MuscleWeights; sets: number }[]):
   return load;
 }
 
+/**
+ * Sets per muscle as whole numbers, for "Dada · 3 set": a muscle counts one
+ * set per set of a movement that works it, main mover or helper alike, but
+ * a superset round counts it once (A1 bench + A2 pushdown, 3 rounds →
+ * Trisep 3 set, not 6). `rounds`: exercise names in the same round of the
+ * day's program; an exercise outside them is its own round.
+ */
+export function muscleSetsByRound(lines: { exercise: string; muscles: MuscleWeights; sets: number }[], rounds: string[][] = []): MuscleWeights {
+  const roundOf = new Map<string, number>();
+  rounds.forEach((names, i) => names.forEach((n) => roundOf.set(n.trim().toLowerCase(), i)));
+  const groups = new Map<string, typeof lines>();
+  for (const l of lines) {
+    const r = roundOf.get(l.exercise.trim().toLowerCase());
+    const key = r === undefined ? `x:${l.exercise.toLowerCase()}` : `r:${r}`;
+    groups.set(key, [...(groups.get(key) ?? []), l]);
+  }
+  const out: MuscleWeights = {};
+  for (const group of groups.values()) {
+    const most: MuscleWeights = {};
+    for (const l of group) {
+      if (l.sets <= 0) continue;
+      for (const k of Object.keys(l.muscles) as MuscleKey[]) most[k] = Math.max(most[k] ?? 0, l.sets);
+    }
+    for (const [k, n] of Object.entries(most) as [MuscleKey, number][]) out[k] = (out[k] ?? 0) + n;
+  }
+  return out;
+}
+
 /** 0–3 brightness per muscle, relative to the most-trained one. */
 export function muscleLevels(load: MuscleWeights): Partial<Record<MuscleKey, number>> {
   const values = Object.values(load).filter((v): v is number => (v ?? 0) > 0);

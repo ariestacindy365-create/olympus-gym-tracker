@@ -102,6 +102,13 @@ check('Kamus otot mengenali ejaan Activa', () => {
   assert.equal(musclesFor('Bench Press', 'Dada', 'Trisep, Bahu').triceps, 0.5);
   assert.ok(Object.keys(musclesFor('Thruster', 'Full Body')).length >= 4);
 });
+const { muscleSetsByRound } = await load('src/lib/muscles.ts');
+check('Set per otot bulat, superset dihitung sekali per ronde', () => {
+  const bench = { exercise: 'DB Bench Press', muscles: musclesFor('DB Bench Press', 'Dada', 'Trisep'), sets: 3 };
+  const pushdown = { exercise: 'Triceps Pushdown', muscles: musclesFor('Triceps Pushdown', 'Trisep'), sets: 3 };
+  assert.deepEqual(muscleSetsByRound([bench, pushdown], [['DB Bench Press', 'Triceps Pushdown']]), { chest: 3, triceps: 3 });
+  assert.deepEqual(muscleSetsByRound([bench, pushdown]), { chest: 3, triceps: 6 });
+});
 
 if (failures.length) {
   console.error(`Penjaga fitur: ${failures.length} fitur live hilang atau berubah:\n- ${failures.join('\n- ')}`);

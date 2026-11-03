@@ -799,6 +799,9 @@ model Workout {
   visibility     WorkoutVisibility @default(ALL)
   // e.g. "Coach Ari · 09:00", the class the member followed.
   classLabel     String?
+  // Whole sets per muscle at save time, counted per round of that day's
+  // program (a superset counts a muscle once), for the feed and sticker.
+  muscleSets     Json?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
