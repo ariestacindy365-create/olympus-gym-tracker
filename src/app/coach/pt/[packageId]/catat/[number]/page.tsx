@@ -41,6 +41,13 @@ export default async function PtSessionLogPage(props: PageProps<"/coach/pt/[pack
         </h1>
         <p className="text-sm text-muted">Klien juga bisa mencatat dari HP sendiri; catatannya menyatu di sini.</p>
       </div>
+      {session.heldOn && session.heldOn.getTime() !== today.getTime() && (
+        <p role="status" className="rounded-lg bg-amber-500/15 px-3 py-2 text-sm">
+          Sesi {session.number} sudah dilatih{" "}
+          {session.heldOn.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "short", timeZone: "UTC" })}. Set yang dicatat sekarang masuk ke
+          latihan hari ini, dan sesi berikutnya tetap jadi sesi klien hari ini.
+        </p>
+      )}
       <PtSessionLogger sessionId={session.id} members={members} rounds={rounds} saved={saved} />
     </div>
   );

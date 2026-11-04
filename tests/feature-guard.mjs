@@ -50,6 +50,8 @@ const FEATURES = [
   ['Lencana PT di daftar member', 'src/components/coach/MemberManager.tsx', 'Klien PT'],
   ['PT tidak masuk Rekap Kelas', 'src/lib/classRecap.ts', 'ptMemberIdsOn'],
   ['PT tidak dirayakan di slideshow kelas', 'src/app/api/coach/pr-events/route.ts', 'ptMemberIdsOn'],
+  ['Menu coach ringkas + Lainnya ▾', 'src/app/coach/layout.tsx', 'more={MORE}'],
+  ['Feed menghitung otot dari set terbaru per ronde', 'src/lib/feed.ts', 'programRounds'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);

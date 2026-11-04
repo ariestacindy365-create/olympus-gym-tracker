@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ComponentProps } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/ui/LogoutButton";
@@ -32,6 +32,8 @@ const ROLE_CHIP: Record<NavRole, { label: string; className: string }> = {
 
 interface NavBarProps {
   links: NavLink[];
+  /** Less-used pages: under "Lainnya ▾" on desktop so the bar fits; in the phone strip like the rest. */
+  more?: NavLink[];
   userName: string;
   role: NavRole;
   /** Off when the page supplies its own mobile navigation (member bottom bar). */
@@ -62,8 +64,66 @@ function IntentPrefetchLink(props: Omit<ComponentProps<typeof Link>, "prefetch">
   );
 }
 
-export function NavBar({ links, userName, role, mobileTabs = true, extra }: NavBarProps) {
+const NO_LINKS: NavLink[] = [];
+
+/** "Lainnya ▾": the desktop bar's overflow menu. Closes on a pick, outside click or Escape. */
+function MoreMenu({ links, activeHref }: { links: NavLink[]; activeHref: string | undefined }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+  const current = links.find((l) => l.href === activeHref);
+  return (
+    <div ref={ref} className="relative hidden shrink-0 xl:block">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        onClick={() => setOpen((o) => !o)}
+        className={`flex items-center gap-1 whitespace-nowrap rounded-lg px-3 py-3 text-sm font-medium transition ${
+          current ? "bg-white/10 text-white shadow-[inset_0_-2px_0_var(--accent)]" : "text-nav-muted hover:bg-white/5 hover:text-nav-foreground"
+        }`}
+      >
+        {current?.label ?? "Lainnya"}
+        <span aria-hidden className={`inline-block text-[10px] transition ${open ? "rotate-180" : ""}`}>▾</span>
+      </button>
+      {open && (
+        <div role="menu" className="absolute left-0 top-full z-30 mt-1 min-w-44 rounded-xl border border-white/10 bg-nav-bg p-1 shadow-raised">
+          {links.map((link) => (
+            <IntentPrefetchLink
+              key={link.href}
+              href={link.href}
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              aria-current={link.href === activeHref ? "page" : undefined}
+              className={`block rounded-lg px-3 py-2.5 text-sm font-medium ${
+                link.href === activeHref ? "bg-white/10 text-white" : "text-nav-muted hover:bg-white/5 hover:text-nav-foreground"
+              }`}
+            >
+              {link.label}
+            </IntentPrefetchLink>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function NavBar({ links: mainLinks, more = NO_LINKS, userName, role, mobileTabs = true, extra }: NavBarProps) {
   const pathname = usePathname();
+  // Every page, for the active highlight and the phone strip.
+  const links = useMemo(() => [...mainLinks, ...more], [mainLinks, more]);
   const mobileNavRef = useRef<HTMLElement>(null);
   // The mobile nav is a horizontally scrolling strip with more links than
   // fit on screen (e.g. Kasir/Riwayat/Harga/Akun sit off the right edge) —
@@ -104,10 +164,11 @@ export function NavBar({ links, userName, role, mobileTabs = true, extra }: NavB
   return (
     <header className="sticky top-0 z-20 border-b border-white/10 bg-nav-bg print:hidden">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2.5 sm:px-4">
-        <div className="flex min-w-0 items-center gap-6 overflow-hidden">
+        <div className="flex min-w-0 items-center gap-6">
           <OlympusLogo height={28} variant="light" className="shrink-0" />
-          <nav aria-label="Navigasi utama" className="no-scrollbar hidden min-w-0 items-center gap-1 overflow-x-auto xl:flex">
-            {links.map((link) => {
+          <div className="hidden min-w-0 items-center gap-1 xl:flex">
+          <nav aria-label="Navigasi utama" className="no-scrollbar flex min-w-0 items-center gap-1 overflow-x-auto">
+            {mainLinks.map((link) => {
               const active = link.href === activeHref;
               return (
                 <IntentPrefetchLink
@@ -125,6 +186,8 @@ export function NavBar({ links, userName, role, mobileTabs = true, extra }: NavB
               );
             })}
           </nav>
+          {more.length > 0 && <MoreMenu links={more} activeHref={activeHref} />}
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <span
