@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { musclesFor, muscleLoad, muscleLevels, type MuscleKey, type MuscleWeights } from "@/lib/muscles";
+import { musclesFor, muscleLevels, muscleSetsByRound, type MuscleKey, type MuscleWeights } from "@/lib/muscles";
+import { getTodayPlan } from "@/lib/todayPlan";
+import { getActivePtPackage, getPtTodayPlan } from "@/lib/pt";
+import { getMemberClassOn, getMemberTodayClass } from "@/lib/memberClass";
+import { todayDateKey } from "@/lib/workout";
 import { setVolume, type SetUnit } from "@/lib/setUnits";
 
 export interface DaySummaryLine {
@@ -20,6 +24,7 @@ export interface DaySummary {
   /** Active time: first → last set (long pauses capped) plus a rest after it, max 2h. */
   durationSec: number;
   lines: DaySummaryLine[];
+  /** Whole sets per muscle; a superset round counts a muscle once (muscleSetsByRound). */
   muscleSets: MuscleWeights;
   levels: Partial<Record<MuscleKey, number>>;
   /** Every set, for the volume story card. */
@@ -53,9 +58,10 @@ type SetRow = { weight: number; reps: number; unit: SetUnit; perSide: boolean; i
 
 /**
  * `muscles`: exercise name → muscles, when the caller already looked them up
- * for many workouts at once (the feed); otherwise fetched here.
+ * for many workouts at once (the feed); otherwise fetched here. `rounds`:
+ * the day's program rounds (exercise names), so a superset counts once.
  */
-export async function summarizeSets(sets: SetRow[], muscles?: Map<string, MuscleWeights>): Promise<DaySummary> {
+export async function summarizeSets(sets: SetRow[], muscles?: Map<string, MuscleWeights>, rounds: string[][] = []): Promise<DaySummary> {
   const byExercise = new Map<string, DaySummaryLine>();
   for (const s of sets) {
     const line = byExercise.get(s.exercise.name) ?? { exercise: s.exercise.name, sets: 0, volume: 0, pr: false, unit: s.unit, amount: 0 };
@@ -67,7 +73,7 @@ export async function summarizeSets(sets: SetRow[], muscles?: Map<string, Muscle
   }
   const lines = [...byExercise.values()];
   const muscleMap = muscles ?? (await musclesByExerciseName(lines.map((l) => l.exercise)));
-  const muscleSets = muscleLoad(lines.map((l) => ({ muscles: muscleMap.get(l.exercise) ?? {}, sets: l.sets })));
+  const muscleSets = muscleSetsByRound(lines.map((l) => ({ exercise: l.exercise, muscles: muscleMap.get(l.exercise) ?? {}, sets: l.sets })), rounds);
   // Ends at the last set, not when Simpan is tapped, and long pauses between
   // sets are capped: saving hours later, or a second session in the
   // evening, must not stretch the workout (or its calorie estimate).
@@ -86,13 +92,24 @@ export async function summarizeSets(sets: SetRow[], muscles?: Map<string, Muscle
   };
 }
 
+/** The exercise names in each round of the member's program that day (PT session or class). */
+async function programRounds(memberId: string, day: Date): Promise<string[][]> {
+  const pkg = await getActivePtPackage(memberId);
+  const isToday = day.getTime() === todayDateKey().getTime();
+  const plan = pkg
+    ? await getPtTodayPlan(pkg, memberId, day)
+    : await getTodayPlan(isToday ? await getMemberTodayClass(memberId) : await getMemberClassOn(memberId, day), isToday ? undefined : day);
+  return plan?.rounds.map((r) => r.items.map((i) => i.name)) ?? [];
+}
+
 export async function summarizeDay(memberId: string, workoutDate: Date): Promise<DaySummary> {
+  const rounds = programRounds(memberId, workoutDate).catch(() => []);
   const sets = await prisma.setEntry.findMany({
     where: { memberId, workoutDate },
     select: { weight: true, reps: true, unit: true, perSide: true, isPR: true, createdAt: true, exercise: { select: { name: true } } },
     orderBy: [{ createdAt: "asc" }],
   });
-  return summarizeSets(sets);
+  return summarizeSets(sets, undefined, await rounds);
 }
 
 export { formatDuration } from "@/lib/duration";

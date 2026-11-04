@@ -87,7 +87,8 @@ export async function getFeed(viewer: { id: string; role: Role }, take = 30, cla
         kudos: w.kudos.length,
         kudoed: w.kudos.some((k) => k.memberId === viewer.id),
         comments: w._count.comments,
-        summary: { lines: s.lines, levels: s.levels, muscleSets: s.muscleSets },
+        // Counted at save time with the day's supersets; older posts from the sets.
+        summary: { lines: s.lines, levels: s.levels, muscleSets: (w.muscleSets as DaySummary["muscleSets"] | null) ?? s.muscleSets },
       };
     })
   );

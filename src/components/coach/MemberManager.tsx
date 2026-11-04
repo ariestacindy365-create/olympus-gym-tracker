@@ -15,6 +15,8 @@ interface Member {
   email: string;
   online: boolean;
   loggedToday: boolean;
+  /** A PT client now. */
+  pt?: boolean;
 }
 
 export function MemberManager({ members: initialMembers }: { members: Member[] }) {
@@ -189,6 +191,11 @@ export function MemberManager({ members: initialMembers }: { members: Member[] }
                   <Link href={`/coach/members/${member.id}`} className="font-medium hover:text-accent">
                     {member.name}
                   </Link>
+                  {member.pt && (
+                    <span className="ml-1.5 rounded bg-accent px-1.5 py-0.5 align-middle text-[10px] font-bold text-white" title="Klien PT">
+                      PT
+                    </span>
+                  )}
                   <p className="text-xs text-muted">{member.email}</p>
                 </>
               )}

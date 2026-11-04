@@ -53,6 +53,8 @@ export async function DELETE(
     prisma.personalRecord.deleteMany({ where: { memberId } }),
     prisma.setEntry.deleteMany({ where: { memberId } }),
     prisma.user.delete({ where: { id: memberId } }),
+    // A PT package left with nobody in it ends, so no empty package stays behind.
+    prisma.ptPackage.updateMany({ where: { endedAt: null, members: { none: { leftAt: null } } }, data: { endedAt: new Date() } }),
   ]);
 
   return NextResponse.json({ ok: true });

@@ -46,17 +46,20 @@ export const MUSCLE_LABEL: Record<MuscleKey, string> = {
 export type MuscleWeights = Partial<Record<MuscleKey, number>>;
 
 // Free-text muscle names (Indonesian or English) → keys, for the coach's
-// primaryMuscle / secondaryMuscle fields.
+// primaryMuscle / secondaryMuscle fields, including the Activa movement
+// dictionary's spellings ("Bisep", "Trisep", "Full Body").
 const NAME_TO_KEYS: [RegExp, MuscleKey[]][] = [
+  [/full\s*body|seluruh tubuh/i, ["quads", "glutes", "chest", "upback", "abs"]],
   [/dada|chest|pec/i, ["chest"]],
+  [/rotator/i, ["rdelts"]],
   [/bahu belakang|rear delt|posterior delt/i, ["rdelts"]],
   [/bahu|shoulder|delt/i, ["delts"]],
   [/trap/i, ["traps"]],
   [/punggung bawah|lower back|erector/i, ["lowback"]],
   [/lat|sayap/i, ["lats"]],
-  [/punggung|back|rhomboid/i, ["upback", "lats"]],
-  [/bicep/i, ["biceps"]],
-  [/tricep/i, ["triceps"]],
+  [/punggung|back|rhomboid|thoracic|toraks/i, ["upback", "lats"]],
+  [/bicep|bisep|brachialis/i, ["biceps"]],
+  [/tricep|trisep/i, ["triceps"]],
   [/lengan bawah|forearm|grip/i, ["forearms"]],
   [/oblique|samping perut/i, ["obliques"]],
   [/perut|abs|core|abdom/i, ["abs"]],
@@ -64,7 +67,7 @@ const NAME_TO_KEYS: [RegExp, MuscleKey[]][] = [
   [/paha belakang|hamstring/i, ["hams"]],
   [/paha dalam|adductor/i, ["adductors"]],
   [/paha|quad|kaki|leg/i, ["quads"]],
-  [/betis|calf|calves/i, ["calves"]],
+  [/betis|calf|calves|ankle|pergelangan kaki/i, ["calves"]],
 ];
 
 function keysForMuscleName(name: string | null | undefined): MuscleKey[] {
@@ -128,6 +131,34 @@ export function muscleLoad(entries: { muscles: MuscleWeights; sets: number }[]):
     for (const [k, w] of Object.entries(muscles) as [MuscleKey, number][]) load[k] = (load[k] ?? 0) + w * sets;
   }
   return load;
+}
+
+/**
+ * Sets per muscle as whole numbers, for "Dada · 3 set": a muscle counts one
+ * set per set of a movement that works it, main mover or helper alike, but
+ * a superset round counts it once (A1 bench + A2 pushdown, 3 rounds →
+ * Trisep 3 set, not 6). `rounds`: exercise names in the same round of the
+ * day's program; an exercise outside them is its own round.
+ */
+export function muscleSetsByRound(lines: { exercise: string; muscles: MuscleWeights; sets: number }[], rounds: string[][] = []): MuscleWeights {
+  const roundOf = new Map<string, number>();
+  rounds.forEach((names, i) => names.forEach((n) => roundOf.set(n.trim().toLowerCase(), i)));
+  const groups = new Map<string, typeof lines>();
+  for (const l of lines) {
+    const r = roundOf.get(l.exercise.trim().toLowerCase());
+    const key = r === undefined ? `x:${l.exercise.toLowerCase()}` : `r:${r}`;
+    groups.set(key, [...(groups.get(key) ?? []), l]);
+  }
+  const out: MuscleWeights = {};
+  for (const group of groups.values()) {
+    const most: MuscleWeights = {};
+    for (const l of group) {
+      if (l.sets <= 0) continue;
+      for (const k of Object.keys(l.muscles) as MuscleKey[]) most[k] = Math.max(most[k] ?? 0, l.sets);
+    }
+    for (const [k, n] of Object.entries(most) as [MuscleKey, number][]) out[k] = (out[k] ?? 0) + n;
+  }
+  return out;
 }
 
 /** 0–3 brightness per muscle, relative to the most-trained one. */

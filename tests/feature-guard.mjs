@@ -41,6 +41,15 @@ const FEATURES = [
   ['+ Tambah minggu (sampai 12) per coach', 'src/components/coach/ProgramEditor.tsx', 'Tambah minggu'],
   ['Urutan minggu per coach', 'src/lib/programHistory.ts', 'coachProgramCycle'],
   ['Pakai Minggu N minggu ini, per coach', 'src/app/api/coach/programs/override/route.ts', 'coachWeekOverride'],
+  ['Menu PT di coach', 'src/app/coach/layout.tsx', '/coach/pt'],
+  ['Cari member di halaman PT', 'src/components/coach/PtManager.tsx', 'Ketik nama member'],
+  ['Tombol Lepas dari PT', 'src/components/coach/PtPackageView.tsx', 'Lepas dari PT'],
+  ['Catat sesi berdua (kolom per orang)', 'src/components/coach/PtSessionLogger.tsx', 'ptSessionId'],
+  ['Latihan klien PT = sesi PT', 'src/app/member/dashboard/page.tsx', 'getPtTodayPlan'],
+  ['Kartu Klien PT kamu', 'src/app/member/dashboard/page.tsx', 'PtClientCard'],
+  ['Lencana PT di daftar member', 'src/components/coach/MemberManager.tsx', 'Klien PT'],
+  ['PT tidak masuk Rekap Kelas', 'src/lib/classRecap.ts', 'ptMemberIdsOn'],
+  ['PT tidak dirayakan di slideshow kelas', 'src/app/api/coach/pr-events/route.ts', 'ptMemberIdsOn'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
@@ -75,6 +84,30 @@ check('Hari program SENIN–SABTU, + Tambah hari lanjut', () => {
   assert.equal(nextProgramDay([]), 'SENIN');
   assert.equal(nextProgramDay(['SENIN', 'RABU']), 'KAMIS');
   assert.equal(nextProgramDay(['SABTU']), 'SENIN');
+});
+
+const { sessionFor } = await load('src/lib/ptSession.ts');
+check('Sesi PT tidak loncat', () => {
+  const day = (d) => new Date(Date.UTC(2026, 10, d));
+  const s = (number, heldOn, slots = 1) => ({ number, heldOn, slots: Array(slots).fill(0) });
+  assert.equal(sessionFor([s(1, day(2)), s(2, null)], day(3)).number, 2);
+  assert.equal(sessionFor([s(1, day(2)), s(2, day(3)), s(3, null)], day(3)).number, 2);
+  assert.equal(sessionFor([s(1, day(2))], day(3)), null);
+});
+
+const { musclesFor } = await load('src/lib/muscles.ts');
+check('Kamus otot mengenali ejaan Activa', () => {
+  assert.equal(musclesFor('DB Curl', 'Bisep').biceps, 1);
+  assert.equal(musclesFor('Dips', 'Trisep').triceps, 1);
+  assert.equal(musclesFor('Bench Press', 'Dada', 'Trisep, Bahu').triceps, 0.5);
+  assert.ok(Object.keys(musclesFor('Thruster', 'Full Body')).length >= 4);
+});
+const { muscleSetsByRound } = await load('src/lib/muscles.ts');
+check('Set per otot bulat, superset dihitung sekali per ronde', () => {
+  const bench = { exercise: 'DB Bench Press', muscles: musclesFor('DB Bench Press', 'Dada', 'Trisep'), sets: 3 };
+  const pushdown = { exercise: 'Triceps Pushdown', muscles: musclesFor('Triceps Pushdown', 'Trisep'), sets: 3 };
+  assert.deepEqual(muscleSetsByRound([bench, pushdown], [['DB Bench Press', 'Triceps Pushdown']]), { chest: 3, triceps: 3 });
+  assert.deepEqual(muscleSetsByRound([bench, pushdown]), { chest: 3, triceps: 6 });
 });
 
 if (failures.length) {

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { todayDateKey } from "@/lib/workout";
 import { isBarbellExercise, type PREvent } from "@/lib/barbell";
 import { Role } from "@/generated/prisma/client";
+import { ptMemberIdsOn } from "@/lib/pt";
 
 // Barbell PRs logged today since `since` (ISO), for the celebration on the
 // coach's slideshow. Polled every few seconds while the slideshow is open,
@@ -21,6 +22,7 @@ export async function GET(request: NextRequest) {
   const sinceRaw = request.nextUrl.searchParams.get("since");
   const since = sinceRaw && !Number.isNaN(Date.parse(sinceRaw)) ? new Date(sinceRaw) : new Date(now.getTime() - LOOKBACK_MS);
 
+  const ptToday = await ptMemberIdsOn(todayDateKey());
   const sets = await prisma.setEntry.findMany({
     where: {
       workoutDate: todayDateKey(),
@@ -53,6 +55,8 @@ export async function GET(request: NextRequest) {
 
   const events: PREvent[] = await Promise.all(
     sets
+      // PT sessions aren't celebrated on the class TV.
+      .filter((s) => !ptToday.has(s.memberId))
       .filter((s) => isBarbellExercise(s.exercise.name, equipment.get(s.exercise.name.toLowerCase())))
       .map(async (s) => {
         // Heaviest earlier lift on this movement (any earlier day, or earlier today).
