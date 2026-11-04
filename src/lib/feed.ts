@@ -65,7 +65,9 @@ export async function getFeed(viewer: { id: string; role: Role }, take = 30, cla
 
   return Promise.all(
     workouts.map(async (w) => {
-      const s = await summarizeSets(setsByDay.get(dayKey(w.memberId, w.workoutDate)) ?? [], muscles);
+      // The day's supersets as saved with the post; the counts come from today's sets.
+      const rounds = Array.isArray(w.programRounds) ? (w.programRounds as string[][]) : [];
+      const s = await summarizeSets(setsByDay.get(dayKey(w.memberId, w.workoutDate)) ?? [], muscles, rounds);
       // Saved after that Jakarta day ended (UTC midnight + 17 h): filled in
       // later, so the duration the member entered stands.
       const backfilled = w.updatedAt.getTime() >= w.workoutDate.getTime() + 17 * 3600_000;
@@ -87,8 +89,7 @@ export async function getFeed(viewer: { id: string; role: Role }, take = 30, cla
         kudos: w.kudos.length,
         kudoed: w.kudos.some((k) => k.memberId === viewer.id),
         comments: w._count.comments,
-        // Counted at save time with the day's supersets; older posts from the sets.
-        summary: { lines: s.lines, levels: s.levels, muscleSets: (w.muscleSets as DaySummary["muscleSets"] | null) ?? s.muscleSets },
+        summary: { lines: s.lines, levels: s.levels, muscleSets: s.muscleSets },
       };
     })
   );

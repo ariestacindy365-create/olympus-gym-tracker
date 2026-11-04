@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     totalVolume: summary.totalVolume,
     totalSets: summary.totalSets,
     prCount: summary.prCount,
-    muscleSets: summary.muscleSets,
+    programRounds: summary.rounds,
     visibility,
   };
   const workout = await prisma.workout.upsert({

@@ -799,9 +799,13 @@ model Workout {
   visibility     WorkoutVisibility @default(ALL)
   // e.g. "Coach Ari · 09:00", the class the member followed.
   classLabel     String?
-  // Whole sets per muscle at save time, counted per round of that day's
-  // program (a superset counts a muscle once), for the feed and sticker.
+  // No longer written (counts went stale when sets changed after saving);
+  // kept so the schema only ever grows. See programRounds.
   muscleSets     Json?
+  // The rounds of that day's program at save time, as exercise names
+  // ([["DB Bench Press","Triceps Pushdown"], …]), so the feed counts a
+  // superset's muscles once from the current sets.
+  programRounds  Json?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 

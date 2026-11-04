@@ -5,8 +5,12 @@ const LINKS = [
   { href: "/coach/dashboard", label: "Dashboard" },
   { href: "/coach/members", label: "Members" },
   { href: "/coach/pt", label: "PT" },
-  { href: "/coach/feed", label: "Feed" },
   { href: "/coach/programs", label: "Program" },
+  { href: "/coach/feed", label: "Feed" },
+];
+
+// Under "Lainnya ▾" on desktop, so the bar fits beside the coach's name.
+const MORE = [
   { href: "/coach/latihan", label: "Latihan Saya" },
   { href: "/coach/pengumuman", label: "Info" },
   { href: "/coach/timer", label: "Timer" },
@@ -18,7 +22,7 @@ export default async function CoachLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex flex-1 flex-col">
-      <NavBar links={LINKS} userName={user.name} role={user.role} />
+      <NavBar links={LINKS} more={MORE} userName={user.name} role={user.role} />
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">{children}</main>
     </div>
   );

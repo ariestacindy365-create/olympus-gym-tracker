@@ -26,6 +26,8 @@ export interface DaySummary {
   lines: DaySummaryLine[];
   /** Whole sets per muscle; a superset round counts a muscle once (muscleSetsByRound). */
   muscleSets: MuscleWeights;
+  /** The program rounds (exercise names) the muscles were counted with. */
+  rounds: string[][];
   levels: Partial<Record<MuscleKey, number>>;
   /** Every set, for the volume story card. */
   sets: { weight: number; reps: number; unit: SetUnit; perSide: boolean }[];
@@ -87,6 +89,7 @@ export async function summarizeSets(sets: SetRow[], muscles?: Map<string, Muscle
     durationSec: Math.min(MAX_DURATION_SEC, Math.max(60, Math.round(activeSec))),
     lines,
     muscleSets,
+    rounds,
     levels: muscleLevels(muscleSets),
     sets: sets.map((s) => ({ weight: s.weight, reps: s.reps, unit: s.unit, perSide: s.perSide })),
   };
