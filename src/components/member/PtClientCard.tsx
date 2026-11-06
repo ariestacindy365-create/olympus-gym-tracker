@@ -6,11 +6,14 @@ export function PtClientCard({
   partners,
   sessionsDone,
   today,
+  schedule,
 }: {
   coachName: string;
   partners: string[];
   sessionsDone: number;
   today: { number: number; title: string | null } | null;
+  /** Upcoming sessions the coach scheduled, soonest first. */
+  schedule: { number: number; title: string | null; today: boolean; label: string }[];
 }) {
   return (
     <Card className="flex flex-col gap-2">
@@ -38,6 +41,22 @@ export function PtClientCard({
           "Coach belum menulis sesi berikutnya. Kamu tetap bisa mencatat latihan sendiri di bawah."
         )}
       </p>
+      {schedule.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">📅 Jadwal dari coach</p>
+          <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+            {schedule.map((s) => (
+              <li key={s.number} className="flex items-baseline justify-between gap-3 px-3 py-2 text-sm">
+                <span>
+                  <span className="font-semibold">Sesi {s.number}</span>
+                  {s.title && <span className="text-muted"> · {s.title}</span>}
+                </span>
+                <span className={`shrink-0 text-right ${s.today ? "font-semibold text-accent" : "text-muted"}`}>{s.today ? `Hari ini${s.label.includes("·") ? ` · ${s.label.split("· ")[1]}` : ""}` : s.label}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </Card>
   );
 }

@@ -13,3 +13,34 @@ export function sessionFor<S extends { heldOn: Date | null; slots: unknown[] }>(
     null
   );
 }
+
+/** Sessions not trained yet that the coach put on today or a later day, soonest first. */
+export function upcomingSchedule<S extends { number: number; title: string | null; heldOn: Date | null; scheduledOn: Date | null; scheduledTime: string | null }>(
+  sessions: S[],
+  today: Date,
+  max = 4
+) {
+  return sessions
+    .filter((s) => !s.heldOn && s.scheduledOn && s.scheduledOn.getTime() >= today.getTime())
+    .sort((a, b) => a.scheduledOn!.getTime() - b.scheduledOn!.getTime() || (a.scheduledTime ?? "").localeCompare(b.scheduledTime ?? ""))
+    .slice(0, max)
+    .map((s) => ({
+      number: s.number,
+      title: s.title,
+      today: s.scheduledOn!.getTime() === today.getTime(),
+      label: scheduleLabel(s.scheduledOn!.toISOString().slice(0, 10), s.scheduledTime),
+    }));
+}
+
+/** Olympus is closed on Sunday, so no session is scheduled then (day: YYYY-MM-DD). */
+export function isClosedDay(day: string): boolean {
+  const [y, m, d] = day.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay() === 0;
+}
+
+/** "Senin, 9 Nov · 07:00" for a session's planned day (YYYY-MM-DD) and time. */
+export function scheduleLabel(day: string, time?: string | null): string {
+  const [y, m, d] = day.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "short", timeZone: "UTC" });
+  return time ? `${date} · ${time}` : date;
+}

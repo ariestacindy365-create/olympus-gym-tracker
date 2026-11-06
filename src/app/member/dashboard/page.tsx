@@ -24,6 +24,7 @@ import { ChallengeCard } from "@/components/member/ChallengeCard";
 import { PushPrompt } from "@/components/member/PushPrompt";
 import { TodayWorkoutPlan, type LoggedSet } from "@/components/member/TodayWorkoutPlan";
 import { getActivePtPackage, getPtTodayPlan, sessionFor } from "@/lib/pt";
+import { upcomingSchedule } from "@/lib/ptSession";
 import { PtClientCard } from "@/components/member/PtClientCard";
 import type { SetUnit } from "@/lib/setUnits";
 
@@ -239,6 +240,7 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
                 const s = sessionFor(ptPackage.sessions, todayDateKey());
                 return s ? { number: s.number, title: s.title } : null;
               })()}
+              schedule={upcomingSchedule(ptPackage.sessions, todayDateKey())}
             />
           )}
         </>

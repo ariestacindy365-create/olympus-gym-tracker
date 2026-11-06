@@ -52,6 +52,7 @@ const FEATURES = [
   ['PT tidak dirayakan di slideshow kelas', 'src/app/api/coach/pr-events/route.ts', 'ptMemberIdsOn'],
   ['Menu coach ringkas + Lainnya ▾', 'src/app/coach/layout.tsx', 'more={MORE}'],
   ['Feed menghitung otot dari set terbaru per ronde', 'src/lib/feed.ts', 'programRounds'],
+  ['Jadwal sesi PT dari coach, terlihat oleh klien', 'src/components/member/PtClientCard.tsx', 'Jadwal dari coach'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
@@ -110,6 +111,13 @@ check('Set per otot bulat, superset dihitung sekali per ronde', () => {
   const pushdown = { exercise: 'Triceps Pushdown', muscles: musclesFor('Triceps Pushdown', 'Trisep'), sets: 3 };
   assert.deepEqual(muscleSetsByRound([bench, pushdown], [['DB Bench Press', 'Triceps Pushdown']]), { chest: 3, triceps: 3 });
   assert.deepEqual(muscleSetsByRound([bench, pushdown]), { chest: 3, triceps: 6 });
+});
+
+const { isClosedDay, scheduleLabel } = await load('src/lib/ptSession.ts');
+check('Jadwal PT: tidak bisa hari Minggu, label tanggal', () => {
+  assert.equal(isClosedDay('2026-11-08'), true);
+  assert.equal(isClosedDay('2026-11-09'), false);
+  assert.equal(scheduleLabel('2026-11-09', '07:00'), 'Senin, 9 Nov · 07:00');
 });
 
 if (failures.length) {
