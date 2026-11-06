@@ -235,7 +235,8 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
             <PtClientCard
               coachName={ptPackage.coach.name}
               partners={ptPackage.members.filter((m) => m.memberId !== user.id).map((m) => m.member.name)}
-              sessionsDone={ptPackage.sessions.filter((x) => x.heldOn).length}
+              // Today's session is still going, not done yet.
+              sessionsDone={ptPackage.sessions.filter((x) => x.heldOn && x.heldOn.getTime() < todayDateKey().getTime()).length}
               today={(() => {
                 const s = sessionFor(ptPackage.sessions, todayDateKey());
                 // Not trained yet and planned for a later day: say when, instead of "hari ini".
