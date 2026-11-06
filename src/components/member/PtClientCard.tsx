@@ -11,7 +11,8 @@ export function PtClientCard({
   coachName: string;
   partners: string[];
   sessionsDone: number;
-  today: { number: number; title: string | null } | null;
+  /** The session up next; `laterOn` when the coach scheduled it for a later day. */
+  today: { number: number; title: string | null; laterOn?: string | null } | null;
   /** Upcoming sessions the coach scheduled, soonest first. */
   schedule: { number: number; title: string | null; today: boolean; label: string }[];
 }) {
@@ -33,10 +34,18 @@ export function PtClientCard({
       </p>
       <p className="rounded-lg bg-surface-2 px-3 py-2 text-sm">
         {today ? (
-          <>
-            Hari ini: <span className="font-semibold">Sesi {today.number}</span>
-            {today.title && ` · ${today.title}`}. Catat setnya di bawah.
-          </>
+          today.laterOn ? (
+            <>
+              Sesi berikutnya: <span className="font-semibold">Sesi {today.number}</span>
+              {today.title && ` · ${today.title}`}, dijadwalkan <span className="font-semibold">{today.laterOn}</span>. Kalau latihannya hari ini,
+              catat setnya di bawah.
+            </>
+          ) : (
+            <>
+              Hari ini: <span className="font-semibold">Sesi {today.number}</span>
+              {today.title && ` · ${today.title}`}. Catat setnya di bawah.
+            </>
+          )
         ) : (
           "Coach belum menulis sesi berikutnya. Kamu tetap bisa mencatat latihan sendiri di bawah."
         )}

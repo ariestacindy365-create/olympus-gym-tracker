@@ -24,7 +24,7 @@ import { ChallengeCard } from "@/components/member/ChallengeCard";
 import { PushPrompt } from "@/components/member/PushPrompt";
 import { TodayWorkoutPlan, type LoggedSet } from "@/components/member/TodayWorkoutPlan";
 import { getActivePtPackage, getPtTodayPlan, sessionFor } from "@/lib/pt";
-import { upcomingSchedule } from "@/lib/ptSession";
+import { scheduleLabel, upcomingSchedule } from "@/lib/ptSession";
 import { PtClientCard } from "@/components/member/PtClientCard";
 import type { SetUnit } from "@/lib/setUnits";
 
@@ -235,10 +235,15 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
             <PtClientCard
               coachName={ptPackage.coach.name}
               partners={ptPackage.members.filter((m) => m.memberId !== user.id).map((m) => m.member.name)}
-              sessionsDone={ptPackage.sessions.filter((x) => x.heldOn).length}
+              // Today's session is still going, not done yet.
+              sessionsDone={ptPackage.sessions.filter((x) => x.heldOn && x.heldOn.getTime() < todayDateKey().getTime()).length}
               today={(() => {
                 const s = sessionFor(ptPackage.sessions, todayDateKey());
-                return s ? { number: s.number, title: s.title } : null;
+                // Not trained yet and planned for a later day: say when, instead of "hari ini".
+                const later = s && !s.heldOn && s.scheduledOn && s.scheduledOn.getTime() > todayDateKey().getTime();
+                return s
+                  ? { number: s.number, title: s.title, laterOn: later ? scheduleLabel(s.scheduledOn!.toISOString().slice(0, 10), s.scheduledTime) : null }
+                  : null;
               })()}
               schedule={upcomingSchedule(ptPackage.sessions, todayDateKey())}
             />

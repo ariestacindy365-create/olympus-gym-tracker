@@ -171,6 +171,8 @@ export function PtPackageView({
   }
 
   const nextUp = sessions.find((s) => !s.heldOn && s.slots.length > 0)?.number ?? null;
+  // Today in Jakarta as YYYY-MM-DD, to flag a scheduled day that has passed.
+  const todayKey = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
 
   return (
     <div className="flex flex-col gap-4">
@@ -235,7 +237,10 @@ export function PtPackageView({
                     {s.heldOn ? `✓ Dilatih ${formatDay(s.heldOn)}` : s.number === nextUp ? "Sesi berikutnya" : "Belum dilatih"}
                   </p>
                   {s.scheduledOn && !s.heldOn && (
-                    <p className="text-xs font-semibold text-foreground/80">📅 Jadwal {scheduleLabel(s.scheduledOn, s.scheduledTime)}</p>
+                    <p className={`text-xs font-semibold ${s.scheduledOn < todayKey ? "text-danger" : "text-foreground/80"}`}>
+                      📅 Jadwal {scheduleLabel(s.scheduledOn, s.scheduledTime)}
+                      {s.scheduledOn < todayKey && " · terlewat, belum dilatih"}
+                    </p>
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">
