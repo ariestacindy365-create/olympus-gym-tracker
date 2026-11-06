@@ -1,5 +1,6 @@
 import { assertProgramVersion, nextProgramDate } from "@/lib/programVersion";
 import type { Prisma } from "@/generated/prisma/client";
+import { lockForWrite } from "@/lib/writeLock";
 
 export interface ProgramWeekInput {
   dayLabel: string;
@@ -45,7 +46,7 @@ export async function writeProgramWeek(
   expectedVersion?: string | null
 ) {
   // Every writer, including snapshot restore, takes the same transaction lock.
-  await tx.$executeRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtext(${`${coachId}:week:${weekNumber}`}))`;
+  await lockForWrite(tx);
   const existing = await tx.trainingProgram.findFirst({ where: { weekNumber, coachId } });
   if (expectedVersion !== undefined) assertProgramVersion(existing?.updatedAt ?? null, expectedVersion);
   // Each coach saves only their own Minggu N.

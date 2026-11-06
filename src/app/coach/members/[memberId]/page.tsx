@@ -13,6 +13,7 @@ import { toBodyMetricEntry } from "@/lib/bodyMetricFields";
 import { CoachNotesPanel } from "@/components/coach/CoachNotesPanel";
 import { getCoachNotes } from "@/lib/coachNotes";
 import { formatRecord } from "@/lib/setUnits";
+import { idsByNameIgnoringCase } from "@/lib/sqlite";
 
 const NOTE_CONTEXT_LIMIT = 12;
 const shortDate = (d: Date) => d.toLocaleDateString("id-ID", { day: "numeric", month: "short", timeZone: "UTC" });
@@ -58,7 +59,7 @@ export default async function CoachMemberDetailPage({
   for (const m of bodyMetrics.slice(-3).reverse()) noteContexts.push(`Body metric · ${shortDate(m.recordedDate)}`);
 
   const movementEquipment = new Map((await prisma.movement.findMany({
-    where: { name: { in: exercises.map((exercise) => exercise.name), mode: "insensitive" } },
+    where: { id: { in: await idsByNameIgnoringCase("Movement", exercises.map((exercise) => exercise.name)) } },
     select: { name: true, equipment: true },
   })).map((movement) => [movement.name.toLowerCase(), movement.equipment]));
 

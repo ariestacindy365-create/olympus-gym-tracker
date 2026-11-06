@@ -1,12 +1,15 @@
 import "dotenv/config";
 import { PrismaClient } from "../src/generated/prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaLibSql } from "@prisma/adapter-libsql";
 
 // One-time migration of the hardcoded price list (from
 // SalesScript_Olympus_2026_v1.pdf) into the new Package table now that
 // pricing is DB-managed at /leads/packages. Safe to re-run — skips if any
 // Package rows already exist.
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaLibSql({
+  url: process.env.TURSO_DATABASE_URL ?? "file:./dev.db",
+  authToken: process.env.TURSO_AUTH_TOKEN,
+});
 const prisma = new PrismaClient({ adapter });
 
 const PRESETS = [

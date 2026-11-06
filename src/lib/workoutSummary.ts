@@ -5,6 +5,7 @@ import { getActivePtPackage, getPtTodayPlan } from "@/lib/pt";
 import { getMemberClassOn, getMemberTodayClass } from "@/lib/memberClass";
 import { todayDateKey } from "@/lib/workout";
 import { setVolume, type SetUnit } from "@/lib/setUnits";
+import { idsByNameIgnoringCase } from "@/lib/sqlite";
 
 export interface DaySummaryLine {
   exercise: string;
@@ -44,7 +45,7 @@ const MAX_GAP_SEC = 15 * 60;
 /** Muscles for exercise names, using the coach's Movement data when a movement has the same name. */
 export async function musclesByExerciseName(names: string[]): Promise<Map<string, MuscleWeights>> {
   const movements = await prisma.movement.findMany({
-    where: { name: { in: names, mode: "insensitive" } },
+    where: { id: { in: await idsByNameIgnoringCase("Movement", names) } },
     select: { name: true, primaryMuscle: true, secondaryMuscle: true },
   });
   const byName = new Map(movements.map((m) => [m.name.toLowerCase(), m]));

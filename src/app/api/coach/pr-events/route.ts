@@ -6,6 +6,7 @@ import { todayDateKey } from "@/lib/workout";
 import { isBarbellExercise, type PREvent } from "@/lib/barbell";
 import { Role } from "@/generated/prisma/client";
 import { ptMemberIdsOn } from "@/lib/pt";
+import { idsByNameIgnoringCase } from "@/lib/sqlite";
 
 // Barbell PRs logged today since `since` (ISO), for the celebration on the
 // coach's slideshow. Polled every few seconds while the slideshow is open,
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest) {
   // The library's equipment column tells "Back Squat" (Barbell) from a goblet one.
   const names = [...new Set(sets.map((s) => s.exercise.name))];
   const movements = names.length
-    ? await prisma.movement.findMany({ where: { name: { in: names, mode: "insensitive" } }, select: { name: true, equipment: true } })
+    ? await prisma.movement.findMany({ where: { id: { in: await idsByNameIgnoringCase("Movement", names) } }, select: { name: true, equipment: true } })
     : [];
   const equipment = new Map(movements.map((m) => [m.name.toLowerCase(), m.equipment]));
 

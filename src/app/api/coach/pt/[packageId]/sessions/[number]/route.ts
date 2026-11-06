@@ -6,6 +6,7 @@ import { ownPtPackage } from "@/lib/ptAccess";
 import { dateKeyFromString, todayDateKey } from "@/lib/workout";
 import { recomputeExerciseRecords } from "@/lib/recomputeRecords";
 import { isClosedDay } from "@/lib/ptSession";
+import { idsByNameIgnoringCase } from "@/lib/sqlite";
 
 async function sessionNumber(ctx: RouteContext<"/api/coach/pt/[packageId]/sessions/[number]">) {
   const { packageId, number } = await ctx.params;
@@ -106,8 +107,8 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/coach/
   const from = session.heldOn;
   const memberIds = session.package.members.map((m) => m.memberId);
   const names = [...new Set(session.slots.map((s) => s.movement.name.trim()))];
-  const exercises = await prisma.exercise.findMany({ where: { name: { in: names, mode: "insensitive" } }, select: { id: true } });
-  const sessionSets = { memberId: { in: memberIds }, exerciseId: { in: exercises.map((e) => e.id) }, workoutDate: from };
+  const exerciseIds = await idsByNameIgnoringCase("Exercise", names);
+  const sessionSets = { memberId: { in: memberIds }, exerciseId: { in: exerciseIds }, workoutDate: from };
 
   if (raw === null) {
     if ((await prisma.setEntry.count({ where: sessionSets })) > 0) {

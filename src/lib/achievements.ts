@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { setVolume } from "@/lib/setUnits";
 import { CHALLENGE, challengeMonths } from "@/lib/challenge";
+import { createEachSkippingDuplicates } from "@/lib/sqlite";
 
 export interface Achievement {
   code: string;
@@ -388,10 +389,9 @@ export async function syncMemberAchievements(
   );
   if (newlyEarned.length === 0) return [];
 
-  await prisma.achievementUnlock.createMany({
-    data: newlyEarned.map((a) => ({ memberId, achievementCode: a.code, seenAt: markSeen ? new Date() : null })),
-    skipDuplicates: true,
-  });
+  await createEachSkippingDuplicates(newlyEarned, (a) =>
+    prisma.achievementUnlock.create({ data: { memberId, achievementCode: a.code, seenAt: markSeen ? new Date() : null } })
+  );
 
   return newlyEarned;
 }

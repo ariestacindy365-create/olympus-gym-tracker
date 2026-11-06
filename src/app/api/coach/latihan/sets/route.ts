@@ -8,6 +8,7 @@ import { todayDateKey } from "@/lib/workout";
 import { resolvePersonalExercise } from "@/lib/personalTrainingExercises";
 import { setEntrySchema } from "@/lib/validation";
 import { Role } from "@/generated/prisma/client";
+import { lockForWrite } from "@/lib/writeLock";
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
 
   const setEntry = await prisma.$transaction(async (tx) => {
     // Serialize saves for this coach so two tabs cannot overwrite one set.
-    await tx.$executeRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtext(${user.id}))`;
+    await lockForWrite(tx);
     const agg = await tx.setEntry.aggregate({
       where: { memberId: user.id, exerciseId, workoutDate },
       _max: { setNumber: true },
