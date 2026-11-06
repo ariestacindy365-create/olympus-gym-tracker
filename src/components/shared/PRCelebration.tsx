@@ -384,7 +384,7 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
   const one = current?.kind === "one" ? current.e : null;
   const group = current?.kind === "group" ? current.events : null;
   // Long names get smaller so the sign keeps to its size.
-  const nameSize = (name: string, base: number, fits: number) => `${(base * Math.min(1, fits / Math.max(1, name.length))).toFixed(2)}cqw`;
+  const nameSize = (name: string, base: number, fits: number) => `calc(var(--u) * ${(base * Math.min(1, fits / Math.max(1, name.length))).toFixed(2)})`;
 
   const prev = one && one.delta != null && one.delta > 0 ? `+${fmtKg(one.delta)} kg dari rekor sebelumnya 🔥` : one ? "Rekor pertama kali! 🔥" : null;
 
@@ -398,6 +398,9 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
       className={`absolute inset-0 overflow-hidden ${current ? "pointer-events-auto z-[80] cursor-pointer" : "pointer-events-none"}`}
       style={{
         containerType: "size",
+        // Size unit: the width on TVs and laptops, a bit more on an upright
+        // phone so the board stays readable next to the lifter.
+        ["--u" as string]: "max(1cqw, min(1.6cqw, 0.9cqh))",
         visibility: current ? "visible" : "hidden",
         background: "radial-gradient(ellipse at 50% 42%, #2f6fe0 0%, #1d4fb8 38%, #102f7a 75%, #0a1d4f 100%)",
       }}
@@ -406,11 +409,11 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
       {clock && (
-        <div className="absolute text-right font-display font-bold leading-none text-white" style={{ top: "3cqh", right: "2.5cqw" }}>
-          <div className="uppercase text-white/70" style={{ fontSize: "1.1cqw", letterSpacing: ".12em" }}>
+        <div className="absolute text-right font-display font-bold leading-none text-white" style={{ top: "3cqh", right: "calc(var(--u) * 2.5)" }}>
+          <div className="uppercase text-white/70" style={{ fontSize: "calc(var(--u) * 1.1)", letterSpacing: ".12em" }}>
             Timer tetap jalan
           </div>
-          <div className="tabular-nums" style={{ fontSize: "4cqw", marginTop: ".4cqw" }}>
+          <div className="tabular-nums" style={{ fontSize: "calc(var(--u) * 4)", marginTop: "calc(var(--u) * .4)" }}>
             {clock}
           </div>
         </div>
@@ -421,46 +424,46 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
         <div
           ref={signRef}
           className="relative z-10 overflow-hidden whitespace-nowrap bg-white text-center text-slate-900"
-          style={{ minWidth: "30cqw", maxWidth: "60cqw", borderRadius: "1cqw", border: "0.35cqw solid #0f172a", padding: "1.4cqw 2.6cqw 1.5cqw", boxShadow: "0 0.8cqw 0 rgb(0 0 0 / .35)", transformOrigin: "50% 100%" }}
+          style={{ minWidth: "calc(var(--u) * 30)", maxWidth: "calc(var(--u) * 60)", borderRadius: "calc(var(--u) * 1)", border: "calc(var(--u) * 0.35) solid #0f172a", padding: "calc(var(--u) * 1.4) calc(var(--u) * 2.6) calc(var(--u) * 1.5)", boxShadow: "0 calc(var(--u) * 0.8) 0 rgb(0 0 0 / .35)", transformOrigin: "50% 100%" }}
         >
-          <div className="font-display font-bold uppercase leading-none text-blue-700" style={{ fontSize: "3cqw" }}>
+          <div className="font-display font-bold uppercase leading-none text-blue-700" style={{ fontSize: "calc(var(--u) * 3)" }}>
             🏆 Rekor baru!{group && <span className="text-slate-900"> · {group.length} orang</span>}
           </div>
           {one && (
             <>
-              <div className="font-display font-bold uppercase leading-none" style={{ fontSize: nameSize(one.memberName, 7, 9), marginTop: "1cqw" }}>
+              <div className="font-display font-bold uppercase leading-none" style={{ fontSize: nameSize(one.memberName, 7, 9), marginTop: "calc(var(--u) * 1)" }}>
                 {one.memberName}
               </div>
-              <div className="truncate font-bold" style={{ fontSize: "2.1cqw", marginTop: "1cqw" }}>
+              <div className="truncate font-bold" style={{ fontSize: "calc(var(--u) * 2.1)", marginTop: "calc(var(--u) * 1)" }}>
                 {`${one.exercise} · ${fmtKg(one.weight)} kg × ${one.reps}`}
               </div>
-              <div className="font-semibold text-slate-600" style={{ fontSize: "1.5cqw", marginTop: ".4cqw" }}>
+              <div className="font-semibold text-slate-600" style={{ fontSize: "calc(var(--u) * 1.5)", marginTop: "calc(var(--u) * .4)" }}>
                 {prev}
               </div>
             </>
           )}
           {group && (
-            <ul className="flex flex-col text-left" style={{ gap: ".5cqw", marginTop: "1cqw" }}>
+            <ul className="flex flex-col text-left" style={{ gap: "calc(var(--u) * .5)", marginTop: "calc(var(--u) * 1)" }}>
               {group.slice(0, BOARD_ROWS).map((e) => (
                 <li key={e.id} className="truncate leading-tight">
                   <span className="font-display font-bold uppercase" style={{ fontSize: nameSize(e.memberName, 3, 14) }}>
                     {e.memberName}
                   </span>
-                  <span className="font-bold text-slate-600" style={{ fontSize: "1.8cqw" }}>
+                  <span className="font-bold text-slate-600" style={{ fontSize: "calc(var(--u) * 1.8)" }}>
                     {" "}
                     {e.exercise} {fmtKg(e.weight)} kg × {e.reps}
                   </span>
                 </li>
               ))}
               {group.length > BOARD_ROWS && (
-                <li className="font-bold text-blue-700" style={{ fontSize: "1.8cqw" }}>
+                <li className="font-bold text-blue-700" style={{ fontSize: "calc(var(--u) * 1.8)" }}>
                   +{group.length - BOARD_ROWS} rekor lagi
                 </li>
               )}
             </ul>
           )}
         </div>
-        <svg className="block w-auto overflow-visible" style={{ height: "34cqh", marginTop: "-1.5cqh" }} viewBox="0 0 120 210" aria-hidden>
+        <svg className="block w-auto overflow-visible" style={{ height: "min(34cqh, 45cqw)", marginTop: "-1.5cqh" }} viewBox="0 0 120 210" aria-hidden>
           <ellipse cx="60" cy="205" rx="34" ry="5" fill="rgb(0 0 0 / .28)" />
           <g id="prc-body">
             {/* Arms up to the board's bottom edge. */}
