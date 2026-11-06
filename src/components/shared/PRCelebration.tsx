@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { PREvent } from "@/lib/barbell";
 
 // The celebration on the coach's slideshow when a member logs a barbell PR:
-// one full screen, a lifter walks in holding a "REKOR BARU!" board over their
+// one full blue screen, a lifter walks in holding a "REKOR BARU!" board over their
 // head, stops in the middle and hops in the confetti, then walks out. The
 // class timer keeps running underneath and shows small in the corner.
 
@@ -45,7 +45,7 @@ function indonesianVoice(): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith("id"));
   return voices.find((v) => /google/i.test(v.name)) ?? voices[0] ?? null;
 }
-const CONFETTI = ["#facc15", "#fde68a", "#ffffff", "#4ade80", "#f97316", "#38bdf8"];
+const CONFETTI = ["#facc15", "#fde68a", "#ffffff", "#4ade80", "#f97316", "#f472b6"];
 
 // ---- Sound: synthesized with Web Audio, no files ----
 function noise(a: AudioContext, sec: number) {
@@ -399,7 +399,7 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
       style={{
         containerType: "size",
         visibility: current ? "visible" : "hidden",
-        background: "radial-gradient(ellipse at 50% 42%, #1f8a50 0%, #11653a 38%, #073d22 75%, #04261a 100%)",
+        background: "radial-gradient(ellipse at 50% 42%, #2f6fe0 0%, #1d4fb8 38%, #102f7a 75%, #0a1d4f 100%)",
       }}
       title={current ? "Ketuk untuk menutup" : undefined}
     >
@@ -423,7 +423,7 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
           className="relative z-10 overflow-hidden whitespace-nowrap bg-white text-center text-slate-900"
           style={{ minWidth: "30cqw", maxWidth: "60cqw", borderRadius: "1cqw", border: "0.35cqw solid #0f172a", padding: "1.4cqw 2.6cqw 1.5cqw", boxShadow: "0 0.8cqw 0 rgb(0 0 0 / .35)", transformOrigin: "50% 100%" }}
         >
-          <div className="font-display font-bold uppercase leading-none text-green-700" style={{ fontSize: "3cqw" }}>
+          <div className="font-display font-bold uppercase leading-none text-blue-700" style={{ fontSize: "3cqw" }}>
             🏆 Rekor baru!{group && <span className="text-slate-900"> · {group.length} orang</span>}
           </div>
           {one && (
@@ -453,7 +453,7 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
                 </li>
               ))}
               {group.length > BOARD_ROWS && (
-                <li className="font-bold text-green-700" style={{ fontSize: "1.8cqw" }}>
+                <li className="font-bold text-blue-700" style={{ fontSize: "1.8cqw" }}>
                   +{group.length - BOARD_ROWS} rekor lagi
                 </li>
               )}
@@ -484,8 +484,8 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
             <path d="M40 128 L80 128 L83 150 L62 150 L60 142 L58 150 L37 150 Z" fill="#111827" />
             <path d="M42 70 C50 64 70 64 78 70 L82 130 L38 130 Z" fill="#facc15" />
             <path d="M52 66 C55 72 65 72 68 66" stroke="#d8a06b" strokeWidth="4" fill="none" strokeLinecap="round" />
-            <circle cx="60" cy="98" r="9" fill="none" stroke="#14532d" strokeWidth="3.4" />
-            <text x="60" y="122" textAnchor="middle" fontFamily="Oswald, Impact, sans-serif" fontSize="7" fontWeight="700" fill="#14532d" letterSpacing=".4">OLYMPUS</text>
+            <circle cx="60" cy="98" r="9" fill="none" stroke="#1e3a8a" strokeWidth="3.4" />
+            <text x="60" y="122" textAnchor="middle" fontFamily="Oswald, Impact, sans-serif" fontSize="7" fontWeight="700" fill="#1e3a8a" letterSpacing=".4">OLYMPUS</text>
             <rect x="55" y="54" width="10" height="12" fill="#c48a55" />
             <circle cx="60" cy="42" r="17" fill="#d8a06b" />
             <path d="M43 40 C42 24 54 20 62 21 C74 22 79 30 77 40 C72 32 64 30 56 31 C50 32 46 35 43 40 Z" fill="#1b130d" />
@@ -497,7 +497,7 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
       </div>
 
       <div className="absolute inset-x-0 bottom-0 bg-white/15" style={{ height: "0.8cqh" }}>
-        <div ref={barRef} className="h-full bg-green-400" style={{ width: 0 }} />
+        <div ref={barRef} className="h-full bg-amber-300" style={{ width: 0 }} />
       </div>
     </div>
   );
