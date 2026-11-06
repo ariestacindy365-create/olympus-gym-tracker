@@ -1,15 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_PROGRAM_WEEKS, matchesWeekday, mondayOf, weekNumberForDate, weekdayLabelForDate } from "@/lib/programRotation";
+import { createEachSkippingDuplicates } from "@/lib/sqlite";
 
 export async function getOrCreateRotation() {
   const existing = await prisma.programRotation.findUnique({ where: { id: "singleton" } });
   if (existing) return existing;
   // Two first requests at once (the dashboard asks twice in parallel): the
   // second insert is skipped and both read the row that won.
-  await prisma.programRotation.createMany({
-    data: [{ id: "singleton", anchorMonday: mondayOf(new Date()), anchorWeekNumber: 1 }],
-    skipDuplicates: true,
-  });
+  await createEachSkippingDuplicates([{ id: "singleton", anchorMonday: mondayOf(new Date()), anchorWeekNumber: 1 }], (data) =>
+    prisma.programRotation.create({ data })
+  );
   return prisma.programRotation.findUniqueOrThrow({ where: { id: "singleton" } });
 }
 

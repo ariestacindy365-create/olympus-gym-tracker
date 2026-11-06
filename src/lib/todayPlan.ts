@@ -9,6 +9,7 @@ import { musclesFor, type MuscleWeights } from "@/lib/muscles";
 import { amountFromTarget, perSideFromTarget, unitForMovement, type SetUnit } from "@/lib/setUnits";
 import { classLabel, type TodayClasses } from "@/lib/classSchedule";
 import { needsLoadInput } from "@/lib/loadInput";
+import { createEachSkippingDuplicates, idsByNameIgnoringCase } from "@/lib/sqlite";
 
 export interface PlanItem {
   label: string;
@@ -110,12 +111,13 @@ export async function getTodayPlan(classes: TodayClasses, on?: Date): Promise<To
  */
 export async function planRounds(slots: PlanSlot[]): Promise<PlanRound[]> {
   const names = [...new Set(slots.map((s) => s.movement.name.trim()))];
-  let exercises = await prisma.exercise.findMany({ where: { name: { in: names, mode: "insensitive" } } });
+  const findExercises = async () => prisma.exercise.findMany({ where: { id: { in: await idsByNameIgnoringCase("Exercise", names) } } });
+  let exercises = await findExercises();
   const have = new Set(exercises.map((e) => e.name.toLowerCase()));
   const missing = names.filter((n) => !have.has(n.toLowerCase()));
   if (missing.length > 0) {
-    await prisma.exercise.createMany({ data: missing.map((name) => ({ name })), skipDuplicates: true });
-    exercises = await prisma.exercise.findMany({ where: { name: { in: names, mode: "insensitive" } } });
+    await createEachSkippingDuplicates(missing, (name) => prisma.exercise.create({ data: { name } }));
+    exercises = await findExercises();
   }
   const exerciseByName = new Map(exercises.map((e) => [e.name.toLowerCase(), e]));
 

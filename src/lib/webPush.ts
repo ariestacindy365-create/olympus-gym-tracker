@@ -12,6 +12,7 @@ import {
   type JsonWebKey,
 } from "node:crypto";
 import { prisma } from "@/lib/prisma";
+import { createEachSkippingDuplicates } from "@/lib/sqlite";
 
 const b64url = (buf: Buffer) => buf.toString("base64url");
 const fromB64url = (s: string) => Buffer.from(s, "base64url");
@@ -32,7 +33,7 @@ export async function getVapidKeys(): Promise<VapidKeys> {
     const jwk = privateKey.export({ format: "jwk" });
     const publicKey = b64url(Buffer.concat([Buffer.from([4]), fromB64url(jwk.x!), fromB64url(jwk.y!)]));
     // Two first requests at once: the second insert loses and reads the winner.
-    await prisma.pushConfig.createMany({ data: [{ publicKey, privateJwk: jwk as object }], skipDuplicates: true });
+    await createEachSkippingDuplicates([{ publicKey, privateJwk: jwk as object }], (data) => prisma.pushConfig.create({ data }));
     row = await prisma.pushConfig.findUniqueOrThrow({ where: { id: "singleton" } });
   }
   cached = { publicKey: row.publicKey, privateJwk: row.privateJwk as JsonWebKey };

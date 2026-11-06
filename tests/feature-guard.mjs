@@ -32,7 +32,7 @@ const FEATURES = [
   ['Set offline disimpan di HP sampai ada sinyal', 'src/components/member/TodayWorkoutPlan.tsx', 'addPending'],
   ['Jumlah baris = jumlah set di slide', 'src/lib/todayPlan.ts', 'schemeUsesSets'],
   ['Gerakan tanpa beban / TABATA tidak perlu dicatat', 'src/lib/todayPlan.ts', 'noInput'],
-  ['Rotasi program aman saat dibuat bersamaan', 'src/lib/programHistory.ts', 'skipDuplicates'],
+  ['Rotasi program aman saat dibuat bersamaan', 'src/lib/programHistory.ts', 'createEachSkippingDuplicates'],
   ['Versi program (cegah saling timpa antar coach)', 'src/app/api/coach/programs/[weekNumber]/route.ts', 'expectedVersion'],
   ['Latihan Saya (coach)', 'src/app/coach/latihan/page.tsx', ''],
   ['Bunyi beep timer kelas', 'src/components/shared/ClassTimer.tsx', 'beep'],

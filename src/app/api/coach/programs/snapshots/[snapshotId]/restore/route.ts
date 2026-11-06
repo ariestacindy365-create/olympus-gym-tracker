@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { ensureSnapshot, writeProgramWeek, type SnapshotData } from "@/lib/programSave";
 import { Role } from "@/generated/prisma/client";
 import { getProgramCycle } from "@/lib/programHistory";
+import { createEachSkippingDuplicates } from "@/lib/sqlite";
 
 // "Pakai di Minggu N": puts an old saved version of the coach's program
 // into Minggu N (replacing what's there). The replaced version stays in the
@@ -36,7 +37,7 @@ export async function POST(
 
   // Snapshots keep movement names; a movement deleted since is re-created.
   const names = [...new Set(days.flatMap((d) => d.slots.map((s) => s.movementName.trim())))];
-  await prisma.movement.createMany({ data: names.map((name) => ({ name })), skipDuplicates: true });
+  await createEachSkippingDuplicates(names, (name) => prisma.movement.create({ data: { name } }));
   const movements = await prisma.movement.findMany({ where: { name: { in: names } }, select: { id: true, name: true } });
   const idByName = new Map(movements.map((m) => [m.name, m.id]));
 

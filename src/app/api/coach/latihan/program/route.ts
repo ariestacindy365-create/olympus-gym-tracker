@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { resolvePersonalExercise } from "@/lib/personalTrainingExercises";
 import { ProgramConflictError, assertProgramVersion, nextProgramDate } from "@/lib/programVersion";
 import { personalTrainingSchema } from "@/lib/coachPersonalTraining";
+import { lockForWrite } from "@/lib/writeLock";
 
 export async function PUT(request: Request) {
   const coach = await getCurrentUser();
@@ -25,7 +26,7 @@ export async function PUT(request: Request) {
   if (!body || !("expectedVersion" in body) || (body.expectedVersion !== null && typeof body.expectedVersion !== "string")) return NextResponse.json({ error: "Muat ulang program untuk mengambil versinya sebelum menyimpan." }, { status: 428 });
   try {
     const saved = await prisma.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtext(${`${coach.id}:personal-program`}))`;
+      await lockForWrite(tx);
       const current = await tx.coachPersonalProgram.findUnique({ where: { coachId: coach.id } });
       assertProgramVersion(current?.updatedAt ?? null, body.expectedVersion);
       return tx.coachPersonalProgram.upsert({

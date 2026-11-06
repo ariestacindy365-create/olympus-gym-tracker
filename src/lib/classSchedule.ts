@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { CLASS_SESSIONS, minuteOfDay, type ClassSession } from "@/lib/classSessions";
 import { todayDateKey } from "@/lib/workout";
 import { Role } from "@/generated/prisma/client";
+import { createEachSkippingDuplicates } from "@/lib/sqlite";
 
 /** Weekdays with classes, Date.getDay() numbering. */
 export const CLASS_WEEKDAYS = [
@@ -37,16 +38,16 @@ export async function getClassSchedule(): Promise<ScheduleEntry[]> {
   let rows = await prisma.classSlot.findMany({ include: { coach: { select: { id: true, name: true } } } });
   if (rows.length === 0) {
     const coaches = await prisma.user.findMany({ where: { role: Role.COACH }, select: { id: true, name: true } });
-    await prisma.classSlot.createMany({
-      data: CLASS_WEEKDAYS.flatMap(({ weekday }) =>
+    await createEachSkippingDuplicates(
+      CLASS_WEEKDAYS.flatMap(({ weekday }) =>
         CLASS_SESSIONS.map((s) => ({
           weekday,
           sessionId: s.id,
           coachId: coachByWord(coaches, DEFAULT_SCHEDULE[weekday][s.id])?.id ?? null,
         }))
       ),
-      skipDuplicates: true,
-    });
+      (data) => prisma.classSlot.create({ data })
+    );
     // One-time hand-over of the old shared program, done with the seed so it
     // only ever runs once.
     const owner = coachByWord(coaches, LEGACY_PROGRAM_OWNER);
