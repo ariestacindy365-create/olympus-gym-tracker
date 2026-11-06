@@ -15,6 +15,8 @@ import {
 import { formatMinutes, parseMinutes } from "@/lib/roundScheme";
 
 interface ClassTimerProps {
+  /** Reports the time shown, e.g. for the PR celebration's corner clock. */
+  onClock?: (text: string) => void;
   initial?: TimerConfig | null;
   /** e.g. "Round 4 · Upper Body Pull" when opened from a slide. */
   subtitle?: string;
@@ -96,7 +98,7 @@ const numCls =
  * countdown, round counter, green for work / red for rest, and beeps on the
  * last 3 seconds of every interval.
  */
-export function ClassTimer({ initial, subtitle, variant = "page", onToggleSize, onClose }: ClassTimerProps) {
+export function ClassTimer({ initial, subtitle, variant = "page", onToggleSize, onClose, onClock }: ClassTimerProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [config, setConfig] = useState<TimerConfig>(initial ?? DEFAULT_TIMER);
   const [running, setRunning] = useState(false);
@@ -217,6 +219,7 @@ export function ClassTimer({ initial, subtitle, variant = "page", onToggleSize, 
   const style = PHASE_STYLE[phase];
   const showRounds = config.mode === "EMOM" || config.mode === "TABATA";
   const clockText = formatClock(shownClock, countDown);
+  useEffect(() => onClock?.(clockText), [clockText, onClock]);
 
   if (variant === "side") {
     return (
