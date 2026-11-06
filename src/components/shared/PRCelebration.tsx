@@ -292,6 +292,8 @@ export function PRCelebration({ sound }: { sound: boolean }) {
     const hold = voice ? HOLD_SPOKEN : HOLD;
     const total = IN + hold + OUT;
     let speakTimer = 0;
+    // Walked off on its own: let a long announcement (a full board) finish.
+    let walkedOff = false;
     let raf = 0;
     let steps = 0;
     let celebrated = false;
@@ -364,6 +366,7 @@ export function PRCelebration({ sound }: { sound: boolean }) {
       if (t < total + 0.4) raf = requestAnimationFrame(frame);
       else {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        walkedOff = true;
         // Next PR in the queue, if any.
         setCurrent(nextShow.current());
       }
@@ -373,7 +376,8 @@ export function PRCelebration({ sound }: { sound: boolean }) {
       cancelAnimationFrame(raf);
       window.clearTimeout(speakTimer);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+      // Tapped closed (or the slideshow closed): stop talking.
+      if (!walkedOff && "speechSynthesis" in window) window.speechSynthesis.cancel();
     };
   }, [current]);
 

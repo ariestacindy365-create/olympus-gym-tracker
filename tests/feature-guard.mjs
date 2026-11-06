@@ -128,6 +128,13 @@ check('Gerakan tahan (plank, wall sit) dicatat dalam detik', () => {
   for (const [n, t] of [['Plank Jacks', '20'], ['Hollow Rock', '15'], ['Hang Clean', '5'], ['Wall Sit', '10 reps'], ['Back Squat', '8']]) assert.equal(unitForMovement(n, t), 'REPS', n);
 });
 
+const { formatRepTarget } = await load('src/lib/programSlide.ts');
+check('Slide menulis gerakan tahan dalam detik', () => {
+  assert.equal(formatRepTarget('45', 'Plank'), '45"');
+  assert.equal(formatRepTarget('8', 'Back Squat'), '8 reps');
+  assert.equal(formatRepTarget('10 reps each', 'Lunge'), '10 reps each');
+});
+
 if (failures.length) {
   console.error(`Penjaga fitur: ${failures.length} fitur live hilang atau berubah:\n- ${failures.join('\n- ')}`);
   process.exit(1);

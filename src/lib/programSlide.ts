@@ -2,6 +2,7 @@
 // coaches used to retype into Canva. Client-safe (no DB access).
 
 import { schemeLine } from "@/lib/roundScheme";
+import { unitForMovement } from "@/lib/setUnits";
 
 export interface SlideSlot {
   slotLabel: string | null;
@@ -34,11 +35,15 @@ function roundKey(label: string): string {
   return match ? match[1] : label.trim().toUpperCase() || "_";
 }
 
-/** "12" → "12 reps"; anything with words/units ("30\"", "1 lap", "10 reps each") stays as typed. */
-export function formatRepTarget(rep: string | null): string {
+/**
+ * "12" → "12 reps", or `45"` for a hold ("Plank 45" is 45 detik, the way it's
+ * logged); anything with words/units ("30\"", "1 lap", "10 reps each") stays as typed.
+ */
+export function formatRepTarget(rep: string | null, movementName?: string): string {
   const r = (rep ?? "").trim();
   if (!r) return "";
-  return /^\d+(\s*[-–]\s*\d+)?$/.test(r) ? `${r} reps` : r;
+  if (!/^\d+(\s*[-–]\s*\d+)?$/.test(r)) return r;
+  return movementName && unitForMovement(movementName, r) === "SECONDS" ? `${r}"` : `${r} reps`;
 }
 
 export function buildSlideRounds(slots: SlideSlot[]): SlideRound[] {
@@ -52,7 +57,7 @@ export function buildSlideRounds(slots: SlideSlot[]): SlideRound[] {
       rounds.push({ scheme: (s.roundScheme ?? "").trim(), sets: s.sets != null ? String(s.sets).trim() : "", items: [] });
     }
     currentKey = key;
-    const rep = formatRepTarget(s.repTarget);
+    const rep = formatRepTarget(s.repTarget, s.movementName);
     const note = (s.note ?? "").trim();
     // "A1. BB Deadlift (tempo 3-1-1) 10-12 reps"
     rounds[rounds.length - 1].items.push(
