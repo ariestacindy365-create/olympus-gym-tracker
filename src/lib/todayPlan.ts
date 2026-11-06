@@ -141,7 +141,7 @@ export async function planRounds(slots: PlanSlot[]): Promise<PlanRound[]> {
       name: s.movement.name,
       noWeight: isNoWeightExercise(s.movement.name, s.movement.equipment),
       sets: Math.min(10, Math.max(1, setCount)),
-      target: formatRepTarget(s.repTarget),
+      target: formatRepTarget(s.repTarget, s.movement.name),
       repDefault: unitForMovement(s.movement.name, s.repTarget) === "REPS" ? repDefaultOf(s.repTarget) : amountFromTarget(s.repTarget),
       unit: unitForMovement(s.movement.name, s.repTarget),
       perSide: perSideFromTarget(s.repTarget),
