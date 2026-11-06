@@ -83,8 +83,10 @@ export async function getFeed(viewer: { id: string; role: Role }, take = 30, cla
         // From the sets themselves, so posts saved late show the real length,
         // unless the member set it.
         durationSec: w.durationManual || backfilled ? w.durationSec : s.durationSec,
-        totalVolume: w.totalVolume,
-        prCount: w.prCount,
+        // From the current sets, like the lines: sets edited, deleted or moved
+        // to another day after Simpan would leave the saved totals behind.
+        totalVolume: s.totalVolume,
+        prCount: s.prCount,
         visibility: w.visibility,
         kudos: w.kudos.length,
         kudoed: w.kudos.some((k) => k.memberId === viewer.id),

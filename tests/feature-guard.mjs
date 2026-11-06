@@ -52,6 +52,7 @@ const FEATURES = [
   ['PT tidak dirayakan di slideshow kelas', 'src/app/api/coach/pr-events/route.ts', 'ptMemberIdsOn'],
   ['Menu coach ringkas + Lainnya ▾', 'src/app/coach/layout.tsx', 'more={MORE}'],
   ['Feed menghitung otot dari set terbaru per ronde', 'src/lib/feed.ts', 'programRounds'],
+  ['Volume & PR di feed dari set terbaru', 'src/lib/feed.ts', 'totalVolume: s.totalVolume'],
   ['Jadwal sesi PT dari coach, terlihat oleh klien', 'src/components/member/PtClientCard.tsx', 'Jadwal dari coach'],
   ['Ubah tanggal Dilatih (set ikut pindah) / Tandai belum dilatih', 'src/app/api/coach/pt/[packageId]/sessions/[number]/route.ts', 'export async function PATCH'],
 ];
