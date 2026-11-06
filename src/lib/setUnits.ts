@@ -31,6 +31,22 @@ export function unitFromTarget(target: string | null | undefined): SetUnit {
   return "REPS";
 }
 
+// Held positions: a bare number is how long, not how many ("Plank 45" = 45
+// detik). Moving variants are counted in reps (Plank Jacks, Plank Shoulder
+// Tap, Hollow Rock, Hang Clean).
+const HOLD = /\b(plank|wall[\s-]*sit|dead[\s-]*hang|l[\s-]*sit|isometric|hold)\b|\bhollow\b(?![\s-]*rock)/i;
+const MOVING = /plank[\s-]*(jacks?|taps?|shoulder|up|walk|to|jump|rotation|reach)|\b(hang|hanging)[\s-]*(clean|snatch|power|leg|knee|raise)/i;
+
+/** The unit for a movement's target: what the target says, else seconds for a hold written as a bare number. */
+export function unitForMovement(name: string, target: string | null | undefined): SetUnit {
+  const unit = unitFromTarget(target);
+  if (unit !== "REPS") return unit;
+  const t = (target ?? "").trim().toLowerCase();
+  // "12 reps" / "10x" / "8 kali" are reps on purpose.
+  if (/\b(reps?|x|kali)\b|\dx\b/.test(t)) return "REPS";
+  return HOLD.test(name) && !MOVING.test(name) ? "SECONDS" : "REPS";
+}
+
 /** Number to prefill from a target: "12", "10 reps each", "8-10" → 12/10/8; `30"` → 30; "1:30" → 90; "1 km" → 1000. */
 export function amountFromTarget(target: string | null | undefined): number | null {
   const t = (target ?? "").trim().toLowerCase();

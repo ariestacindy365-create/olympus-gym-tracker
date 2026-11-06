@@ -6,7 +6,7 @@ import { matchesWeekday, weekdayLabelForDate } from "@/lib/programRotation";
 import { formatRepTarget } from "@/lib/programSlide";
 import { parseScheme, schemeLine, schemeUsesSets } from "@/lib/roundScheme";
 import { musclesFor, type MuscleWeights } from "@/lib/muscles";
-import { amountFromTarget, perSideFromTarget, unitFromTarget, type SetUnit } from "@/lib/setUnits";
+import { amountFromTarget, perSideFromTarget, unitForMovement, type SetUnit } from "@/lib/setUnits";
 import { classLabel, type TodayClasses } from "@/lib/classSchedule";
 import { needsLoadInput } from "@/lib/loadInput";
 
@@ -142,8 +142,8 @@ export async function planRounds(slots: PlanSlot[]): Promise<PlanRound[]> {
       noWeight: isNoWeightExercise(s.movement.name, s.movement.equipment),
       sets: Math.min(10, Math.max(1, setCount)),
       target: formatRepTarget(s.repTarget),
-      repDefault: unitFromTarget(s.repTarget) === "REPS" ? repDefaultOf(s.repTarget) : amountFromTarget(s.repTarget),
-      unit: unitFromTarget(s.repTarget),
+      repDefault: unitForMovement(s.movement.name, s.repTarget) === "REPS" ? repDefaultOf(s.repTarget) : amountFromTarget(s.repTarget),
+      unit: unitForMovement(s.movement.name, s.repTarget),
       perSide: perSideFromTarget(s.repTarget),
       muscles: musclesFor(s.movement.name, s.movement.primaryMuscle, s.movement.secondaryMuscle),
       note: s.note?.trim() || null,
