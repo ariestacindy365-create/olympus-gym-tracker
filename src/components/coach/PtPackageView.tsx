@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { MovementCombobox, type MovementOption } from "@/components/coach/MovementCombobox";
 import { MemberSearch } from "@/components/coach/PtManager";
+import { isClosedDay, scheduleLabel } from "@/lib/ptSession";
 
 interface SlotDraft {
   slotLabel: string;
@@ -24,6 +25,9 @@ interface SessionDraft {
   title: string;
   /** YYYY-MM-DD it was trained, or null. */
   heldOn: string | null;
+  /** Planned day (YYYY-MM-DD) and time ("07:00"), shown to the client; "" when not set. */
+  scheduledOn: string;
+  scheduledTime: string;
   slots: SlotDraft[];
 }
 
@@ -122,7 +126,7 @@ export function PtPackageView({
     const prev = sessions.at(-1);
     const number = (prev?.number ?? 0) + 1;
     // Starts from the last session's movements: PT programs usually progress session to session.
-    setSessions((list) => [...list, { number, title: "", heldOn: null, slots: prev ? prev.slots.map((s) => ({ ...s })) : [emptySlot("A1")] }]);
+    setSessions((list) => [...list, { number, title: "", heldOn: null, scheduledOn: "", scheduledTime: prev?.scheduledTime ?? "", slots: prev ? prev.slots.map((s) => ({ ...s })) : [emptySlot("A1")] }]);
     setEditing(number);
   }
 
@@ -134,6 +138,8 @@ export function PtPackageView({
         method: "PUT",
         body: JSON.stringify({
           title: s.title.trim() || undefined,
+          scheduledOn: s.scheduledOn || null,
+          scheduledTime: s.scheduledOn && s.scheduledTime ? s.scheduledTime : null,
           slots: slots.map((x) => ({
             slotLabel: x.slotLabel.trim() || undefined,
             movementId: x.movementId,
@@ -228,6 +234,9 @@ export function PtPackageView({
                   <p className={`text-xs font-semibold ${s.heldOn ? "text-success" : s.number === nextUp ? "text-accent" : "text-muted"}`}>
                     {s.heldOn ? `✓ Dilatih ${formatDay(s.heldOn)}` : s.number === nextUp ? "Sesi berikutnya" : "Belum dilatih"}
                   </p>
+                  {s.scheduledOn && !s.heldOn && (
+                    <p className="text-xs font-semibold text-foreground/80">📅 Jadwal {scheduleLabel(s.scheduledOn, s.scheduledTime)}</p>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {!open && s.slots.length > 0 && (
@@ -251,6 +260,39 @@ export function PtPackageView({
                     onChange={(e) => patch(s.number, (x) => ({ ...x, title: e.target.value }))}
                     placeholder="Fokus sesi (opsional), mis. Lower body"
                   />
+                  <div className="flex flex-wrap items-end gap-2">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-muted" htmlFor={`pt-session-${s.number}-date`}>
+                      Jadwal latihan
+                      <input
+                        id={`pt-session-${s.number}-date`}
+                        type="date"
+                        value={s.scheduledOn}
+                        onChange={(e) => patch(s.number, (x) => ({ ...x, scheduledOn: e.target.value }))}
+                        className="mt-1 block h-11 rounded-lg border border-border bg-surface-2 px-3 text-sm font-normal normal-case tracking-normal text-foreground"
+                      />
+                    </label>
+                    <label className="text-xs font-semibold uppercase tracking-wide text-muted" htmlFor={`pt-session-${s.number}-time`}>
+                      Jam
+                      <input
+                        id={`pt-session-${s.number}-time`}
+                        type="time"
+                        value={s.scheduledTime}
+                        disabled={!s.scheduledOn}
+                        onChange={(e) => patch(s.number, (x) => ({ ...x, scheduledTime: e.target.value }))}
+                        className="mt-1 block h-11 rounded-lg border border-border bg-surface-2 px-3 text-sm font-normal normal-case tracking-normal text-foreground disabled:opacity-50"
+                      />
+                    </label>
+                    {s.scheduledOn && (
+                      <button type="button" onClick={() => patch(s.number, (x) => ({ ...x, scheduledOn: "", scheduledTime: "" }))} className="min-h-11 rounded-lg px-3 text-sm font-semibold text-muted hover:text-foreground">
+                        Hapus jadwal
+                      </button>
+                    )}
+                    {s.scheduledOn && isClosedDay(s.scheduledOn) ? (
+                      <p role="alert" className="basis-full text-xs font-semibold text-danger">Olympus tutup hari Minggu. Pilih hari lain.</p>
+                    ) : (
+                      <p className="basis-full text-xs text-muted">Klien melihat jadwal ini di HP-nya.</p>
+                    )}
+                  </div>
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[640px] text-sm">
                       <thead>
@@ -290,7 +332,7 @@ export function PtPackageView({
                     + Gerakan
                   </button>
                   <div className="flex flex-wrap gap-2">
-                    <Button type="button" disabled={pending || !s.slots.some((x) => x.movementId)} onClick={() => save(s)}>
+                    <Button type="button" disabled={pending || !s.slots.some((x) => x.movementId) || (!!s.scheduledOn && isClosedDay(s.scheduledOn))} onClick={() => save(s)}>
                       {pending ? "Menyimpan…" : `Simpan Sesi ${s.number}`}
                     </Button>
                     <Button type="button" variant="ghost" onClick={() => { setSessions(saved); setEditing(null); }}>

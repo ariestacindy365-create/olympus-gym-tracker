@@ -15,6 +15,8 @@ export interface PtPackageSummary {
   members: string[];
   sessionsDone: number;
   nextSession: number | null;
+  /** The soonest scheduled session not trained yet. */
+  nextSchedule: { number: number; today: boolean; label: string } | null;
 }
 
 interface MemberOption {
@@ -168,6 +170,11 @@ function PackageList({ title, packages, empty }: { title: string; packages: PtPa
                   {p.mine ? "" : `${p.coachName} · `}
                   {p.sessionsDone} sesi selesai · {p.nextSession ? `berikutnya Sesi ${p.nextSession}` : "sesi berikutnya belum ditulis"}
                 </span>
+                {p.nextSchedule && (
+                  <span className={`text-sm font-semibold ${p.nextSchedule.today ? "text-accent" : "text-foreground/80"}`}>
+                    📅 Sesi {p.nextSchedule.number} · {p.nextSchedule.today ? `hari ini${p.nextSchedule.label.includes("· ") ? ` · ${p.nextSchedule.label.split("· ")[1]}` : ""}` : p.nextSchedule.label}
+                  </span>
+                )}
               </Link>
             </li>
           ))}

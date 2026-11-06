@@ -6,6 +6,7 @@ import { classLabel } from "@/lib/classSchedule";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ProgramWeekView } from "@/components/member/ProgramWeekView";
 import { getActivePtPackage, sessionFor } from "@/lib/pt";
+import { upcomingSchedule } from "@/lib/ptSession";
 import { todayDateKey } from "@/lib/workout";
 
 export default async function MemberProgramPage(props: PageProps<"/member/program">) {
@@ -14,6 +15,7 @@ export default async function MemberProgramPage(props: PageProps<"/member/progra
 
   const [{ current }, ptPackage] = await Promise.all([getMemberTodayClass(user.id), getActivePtPackage(user.id)]);
   const ptToday = ptPackage ? sessionFor(ptPackage.sessions, todayDateKey()) : null;
+  const ptNext = ptPackage ? upcomingSchedule(ptPackage.sessions, todayDateKey(), 1)[0] : undefined;
   const myCoachId = current?.coach?.id ?? null;
   // ?coach=<id>: another coach's program this week; default is the member's class.
   const sp = await props.searchParams;
@@ -46,6 +48,7 @@ export default async function MemberProgramPage(props: PageProps<"/member/progra
         >
           <span className="font-semibold">Kamu klien PT {ptPackage.coach.name}.</span>{" "}
           {ptToday ? `Latihanmu hari ini Sesi ${ptToday.number} — buka di halaman Latihan →` : "Coach belum menulis sesi berikutnya. Program kelas di bawah hanya untuk referensi."}
+          {ptNext && !ptNext.today && <span className="mt-1 block">📅 Jadwal berikutnya: Sesi {ptNext.number}, {ptNext.label}.</span>}
         </Link>
       )}
       {coaches.length > 1 && (

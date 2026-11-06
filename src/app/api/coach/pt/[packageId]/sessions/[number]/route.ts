@@ -3,6 +3,8 @@ import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { savePtSessionSchema } from "@/lib/validation";
 import { ownPtPackage } from "@/lib/ptAccess";
+import { dateKeyFromString } from "@/lib/workout";
+import { isClosedDay } from "@/lib/ptSession";
 
 async function sessionNumber(ctx: RouteContext<"/api/coach/pt/[packageId]/sessions/[number]">) {
   const { packageId, number } = await ctx.params;
@@ -28,11 +30,19 @@ export async function PUT(request: NextRequest, ctx: RouteContext<"/api/coach/pt
     return NextResponse.json({ error: "Ada gerakan yang tidak ada di library." }, { status: 400 });
   }
 
+  if (parsed.data.scheduledOn && isClosedDay(parsed.data.scheduledOn)) {
+    return NextResponse.json({ error: "Olympus tutup hari Minggu. Pilih hari lain untuk jadwal sesi ini." }, { status: 400 });
+  }
+  const schedule = {
+    scheduledOn: parsed.data.scheduledOn ? dateKeyFromString(parsed.data.scheduledOn) : null,
+    // A time only means something with a day.
+    scheduledTime: parsed.data.scheduledOn ? parsed.data.scheduledTime || null : null,
+  };
   const session = await prisma.$transaction(async (tx) => {
     const s = await tx.ptSession.upsert({
       where: { packageId_number: { packageId, number: n } },
-      create: { packageId, number: n, title: parsed.data.title || null },
-      update: { title: parsed.data.title || null },
+      create: { packageId, number: n, title: parsed.data.title || null, ...schedule },
+      update: { title: parsed.data.title || null, ...schedule },
     });
     await tx.ptSlot.deleteMany({ where: { sessionId: s.id } });
     await tx.ptSlot.createMany({

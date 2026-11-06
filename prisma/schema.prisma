@@ -413,16 +413,20 @@ model PtMember {
 }
 
 model PtSession {
-  id        String    @id @default(cuid())
-  packageId String
-  package   PtPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  number    Int
-  title     String?
+  id            String    @id @default(cuid())
+  packageId     String
+  package       PtPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  number        Int
+  title         String?
   // The day it was trained (date key, like SetEntry.workoutDate).
-  heldOn    DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  slots     PtSlot[]
+  heldOn        DateTime?
+  // When the coach planned it (date key) and at what time ("07:00"),
+  // shown to the client; the order still comes from the session number.
+  scheduledOn   DateTime?
+  scheduledTime String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  slots         PtSlot[]
 
   @@unique([packageId, number])
 }

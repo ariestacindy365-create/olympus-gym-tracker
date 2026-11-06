@@ -135,6 +135,9 @@ export const createPtPackageSchema = z.object({
 
 export const savePtSessionSchema = z.object({
   title: z.string().trim().max(60).optional(),
+  // The planned day and time, shown to the client; null clears it.
+  scheduledOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  scheduledTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().optional(),
   slots: z.array(programSlotSchema.omit({ targetWeight: true })).max(30),
 });
 

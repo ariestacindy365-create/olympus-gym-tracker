@@ -3,6 +3,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PtManager, type PtPackageSummary } from "@/components/coach/PtManager";
 import { Role } from "@/generated/prisma/client";
+import { upcomingSchedule } from "@/lib/ptSession";
+import { todayDateKey } from "@/lib/workout";
 
 export default async function CoachPtPage() {
   const coach = await getCurrentUser();
@@ -14,7 +16,10 @@ export default async function CoachPtPage() {
       include: {
         coach: { select: { id: true, name: true } },
         members: { where: { leftAt: null }, orderBy: { joinedAt: "asc" }, include: { member: { select: { id: true, name: true } } } },
-        sessions: { select: { number: true, heldOn: true, _count: { select: { slots: true } } }, orderBy: { number: "asc" } },
+        sessions: {
+          select: { number: true, title: true, heldOn: true, scheduledOn: true, scheduledTime: true, _count: { select: { slots: true } } },
+          orderBy: { number: "asc" },
+        },
       },
     }),
     prisma.user.findMany({ where: { role: Role.MEMBER }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
@@ -30,6 +35,7 @@ export default async function CoachPtPage() {
       members: p.members.map((m) => m.member.name),
       sessionsDone: p.sessions.filter((s) => s.heldOn).length,
       nextSession: next?.number ?? null,
+      nextSchedule: upcomingSchedule(p.sessions, todayDateKey(), 1)[0] ?? null,
     };
   });
   const inPt = new Set(packages.flatMap((p) => p.members.map((m) => m.memberId)));

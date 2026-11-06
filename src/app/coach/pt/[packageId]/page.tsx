@@ -43,6 +43,8 @@ export default async function CoachPtPackagePage(props: PageProps<"/coach/pt/[pa
           number: s.number,
           title: s.title ?? "",
           heldOn: s.heldOn?.toISOString().slice(0, 10) ?? null,
+          scheduledOn: s.scheduledOn?.toISOString().slice(0, 10) ?? "",
+          scheduledTime: s.scheduledTime ?? "",
           slots: s.slots.map((x) => ({
             slotLabel: x.slotLabel ?? "",
             movementId: x.movementId,
