@@ -13,8 +13,38 @@ const POLL_MS = 12_000;
 const SEEN_KEY = "olympus-pr-seen";
 const IN = 2.4;
 const HOLD = 2.4;
+// Standing still while the announcement is read out.
+const HOLD_SPOKEN = 6;
 const OUT = 2.2;
-const TOTAL = IN + HOLD + OUT;
+// One PR at a time for the first few; the rest of a burst share one board.
+const SOLO_PER_BURST = 3;
+// Names listed on a shared board before "+N lagi".
+const BOARD_ROWS = 6;
+
+/** What walks across: one member's PR, or a board of several. */
+type Show = { kind: "one"; e: PREvent } | { kind: "group"; events: PREvent[] };
+
+const kgText = (n: number) => n.toLocaleString("id-ID", { maximumFractionDigits: 1 });
+// "A", "A dan B", "A, B, dan C".
+const namesText = (names: string[]) =>
+  names.length < 3 ? names.join(" dan ") : `${names.slice(0, -1).join(", ")}, dan ${names.at(-1)}`;
+
+/** What the TV says out loud, in Indonesian. */
+function announcement(show: Show): string {
+  if (show.kind === "group") {
+    return `Perhatian, perhatian! Rekor baru untuk ${namesText(show.events.map((e) => e.memberName))}. Keren banget, lanjutkan semuanya!`;
+  }
+  const e = show.e;
+  const up = e.delta != null && e.delta > 0 ? ` Naik ${kgText(e.delta)} kilo.` : "";
+  return `Perhatian, perhatian! Selamat untuk ${e.memberName}! Rekor baru ${e.exercise}, ${kgText(e.weight)} kilo, ${e.reps} repetisi.${up} Keren banget, lanjutkan!`;
+}
+
+/** A browser voice for Indonesian, if this TV has one (often an online Google voice). */
+function indonesianVoice(): SpeechSynthesisVoice | null {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
+  const voices = window.speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith("id"));
+  return voices.find((v) => /google/i.test(v.name)) ?? voices[0] ?? null;
+}
 const CONFETTI = ["#f5b301", "#2563eb", "#ef4444", "#16a34a", "#0f172a", "#f97316"];
 
 // ---- Sound: synthesized with Web Audio, no files ----
@@ -134,7 +164,33 @@ export function PRCelebration({ sound }: { sound: boolean }) {
   const seen = useRef(new Set<string>());
   const audio = useRef<AudioContext | null>(null);
   const soundRef = useRef(sound);
-  const [current, setCurrent] = useState<PREvent | null>(null);
+  const [current, setCurrent] = useState<Show | null>(null);
+  // Shows played since the queue was last empty.
+  const burst = useRef(0);
+
+  // The next thing to walk across: single PRs first, then one board for the rest.
+  const nextShow = useRef((): Show | null => {
+    if (queue.current.length === 0) {
+      burst.current = 0;
+      return null;
+    }
+    burst.current += 1;
+    if (burst.current <= SOLO_PER_BURST || queue.current.length === 1) return { kind: "one", e: queue.current.shift()! };
+    return { kind: "group", events: queue.current.splice(0) };
+  });
+
+  // Voices arrive after load in Chrome; asking once wakes them up.
+  useEffect(() => {
+    if (!("speechSynthesis" in window)) return;
+    const synth = window.speechSynthesis;
+    const wake = () => synth.getVoices();
+    wake();
+    synth.addEventListener("voiceschanged", wake);
+    return () => {
+      synth.removeEventListener("voiceschanged", wake);
+      synth.cancel();
+    };
+  }, []);
 
   useEffect(() => {
     soundRef.current = sound;
@@ -171,7 +227,7 @@ export function PRCelebration({ sound }: { sound: boolean }) {
       } catch {
         // Storage blocked: only this slideshow remembers them.
       }
-      setCurrent((c) => c ?? queue.current.shift() ?? null);
+      setCurrent((c) => c ?? nextShow.current());
     }
     void poll();
     const id = setInterval(poll, POLL_MS);
@@ -231,6 +287,11 @@ export function PRCelebration({ sound }: { sound: boolean }) {
     canvas.height = lane.clientHeight * dpr;
     let bits: Bit[] = [];
     const a = soundRef.current ? audio.current : null;
+    // Read out the PR after the fanfare, when the TV has an Indonesian voice.
+    const voice = soundRef.current ? indonesianVoice() : null;
+    const hold = voice ? HOLD_SPOKEN : HOLD;
+    const total = IN + hold + OUT;
+    let speakTimer = 0;
     let raf = 0;
     let steps = 0;
     let celebrated = false;
@@ -246,10 +307,10 @@ export function PRCelebration({ sound }: { sound: boolean }) {
       let x: number;
       let walking = true;
       if (t < IN) x = from + (mid - from) * (t / IN);
-      else if (t < IN + HOLD) {
+      else if (t < IN + hold) {
         x = mid;
         walking = false;
-      } else x = mid + (to - mid) * Math.min(1, (t - IN - HOLD) / OUT);
+      } else x = mid + (to - mid) * Math.min(1, (t - IN - hold) / OUT);
       const ph = t * 7.5;
       const ht = t - IN - 0.1;
       const hop = !walking && ht > 0 && ht < 1 && !reduce ? Math.abs(Math.sin(ht * Math.PI * 2)) * H * 0.07 : 0;
@@ -277,6 +338,14 @@ export function PRCelebration({ sound }: { sound: boolean }) {
           fanfare(a, a.currentTime + 0.05);
           cheer(a, a.currentTime + 0.35, 2.8);
         }
+        if (voice) {
+          const say = new SpeechSynthesisUtterance(announcement(current));
+          say.voice = voice;
+          say.lang = voice.lang;
+          say.rate = 1.02;
+          // After the fanfare's first notes.
+          speakTimer = window.setTimeout(() => window.speechSynthesis.speak(say), 1300);
+        }
       }
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       for (const b of bits) {
@@ -292,19 +361,44 @@ export function PRCelebration({ sound }: { sound: boolean }) {
         ctx.restore();
       }
       bits = bits.filter((b) => b.y < canvas.height + 20);
-      if (t < TOTAL + 0.4) raf = requestAnimationFrame(frame);
+      if (t < total + 0.4) raf = requestAnimationFrame(frame);
       else {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         // Next PR in the queue, if any.
-        setCurrent(queue.current.shift() ?? null);
+        setCurrent(nextShow.current());
       }
     };
     raf = requestAnimationFrame(frame);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(speakTimer);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    };
   }, [current]);
 
+  // A tap on the TV closes the celebration. While one shows, this layer sits
+  // above the slideshow's tap-left/right buttons, so the tap stops here.
+  function dismiss(e: React.SyntheticEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrent(nextShow.current());
+  }
+  const one = current?.kind === "one" ? current.e : null;
+  const group = current?.kind === "group" ? current.events : null;
+  // Long names get smaller so the sign keeps to its size.
+  const nameSize = (name: string, base: number, fits: number) => `${(base * Math.min(1, fits / Math.max(1, name.length))).toFixed(2)}cqw`;
+
   return (
-    <div ref={rootRef} aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden" style={{ containerType: "inline-size" }}>
+    <div
+      ref={rootRef}
+      aria-hidden
+      onPointerDown={current ? (e) => e.stopPropagation() : undefined}
+      onClick={current ? dismiss : undefined}
+      className={`absolute inset-0 overflow-hidden ${current ? "pointer-events-auto z-10 cursor-pointer" : "pointer-events-none"}`}
+      style={{ containerType: "inline-size" }}
+      title={current ? "Ketuk untuk menutup" : undefined}
+    >
       <div ref={laneRef} className="absolute inset-x-0 bottom-0" style={{ height: "36%", visibility: current ? "visible" : "hidden" }}>
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
         <div ref={walkerRef} className="absolute bottom-[3%] left-0 flex h-[92%] items-end" style={{ transform: "translateX(-200%)", willChange: "transform" }}>
@@ -371,23 +465,47 @@ export function PRCelebration({ sound }: { sound: boolean }) {
 
           <div
             ref={signRef}
-            className="relative self-start whitespace-nowrap border-slate-900 bg-white"
-            style={{ marginLeft: "-1.6cqw", marginTop: "2%", borderWidth: "0.3cqw", borderRadius: "0.9cqw", padding: "0.6cqw 1.2cqw 0.7cqw", boxShadow: "0 0.5cqw 0 rgb(0 0 0 / .3)", transformOrigin: "0% 100%" }}
+            className="relative self-start overflow-hidden whitespace-nowrap border-slate-900 bg-white"
+            style={{ marginLeft: "-1.6cqw", marginTop: "2%", maxWidth: "46cqw", borderWidth: "0.3cqw", borderRadius: "0.9cqw", padding: "0.6cqw 1.2cqw 0.7cqw", boxShadow: "0 0.5cqw 0 rgb(0 0 0 / .3)", transformOrigin: "0% 100%" }}
           >
             <div className="font-display font-bold leading-none text-red-600" style={{ fontSize: "2.6cqw" }}>
               PR{" "}
               <small className="text-slate-900" style={{ fontSize: "1.2cqw", letterSpacing: ".12em", marginLeft: ".4cqw", verticalAlign: ".55em" }}>
-                🏆 BARU
+                🏆 BARU{group && ` · ${group.length} ORANG`}
               </small>
             </div>
-            <div className="font-display font-bold uppercase leading-tight text-slate-900" style={{ fontSize: "1.9cqw" }}>
-              {current?.memberName}
-            </div>
-            <div className="font-bold text-blue-700" style={{ fontSize: "1.15cqw" }}>
-              {current && `${current.exercise} ${fmtKg(current.weight)} kg × ${current.reps}`}
-              {current?.delta != null && current.delta > 0 && <span className="text-green-600"> (+{fmtKg(current.delta)} kg)</span>}
-              {current?.delta == null && <span className="text-green-600"> · pertama kali!</span>}
-            </div>
+            {one && (
+              <>
+                <div className="font-display font-bold uppercase leading-tight text-slate-900" style={{ fontSize: nameSize(one.memberName, 1.9, 16) }}>
+                  {one.memberName}
+                </div>
+                <div className="truncate font-bold text-blue-700" style={{ fontSize: "1.15cqw" }}>
+                  {`${one.exercise} ${fmtKg(one.weight)} kg × ${one.reps}`}
+                  {one.delta != null && one.delta > 0 && <span className="text-green-600"> (+{fmtKg(one.delta)} kg)</span>}
+                  {one.delta == null && <span className="text-green-600"> · pertama kali!</span>}
+                </div>
+              </>
+            )}
+            {group && (
+              <ul className="flex flex-col" style={{ gap: "0.25cqw", marginTop: "0.3cqw" }}>
+                {group.slice(0, BOARD_ROWS).map((e) => (
+                  <li key={e.id} className="truncate leading-tight">
+                    <span className="font-display font-bold uppercase text-slate-900" style={{ fontSize: nameSize(e.memberName, 1.3, 14) }}>
+                      {e.memberName}
+                    </span>
+                    <span className="font-bold text-blue-700" style={{ fontSize: "0.95cqw" }}>
+                      {" "}
+                      {e.exercise} {fmtKg(e.weight)} kg × {e.reps}
+                    </span>
+                  </li>
+                ))}
+                {group.length > BOARD_ROWS && (
+                  <li className="font-bold text-green-600" style={{ fontSize: "0.95cqw" }}>
+                    +{group.length - BOARD_ROWS} rekor lagi
+                  </li>
+                )}
+              </ul>
+            )}
           </div>
         </div>
       </div>

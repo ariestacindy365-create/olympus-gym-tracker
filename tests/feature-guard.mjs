@@ -122,6 +122,12 @@ check('Jadwal PT: tidak bisa hari Minggu, label tanggal', () => {
   assert.equal(scheduleLabel('2026-11-09', '07:00'), 'Senin, 9 Nov · 07:00');
 });
 
+const { unitForMovement } = await load('src/lib/setUnits.ts');
+check('Gerakan tahan (plank, wall sit) dicatat dalam detik', () => {
+  for (const [n, t] of [['Plank', '45'], ['Banded Wall Sit', '45'], ['Dead Hang', '30'], ['Side Plank', '']]) assert.equal(unitForMovement(n, t), 'SECONDS', n);
+  for (const [n, t] of [['Plank Jacks', '20'], ['Hollow Rock', '15'], ['Hang Clean', '5'], ['Wall Sit', '10 reps'], ['Back Squat', '8']]) assert.equal(unitForMovement(n, t), 'REPS', n);
+});
+
 if (failures.length) {
   console.error(`Penjaga fitur: ${failures.length} fitur live hilang atau berubah:\n- ${failures.join('\n- ')}`);
   process.exit(1);
