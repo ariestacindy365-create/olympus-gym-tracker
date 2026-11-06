@@ -203,31 +203,47 @@ interface ProgramSlideProps {
   qrDataUrl: string | null;
   highlightRound?: number | null;
   className?: string;
+  /**
+   * Fill the parent (the TV slideshow): the white slide covers the whole
+   * area, like the timer beside it, and the 16:9 content sits centred at the
+   * largest size that fits. Otherwise the slide keeps 16:9 at its width.
+   */
+  fill?: boolean;
 }
 
-/** The slide scaled down to its container's width, keeping 16:9. */
-export function ProgramSlide({ data, qrDataUrl, highlightRound = null, className = "" }: ProgramSlideProps) {
+/** The slide scaled down to its container's width, keeping 16:9 (or filling the parent). */
+export function ProgramSlide({ data, qrDataUrl, highlightRound = null, className = "", fill = false }: ProgramSlideProps) {
   const boxRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(0);
+  const [fit, setFit] = useState({ scale: 0, left: 0, top: 0 });
 
   useEffect(() => {
     const el = boxRef.current;
     if (!el) return;
-    const update = () => setScale(el.clientWidth / SLIDE_W);
+    const update = () => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      if (!fill) return setFit({ scale: w / SLIDE_W, left: 0, top: 0 });
+      const scale = Math.min(w / SLIDE_W, h / SLIDE_H);
+      setFit({ scale, left: (w - SLIDE_W * scale) / 2, top: (h - SLIDE_H * scale) / 2 });
+    };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [fill]);
 
   return (
-    <div ref={boxRef} className={`relative w-full overflow-hidden bg-white ${className}`} style={{ aspectRatio: "16 / 9" }}>
-      {scale > 0 && (
+    <div
+      ref={boxRef}
+      className={`relative w-full overflow-hidden bg-white ${fill ? "h-full" : ""} ${className}`}
+      style={fill ? undefined : { aspectRatio: "16 / 9" }}
+    >
+      {fit.scale > 0 && (
         <SlideCanvas
           data={data}
           qrDataUrl={qrDataUrl}
           highlightRound={highlightRound}
-          style={{ position: "absolute", left: 0, top: 0, transform: `scale(${scale})`, transformOrigin: "top left" }}
+          style={{ position: "absolute", left: fit.left, top: fit.top, transform: `scale(${fit.scale})`, transformOrigin: "top left" }}
         />
       )}
     </div>

@@ -36,6 +36,8 @@ export function SlideShow({ slides, startIndex = 0, celebratePRs = false, onClos
   // another round's ⏱ is tapped.
   const [timer, setTimer] = useState<{ key: number; config: TimerConfig; subtitle: string; slide: number; round: number } | null>(null);
   const [timerBig, setTimerBig] = useState(false);
+  // The timer's time, shown small in the corner during a PR celebration.
+  const [timerClock, setTimerClock] = useState<string | null>(null);
   // PR celebration sound, remembered on this device (the gym TV).
   const [prSound, setPrSound] = useState(() => {
     try {
@@ -129,16 +131,9 @@ export function SlideShow({ slides, startIndex = 0, celebratePRs = false, onClos
       className={`fixed inset-0 z-[60] flex flex-col bg-black landscape:flex-row ${controls ? "" : "cursor-none"}`}
     >
       <div className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center">
-      <div
-        className={`relative ${
-          timer && !timerBig
-            ? "w-[min(100vw,calc(58dvh*16/9))] landscape:w-[min(75vw,calc(100dvh*16/9))]"
-            : "w-[min(100vw,calc(100dvh*16/9))]"
-        }`}
-      >
-        <ProgramSlide data={slide} qrDataUrl={qr} highlightRound={timer && timer.slide === index ? timer.round : null} />
-        {/* Over the slide only: the layout and the timer beside it never move. */}
-        {celebratePRs && <PRCelebration sound={prSound} />}
+      {/* The slide fills the whole area beside the timer (no black bands). */}
+      <div className="relative h-full w-full">
+        <ProgramSlide fill data={slide} qrDataUrl={qr} highlightRound={timer && timer.slide === index ? timer.round : null} />
       </div>
 
       {/* Tap left / right half to move */}
@@ -205,10 +200,13 @@ export function SlideShow({ slides, startIndex = 0, celebratePRs = false, onClos
         </div>
       </div>
       </div>
+      {/* Full screen over everything; the timer keeps running underneath. */}
+      {celebratePRs && <PRCelebration sound={prSound} clock={timer ? timerClock : null} />}
       {timer && (
         <ClassTimer
           key={timer.key}
           variant={timerBig ? "overlay" : "side"}
+          onClock={setTimerClock}
           initial={timer.config}
           subtitle={timer.subtitle}
           onToggleSize={() => setTimerBig((b) => !b)}

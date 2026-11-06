@@ -55,6 +55,8 @@ const FEATURES = [
   ['Volume & PR di feed dari set terbaru', 'src/lib/feed.ts', 'totalVolume: s.totalVolume'],
   ['Jadwal sesi PT dari coach, terlihat oleh klien', 'src/components/member/PtClientCard.tsx', 'Jadwal dari coach'],
   ['Ubah tanggal Dilatih (set ikut pindah) / Tandai belum dilatih', 'src/app/api/coach/pt/[packageId]/sessions/[number]/route.ts', 'export async function PATCH'],
+  ['Selebrasi PR penuh 1 layar, timer tetap jalan di pojok', 'src/components/shared/PRCelebration.tsx', 'Timer tetap jalan'],
+  ['Slide program penuh di samping timer', 'src/components/shared/SlideShow.tsx', '<ProgramSlide fill'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
