@@ -74,6 +74,9 @@ export function PtPackageView({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  // "Ubah tanggal" on a trained session: which one, and the day being picked.
+  const [movingDate, setMovingDate] = useState<number | null>(null);
+  const [dateDraft, setDateDraft] = useState("");
   const movementName = (id: string) => movements.find((m) => m.id === id)?.name ?? "—";
 
   async function call(url: string, init: RequestInit, fallback: string) {
@@ -170,6 +173,20 @@ export function PtPackageView({
     setEditing(null);
   }
 
+  async function setHeldOn(s: SessionDraft, heldOn: string | null) {
+    if (heldOn === null) {
+      const ok = await confirm({ description: `Tandai Sesi ${s.number} belum dilatih? Sesi ini jadi sesi berikutnya lagi untuk klien.`, confirmLabel: "Tandai belum dilatih" });
+      if (!ok) return;
+    }
+    const data = await call(`/api/coach/pt/${packageId}/sessions/${s.number}`, { method: "PATCH", body: JSON.stringify({ heldOn }) }, "Gagal mengubah tanggal.");
+    if (!data) return;
+    const change = (x: SessionDraft) => (x.number === s.number ? { ...x, heldOn: data.heldOn } : x);
+    setSessions((list) => list.map(change));
+    setSaved((list) => list.map(change));
+    setMovingDate(null);
+    router.refresh();
+  }
+
   const nextUp = sessions.find((s) => !s.heldOn && s.slots.length > 0)?.number ?? null;
   // Today in Jakarta as YYYY-MM-DD, to flag a scheduled day that has passed.
   const todayKey = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
@@ -236,6 +253,40 @@ export function PtPackageView({
                   <p className={`text-xs font-semibold ${s.heldOn ? "text-success" : s.number === nextUp ? "text-accent" : "text-muted"}`}>
                     {s.heldOn ? `✓ Dilatih ${formatDay(s.heldOn)}` : s.number === nextUp ? "Sesi berikutnya" : "Belum dilatih"}
                   </p>
+                  {mine && s.heldOn && !open && movingDate !== s.number && (
+                    <span className="mt-0.5 flex flex-wrap gap-x-3 text-xs">
+                      <button type="button" disabled={pending} className="font-semibold text-accent hover:underline" onClick={() => { setMovingDate(s.number); setDateDraft(s.heldOn!); }}>
+                        Ubah tanggal
+                      </button>
+                      <button type="button" disabled={pending} className="font-semibold text-muted hover:text-foreground hover:underline" onClick={() => setHeldOn(s, null)}>
+                        Tandai belum dilatih
+                      </button>
+                    </span>
+                  )}
+                  {movingDate === s.number && s.heldOn && (
+                    <span className="mt-1 flex flex-col gap-1.5">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <input
+                          id={`pt-session-${s.number}-held`}
+                          type="date"
+                          aria-label={`Tanggal dilatih Sesi ${s.number}`}
+                          value={dateDraft}
+                          max={todayKey}
+                          onChange={(e) => setDateDraft(e.target.value)}
+                          className="h-10 rounded-lg border border-border bg-surface-2 px-3 text-sm"
+                        />
+                        <Button type="button" className="min-h-10 px-3 py-1.5" disabled={pending || !dateDraft || dateDraft === s.heldOn || dateDraft > todayKey || isClosedDay(dateDraft)} onClick={() => setHeldOn(s, dateDraft)}>
+                          Simpan tanggal
+                        </Button>
+                        <button type="button" className="min-h-10 px-2 text-sm font-semibold text-muted hover:text-foreground" onClick={() => setMovingDate(null)}>
+                          Batal
+                        </button>
+                      </span>
+                      <span className={`text-xs ${dateDraft && isClosedDay(dateDraft) ? "font-semibold text-danger" : "text-muted"}`}>
+                        {dateDraft && isClosedDay(dateDraft) ? "Olympus tutup hari Minggu. Pilih hari lain." : "Set klien di sesi ini ikut pindah ke tanggal baru."}
+                      </span>
+                    </span>
+                  )}
                   {s.scheduledOn && !s.heldOn && (
                     <p className={`text-xs font-semibold ${s.scheduledOn < todayKey ? "text-danger" : "text-foreground/80"}`}>
                       📅 Jadwal {scheduleLabel(s.scheduledOn, s.scheduledTime)}

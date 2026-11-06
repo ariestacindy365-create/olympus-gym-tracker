@@ -3,7 +3,8 @@ import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { savePtSessionSchema } from "@/lib/validation";
 import { ownPtPackage } from "@/lib/ptAccess";
-import { dateKeyFromString } from "@/lib/workout";
+import { dateKeyFromString, todayDateKey } from "@/lib/workout";
+import { recomputeExerciseRecords } from "@/lib/recomputeRecords";
 import { isClosedDay } from "@/lib/ptSession";
 
 async function sessionNumber(ctx: RouteContext<"/api/coach/pt/[packageId]/sessions/[number]">) {
@@ -75,4 +76,76 @@ export async function DELETE(_request: NextRequest, ctx: RouteContext<"/api/coac
   }
   await prisma.ptSession.delete({ where: { id: session.id } });
   return NextResponse.json({ ok: true });
+}
+
+/**
+ * The day a session was trained. `heldOn: "YYYY-MM-DD"` moves it, and the
+ * clients' sets of that session go with it (renumbered after any sets they
+ * already have that day, PRs worked out again). `heldOn: null` marks it as
+ * not trained yet, only while it has no sets.
+ */
+export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/coach/pt/[packageId]/sessions/[number]">) {
+  const { packageId, n } = await sessionNumber(ctx);
+  const own = await ownPtPackage(packageId);
+  if (own.error) return own.error;
+  const body = await request.json().catch(() => null);
+  const raw = body?.heldOn;
+  if (raw !== null && !(typeof raw === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw))) {
+    return NextResponse.json({ error: "Tanggal tidak valid." }, { status: 400 });
+  }
+  const session =
+    n === null
+      ? null
+      : await prisma.ptSession.findUnique({
+          where: { packageId_number: { packageId, number: n } },
+          include: { slots: { include: { movement: { select: { name: true } } } }, package: { include: { members: { select: { memberId: true } } } } },
+        });
+  if (!session) return NextResponse.json({ error: "Sesi tidak ditemukan." }, { status: 404 });
+  if (!session.heldOn) return NextResponse.json({ error: "Sesi ini belum dilatih." }, { status: 409 });
+
+  const from = session.heldOn;
+  const memberIds = session.package.members.map((m) => m.memberId);
+  const names = [...new Set(session.slots.map((s) => s.movement.name.trim()))];
+  const exercises = await prisma.exercise.findMany({ where: { name: { in: names, mode: "insensitive" } }, select: { id: true } });
+  const sessionSets = { memberId: { in: memberIds }, exerciseId: { in: exercises.map((e) => e.id) }, workoutDate: from };
+
+  if (raw === null) {
+    if ((await prisma.setEntry.count({ where: sessionSets })) > 0) {
+      return NextResponse.json({ error: "Sesi ini sudah ada setnya. Hapus setnya dulu, atau ubah tanggalnya." }, { status: 409 });
+    }
+    await prisma.ptSession.update({ where: { id: session.id }, data: { heldOn: null } });
+    return NextResponse.json({ ok: true, heldOn: null, moved: 0 });
+  }
+
+  const to = dateKeyFromString(raw);
+  if (to.toISOString().slice(0, 10) !== raw) return NextResponse.json({ error: "Tanggal tidak valid." }, { status: 400 });
+  if (to.getTime() > todayDateKey().getTime()) return NextResponse.json({ error: "Tanggal dilatih tidak boleh di masa depan." }, { status: 400 });
+  if (isClosedDay(raw)) return NextResponse.json({ error: "Olympus tutup hari Minggu. Pilih hari lain." }, { status: 400 });
+  if (to.getTime() === from.getTime()) return NextResponse.json({ ok: true, heldOn: raw, moved: 0 });
+  const clash = await prisma.ptSession.findFirst({ where: { packageId, heldOn: to, id: { not: session.id } }, select: { number: true } });
+  if (clash) return NextResponse.json({ error: `Sesi ${clash.number} sudah dilatih di tanggal itu.` }, { status: 409 });
+
+  const moved = await prisma.$transaction(async (tx) => {
+    const sets = await tx.setEntry.findMany({ where: sessionSets, orderBy: [{ setNumber: "asc" }] });
+    const touched = new Set<string>();
+    for (const s of sets) {
+      // After the member's sets of this movement already on the new day.
+      const last = await tx.setEntry.aggregate({ where: { memberId: s.memberId, exerciseId: s.exerciseId, workoutDate: to }, _max: { setNumber: true } });
+      await tx.setEntry.update({ where: { id: s.id }, data: { workoutDate: to, setNumber: (last._max.setNumber ?? 0) + 1 } });
+      touched.add(`${s.memberId}|${s.exerciseId}`);
+    }
+    for (const key of touched) {
+      const [memberId, exerciseId] = key.split("|");
+      await recomputeExerciseRecords(tx, memberId, exerciseId);
+    }
+    // A saved workout whose day is now empty moves with its sets, unless the new day has one.
+    for (const memberId of memberIds) {
+      const left = await tx.setEntry.count({ where: { memberId, workoutDate: from } });
+      const taken = await tx.workout.findUnique({ where: { memberId_workoutDate: { memberId, workoutDate: to } }, select: { id: true } });
+      if (left === 0 && !taken) await tx.workout.updateMany({ where: { memberId, workoutDate: from }, data: { workoutDate: to } });
+    }
+    await tx.ptSession.update({ where: { id: session.id }, data: { heldOn: to } });
+    return sets.length;
+  });
+  return NextResponse.json({ ok: true, heldOn: raw, moved });
 }

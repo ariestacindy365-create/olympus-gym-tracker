@@ -53,6 +53,7 @@ const FEATURES = [
   ['Menu coach ringkas + Lainnya ▾', 'src/app/coach/layout.tsx', 'more={MORE}'],
   ['Feed menghitung otot dari set terbaru per ronde', 'src/lib/feed.ts', 'programRounds'],
   ['Jadwal sesi PT dari coach, terlihat oleh klien', 'src/components/member/PtClientCard.tsx', 'Jadwal dari coach'],
+  ['Ubah tanggal Dilatih (set ikut pindah) / Tandai belum dilatih', 'src/app/api/coach/pt/[packageId]/sessions/[number]/route.ts', 'export async function PATCH'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
