@@ -253,7 +253,7 @@ export function PtPackageView({
                   <p className={`text-xs font-semibold ${s.heldOn ? "text-success" : s.number === nextUp ? "text-accent" : "text-muted"}`}>
                     {s.heldOn ? `✓ Dilatih ${formatDay(s.heldOn)}` : s.number === nextUp ? "Sesi berikutnya" : "Belum dilatih"}
                   </p>
-                  {mine && s.heldOn && !open && movingDate !== s.number && (
+                  {mine && s.heldOn && movingDate !== s.number && (
                     <span className="mt-0.5 flex flex-wrap gap-x-3 text-xs">
                       <button type="button" disabled={pending} className="font-semibold text-accent hover:underline" onClick={() => { setMovingDate(s.number); setDateDraft(s.heldOn!); }}>
                         Ubah tanggal
