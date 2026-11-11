@@ -56,11 +56,13 @@ export async function nextStart(userId: string, now = new Date()): Promise<Date>
 export async function approveOrder(orderId: string, reviewerId: string, now = new Date()) {
   const order = await prisma.membershipOrder.findUnique({ where: { id: orderId }, include: { user: true } });
   if (!order) throw new OrderError("Pesanan tidak ditemukan.", 404);
-  if (order.status !== "PENDING") throw new OrderError("Pesanan ini sudah diproses.", 409);
+  if (order.status !== "PENDING" || !order.waNumber || !order.paymentMethod) throw new OrderError("Pesanan ini belum dikirim atau sudah diproses.", 409);
+  const waNumber = order.waNumber;
+  const paymentMethod = order.paymentMethod;
 
   const startsAt = await nextStart(order.userId, now);
   const expiresAt = addDays(startsAt, order.durationDays);
-  const waNumberNormalized = normalizeWaNumber(order.waNumber);
+  const waNumberNormalized = normalizeWaNumber(waNumber);
 
   const result = await prisma.$transaction(async (tx) => {
     // Claim the order first so two admins tapping at once can't both confirm it.
@@ -78,7 +80,7 @@ export async function approveOrder(orderId: string, reviewerId: string, now = ne
       lead = await tx.lead.create({
         data: {
           name: order.user.name,
-          waNumber: order.waNumber,
+          waNumber,
           waNumberNormalized,
           status: "MEMBER",
           convertedAt: now,
@@ -103,13 +105,16 @@ export async function approveOrder(orderId: string, reviewerId: string, now = ne
       data: {
         leadId: lead.id,
         packageName: order.packageName,
-        amount: order.price,
-        paymentMethod: order.paymentMethod,
+        // What actually came in: the price plus the unique code.
+        amount: order.price + order.uniqueCode,
+        paymentMethod,
         paidAt: now,
         durationDays: order.durationDays,
         expiresAt,
         proofImageFileId: order.proofImageFileId,
-        note: ORDER_NOTE,
+        note: [ORDER_NOTE, order.uniqueCode ? `kode unik ${order.uniqueCode}` : null, order.senderName ? `pengirim ${order.senderName}` : null]
+          .filter(Boolean)
+          .join(" · "),
         createdById: reviewerId,
       },
     });
@@ -146,3 +151,20 @@ export class OrderError extends Error {
 
 const dateFmt = new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", day: "numeric", month: "short", year: "numeric" });
 export const formatMembershipDate = (d: Date) => dateFmt.format(d);
+
+/** Unpaid picks older than a day are dropped, so the member can start over. */
+export async function closeStaleUnpaid(userId: string, now = new Date()) {
+  await prisma.membershipOrder.updateMany({
+    where: { userId, status: "UNPAID", createdAt: { lt: new Date(now.getTime() - 86_400_000) } },
+    data: { status: "CANCELLED" },
+  });
+}
+
+/** 1–499, not used by another open order of the same price, so each transfer amount is unique. */
+export async function pickUniqueCode(price: number): Promise<number> {
+  const taken = new Set(
+    (await prisma.membershipOrder.findMany({ where: { price, status: { in: ["UNPAID", "PENDING"] } }, select: { uniqueCode: true } })).map((o) => o.uniqueCode)
+  );
+  const free = Array.from({ length: 499 }, (_, i) => i + 1).filter((c) => !taken.has(c));
+  return free[Math.floor(Math.random() * free.length)] ?? 1 + Math.floor(Math.random() * 499);
+}

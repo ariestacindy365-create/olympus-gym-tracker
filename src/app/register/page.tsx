@@ -45,7 +45,9 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push("/member/dashboard");
+      // Came from "Daftar & beli paket": straight to buying a membership.
+      const buying = new URLSearchParams(window.location.search).has("beli");
+      router.push(buying ? "/member/membership" : "/member/dashboard");
       router.refresh();
     } catch {
       setError("Something went wrong. Try again.");

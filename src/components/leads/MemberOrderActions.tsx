@@ -5,15 +5,14 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/ToastProvider";
-import { useConfirm } from "@/components/ui/ConfirmProvider";
 
-/** Konfirmasi / Tolak for one pending app purchase. */
-export function MemberOrderActions({ orderId, label }: { orderId: string; label: string }) {
+/** Verify (checklist, then Konfirmasi) or Tolak one pending app purchase. */
+export function MemberOrderActions({ orderId, amount, senderName }: { orderId: string; amount: string; senderName: string | null }) {
   const router = useRouter();
   const toast = useToast();
-  const confirmDialog = useConfirm();
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
+  const [arrived, setArrived] = useState(false);
   const [pending, setPending] = useState(false);
 
   async function send(body: Record<string, unknown>, done: string) {
@@ -38,15 +37,6 @@ export function MemberOrderActions({ orderId, label }: { orderId: string; label:
     }
   }
 
-  async function approve() {
-    const ok = await confirmDialog({
-      title: "Konfirmasi pembayaran?",
-      description: `${label}. Pastikan uangnya sudah masuk. Member langsung aktif dan pembayaran tercatat di laporan.`,
-      confirmLabel: "Konfirmasi",
-    });
-    if (ok) void send({ action: "approve" }, "Member aktif ✅");
-  }
-
   if (rejecting) {
     return (
       <div className="flex w-full flex-col gap-2 sm:flex-row">
@@ -61,13 +51,28 @@ export function MemberOrderActions({ orderId, label }: { orderId: string; label:
     );
   }
   return (
-    <div className="flex gap-2">
-      <Button disabled={pending} onClick={approve}>
-        ✓ Konfirmasi
-      </Button>
-      <Button variant="secondary" disabled={pending} onClick={() => setRejecting(true)}>
-        Tolak
-      </Button>
+    <div className="flex flex-col gap-3">
+      <label className="flex cursor-pointer items-start gap-2 rounded-lg bg-surface-2 px-3 py-2 text-sm">
+        <input type="checkbox" checked={arrived} onChange={(e) => setArrived(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0" />
+        <span>
+          Sudah saya cek: <span className="font-semibold">{amount}</span>
+          {senderName && (
+            <>
+              {" "}
+              dari <span className="font-semibold">{senderName}</span>
+            </>
+          )}{" "}
+          sudah masuk ke rekening / QRIS Olympus.
+        </span>
+      </label>
+      <div className="flex gap-2">
+        <Button disabled={pending || !arrived} onClick={() => send({ action: "approve", verified: true }, "Terverifikasi, member aktif ✅")}>
+          ✓ Konfirmasi
+        </Button>
+        <Button variant="secondary" disabled={pending} onClick={() => setRejecting(true)}>
+          Tolak
+        </Button>
+      </div>
     </div>
   );
 }

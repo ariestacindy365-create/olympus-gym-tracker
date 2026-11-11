@@ -62,6 +62,9 @@ const FEATURES = [
   ['Aktifkan member yang bayar di meja depan', 'src/app/leads/member-app/page.tsx', 'AddMembershipForm'],
   ['Paket unlimited / kredit, jual di aplikasi', 'src/components/leads/PackageListManager.tsx', 'Jual di aplikasi member'],
   ['Kartu status member di dashboard', 'src/app/member/dashboard/page.tsx', 'MembershipCard'],
+  ['Kode unik di nominal pembelian member', 'src/lib/membership.ts', 'pickUniqueCode'],
+  ['Admin centang "uang sudah masuk" sebelum konfirmasi', 'src/lib/validation.ts', 'verified: z.literal(true'],
+  ['Calon member: Daftar & beli paket dari halaman login', 'src/app/login/page.tsx', '/register?beli=1'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);

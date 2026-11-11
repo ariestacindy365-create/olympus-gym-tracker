@@ -99,6 +99,12 @@ export default function LoginPage() {
             {pending ? "Sedang masuk..." : "Masuk"}
           </Button>
 
+          <Link
+            href="/register?beli=1"
+            className="flex min-h-11 items-center justify-center rounded-lg border border-accent/40 bg-accent/10 px-4 text-sm font-semibold text-accent hover:bg-accent/15"
+          >
+            Calon member? Daftar &amp; beli paket
+          </Link>
           <p className="text-center text-sm text-muted">
             Baru di sini?{" "}
             <Link href="/register" className="font-medium text-accent hover:underline">

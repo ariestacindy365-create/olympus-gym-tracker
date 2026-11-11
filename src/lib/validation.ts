@@ -269,11 +269,16 @@ const waNumberSchema = z
   .trim()
   .regex(/^\+?[0-9\s-]{9,20}$/, { error: "Nomor WhatsApp tidak valid." });
 
-// A member buying a package in the app.
+// A member picks a package; they get the exact amount to pay (with a unique code).
 export const createMembershipOrderSchema = z.object({
   packageId: z.string().min(1),
+});
+
+// Then they send the proof of payment.
+export const submitMembershipPaymentSchema = z.object({
   paymentMethod: z.enum(["QRIS", "TRANSFER"]),
   waNumber: waNumberSchema,
+  senderName: z.string().trim().min(2, { error: "Isi nama pemilik rekening / akun pengirim." }).max(80),
   proofImage: z
     .string()
     .startsWith("data:image/", { error: "Upload bukti pembayaran dulu." })
@@ -281,7 +286,7 @@ export const createMembershipOrderSchema = z.object({
 });
 
 export const reviewMembershipOrderSchema = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("approve") }),
+  z.object({ action: z.literal("approve"), verified: z.literal(true, { error: "Centang dulu bahwa uangnya sudah masuk." }) }),
   z.object({ action: z.literal("reject"), reason: z.string().trim().min(1, { error: "Tulis alasannya." }).max(200) }),
 ]);
 

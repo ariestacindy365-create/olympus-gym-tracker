@@ -941,6 +941,8 @@ model CoachPersonalProgram {
 }
 
 enum MembershipOrderStatus {
+  // Package picked, unique amount shown, proof not sent yet.
+  UNPAID
   PENDING
   APPROVED
   REJECTED
@@ -960,13 +962,19 @@ model MembershipOrder {
   price            Int
   durationDays     Int
   credits          Int?
-  paymentMethod    PaymentMethod
-  waNumber         String
+  // Null until the proof is sent.
+  paymentMethod    PaymentMethod?
+  waNumber         String?
+  // Name on the sending account, as it shows in the bank statement.
+  senderName       String?
+  // 1–499 added to the price so each transfer is easy to find in the
+  // statement; the member pays price + uniqueCode.
+  uniqueCode       Int                   @default(0)
   // Drive file of the proof (same folder as Payment proofs); when Drive
   // isn't configured the compressed image is kept here instead.
   proofImageFileId String?
   proofImageData   String?
-  status           MembershipOrderStatus @default(PENDING)
+  status           MembershipOrderStatus @default(UNPAID)
   rejectReason     String?
   reviewedById     String?
   reviewedBy       User?                 @relation("OrdersReviewed", fields: [reviewedById], references: [id], onDelete: SetNull)

@@ -3,16 +3,17 @@ import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { CancelOrderButton, MembershipShop } from "@/components/member/MembershipShop";
-import { creditsLeft, formatMembershipDate, getMembershipSummary } from "@/lib/membership";
+import { closeStaleUnpaid, creditsLeft, formatMembershipDate, getMembershipSummary } from "@/lib/membership";
 import { formatRupiah } from "@/lib/packages";
 
 export default async function MemberMembershipPage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
+  await closeStaleUnpaid(user.id);
   const [summary, orders, packages, info] = await Promise.all([
     getMembershipSummary(user.id),
-    prisma.membershipOrder.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 5 }),
+    prisma.membershipOrder.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 8 }),
     prisma.package.findMany({
       where: { isActive: true, showInApp: true, durationDays: { not: null } },
       orderBy: { sortOrder: "asc" },
@@ -21,7 +22,9 @@ export default async function MemberMembershipPage() {
     prisma.gymPaymentInfo.findUnique({ where: { id: 1 } }),
   ]);
   const pending = orders.find((o) => o.status === "PENDING") ?? null;
-  const latest = orders[0] ?? null;
+  const unpaid = orders.find((o) => o.status === "UNPAID") ?? null;
+  const latest = orders.find((o) => o.status !== "UNPAID") ?? null;
+  const lastSent = orders.find((o) => o.waNumber) ?? null;
   const { current, upcoming, lastEnded } = summary;
   const left = current ? creditsLeft(current) : null;
 
@@ -71,15 +74,16 @@ export default async function MemberMembershipPage() {
       {pending && (
         <Card className="flex flex-wrap items-center justify-between gap-3 border-accent/40">
           <div>
-            <p className="font-semibold">⏳ Menunggu konfirmasi admin</p>
+            <p className="font-semibold">⏳ Menunggu verifikasi admin</p>
             <p className="text-sm text-muted">
-              {pending.packageName} · {formatRupiah(pending.price)} · dikirim {formatMembershipDate(pending.createdAt)}
+              {pending.packageName} · {formatRupiah(pending.price + pending.uniqueCode)} · dikirim {formatMembershipDate(pending.createdAt)}
             </p>
+            <p className="text-xs text-muted">Admin mengecek uangnya sudah masuk ke rekening / QRIS Olympus.</p>
           </div>
           <CancelOrderButton orderId={pending.id} />
         </Card>
       )}
-      {!pending && latest?.status === "REJECTED" && (
+      {!pending && !unpaid && latest?.status === "REJECTED" && (
         <Card className="border-danger/40">
           <p className="font-semibold text-danger">Pembelian {latest.packageName} ditolak</p>
           <p className="text-sm">{latest.rejectReason}</p>
@@ -88,12 +92,18 @@ export default async function MemberMembershipPage() {
       )}
 
       <section className="flex flex-col gap-2">
-        <h2 className="font-display text-lg font-semibold">{current || upcoming.length ? "Perpanjang / tambah paket" : "Beli paket"}</h2>
-        {(current || upcoming.length > 0) && <p className="text-xs text-muted">Paket baru mulai setelah paket yang sekarang habis, jadi tidak ada hari yang hilang.</p>}
+        <h2 className="font-display text-lg font-semibold">{unpaid ? "Selesaikan pembayaran" : current || upcoming.length ? "Perpanjang / tambah paket" : "Beli paket"}</h2>
+        {!unpaid && (current || upcoming.length > 0) && <p className="text-xs text-muted">Paket baru mulai setelah paket yang sekarang habis, jadi tidak ada hari yang hilang.</p>}
         <MembershipShop
           packages={packages.map((p) => ({ ...p, durationDays: p.durationDays! }))}
           info={{ bankName: info?.bankName ?? "", accountNumber: info?.accountNumber ?? "", accountName: info?.accountName ?? "", qrisImage: info?.qrisImage ?? null }}
-          lastWa={latest?.waNumber ?? ""}
+          lastWa={lastSent?.waNumber ?? ""}
+          lastSender={lastSent?.senderName ?? user.name}
+          openOrder={
+            unpaid
+              ? { id: unpaid.id, packageName: unpaid.packageName, price: unpaid.price, uniqueCode: unpaid.uniqueCode, durationDays: unpaid.durationDays, credits: unpaid.credits }
+              : null
+          }
           blocked={!!pending}
         />
       </section>
