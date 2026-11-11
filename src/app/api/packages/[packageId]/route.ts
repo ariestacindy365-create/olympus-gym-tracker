@@ -23,6 +23,12 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/packag
     return NextResponse.json({ error: "Paket tidak ditemukan." }, { status: 404 });
   }
 
+  const showInApp = parsed.data.showInApp ?? pkg.showInApp;
+  const durationDays = parsed.data.durationDays !== undefined ? parsed.data.durationDays : pkg.durationDays;
+  if (showInApp && !durationDays) {
+    return NextResponse.json({ error: "Paket yang dijual di aplikasi harus punya durasi." }, { status: 400 });
+  }
+
   const updated = await prisma.package.update({
     where: { id: packageId },
     data: parsed.data,

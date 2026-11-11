@@ -26,6 +26,8 @@ import { TodayWorkoutPlan, type LoggedSet } from "@/components/member/TodayWorko
 import { getActivePtPackage, getPtTodayPlan, sessionFor } from "@/lib/pt";
 import { scheduleLabel, upcomingSchedule } from "@/lib/ptSession";
 import { PtClientCard } from "@/components/member/PtClientCard";
+import { MembershipCard } from "@/components/member/MembershipCard";
+import { getMembershipSummary } from "@/lib/membership";
 import type { SetUnit } from "@/lib/setUnits";
 
 export default async function MemberDashboardPage(props: PageProps<"/member/dashboard">) {
@@ -212,6 +214,14 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
 
   const summary = computeTrainingSummary(allSets);
 
+  // Member status card, once the gym sells in the app or this member has a membership.
+  const [membership, pendingOrder, appPackages] = await Promise.all([
+    getMembershipSummary(user.id),
+    prisma.membershipOrder.count({ where: { userId: user.id, status: "PENDING" } }),
+    prisma.package.count({ where: { isActive: true, showInApp: true } }),
+  ]);
+  const showMembership = !!(membership.current || membership.upcoming.length || membership.lastEnded || pendingOrder || appPackages);
+
   return (
     <div className="flex flex-col gap-6">
       {pastDay ? (
@@ -229,6 +239,7 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
         <>
           <PageHeader eyebrow={todayLabel()} title={`Halo, ${user.name}`} subtitle="Berikut latihan hari ini." />
           <PushPrompt />
+          {showMembership && <MembershipCard summary={membership} pending={pendingOrder > 0} />}
           <TrainingStats summary={summary} />
           <CoachNotesCard notes={coachNotes} />
           {ptPackage && (
