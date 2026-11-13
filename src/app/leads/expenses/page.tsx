@@ -42,7 +42,7 @@ export default async function ExpensesPage() {
                     {EXPENSE_CATEGORY_LABEL[expense.category] ?? expense.category} · {formatRupiah(expense.amount)}
                   </p>
                   <p className="text-xs text-muted">
-                    {expense.paidAt.toLocaleDateString("id-ID")} · oleh {expense.createdBy.name}
+                    {expense.paidAt.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" })} · oleh {expense.createdBy.name}
                     {expense.description && ` · ${expense.description}`}
                   </p>
                 </div>

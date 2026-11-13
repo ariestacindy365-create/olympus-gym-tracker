@@ -355,7 +355,7 @@ export function ProgramHistoryCalendar({
           </div>
         )}
         <p className="mt-2 text-xs text-muted">
-          Sekarang: minggu yang dimulai {new Date(rotation.anchorMonday).toLocaleDateString("id-ID")} dianggap Minggu{" "}
+          Sekarang: minggu yang dimulai {new Date(rotation.anchorMonday).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" })} dianggap Minggu{" "}
           {rotation.anchorWeekNumber}, lalu berputar otomatis {Array.from({ length: rotation.weeks }, (_, i) => i + 1).join("→")} tiap minggu.
         </p>
       </Card>

@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/member/program", label: "Program" },
   { href: "/member/body", label: "Body Metrics" },
   { href: "/member/achievements", label: "Achievement" },
+  { href: "/member/membership", label: "Member" },
   { href: "/member/account", label: "Akun" },
 ];
 

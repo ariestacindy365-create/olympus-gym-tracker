@@ -88,6 +88,11 @@ model User {
   weekOverrides        CoachWeekOverride[]   @relation("CoachWeekOverrides")
   ptPackagesAsCoach    PtPackage[]           @relation("CoachPtPackages")
   ptMemberships        PtMember[]
+  membershipOrders     MembershipOrder[]     @relation("MemberOrders")
+  ordersReviewed       MembershipOrder[]     @relation("OrdersReviewed")
+  memberships          Membership[]          @relation("MemberMemberships")
+  membershipsCreated   Membership[]          @relation("MembershipsCreated")
+  leadAccounts         Lead[]                @relation("LeadAccount")
   achievementUnlocks   AchievementUnlock[]
   coachNotesReceived   CoachNote[]           @relation("MemberCoachNotes")
   coachNotesWritten    CoachNote[]           @relation("CoachNotesWritten")
@@ -504,6 +509,11 @@ model Lead {
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
 
+  // The member's app account, once known (set when an app purchase is
+  // confirmed), so later purchases land on the same lead.
+  userId    String?
+  user      User?       @relation("LeadAccount", fields: [userId], references: [id], onDelete: SetNull)
+
   followUps FollowUp[]
   payments  Payment[]
 
@@ -654,6 +664,10 @@ model Package {
   // the renewal-reminder follow-up. Optional: some packages (or ad-hoc ones
   // typed at payment time) may not have a fixed duration.
   durationDays Int?
+  // Class sessions included; null = unlimited classes for the duration.
+  credits      Int?
+  // Members can buy it themselves in the app (/member/membership).
+  showInApp    Boolean  @default(false)
   isActive     Boolean  @default(true)
   sortOrder    Int      @default(0)
   createdAt    DateTime @default(now())
@@ -851,6 +865,7 @@ enum NotificationType {
   PROGRAM_TODAY
   ANNOUNCEMENT
   LOG_REMINDER
+  MEMBERSHIP
 }
 
 // One in-app notification for one user (also sent to their phone when they
@@ -923,4 +938,84 @@ model CoachPersonalProgram {
   coach     User     @relation(fields: [coachId], references: [id], onDelete: Cascade)
   days      Json
   updatedAt DateTime @updatedAt
+}
+
+enum MembershipOrderStatus {
+  // Package picked, unique amount shown, proof not sent yet.
+  UNPAID
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+// A member buying a package in the app: they pay by transfer/QRIS and upload
+// the proof; an admin confirms it, which creates the Membership plus a
+// Payment on the member's lead (so it counts in the reports and gets the
+// renewal reminder). Package fields are a snapshot, like Payment.
+model MembershipOrder {
+  id               String                @id @default(cuid())
+  userId           String
+  user             User                  @relation("MemberOrders", fields: [userId], references: [id], onDelete: Cascade)
+  packageId        String?
+  packageName      String
+  price            Int
+  durationDays     Int
+  credits          Int?
+  // Null until the proof is sent.
+  paymentMethod    PaymentMethod?
+  waNumber         String?
+  // Name on the sending account, as it shows in the bank statement.
+  senderName       String?
+  // 1–499 added to the price so each transfer is easy to find in the
+  // statement; the member pays price + uniqueCode.
+  uniqueCode       Int                   @default(0)
+  // Drive file of the proof (same folder as Payment proofs); when Drive
+  // isn't configured the compressed image is kept here instead.
+  proofImageFileId String?
+  proofImageData   String?
+  status           MembershipOrderStatus @default(UNPAID)
+  rejectReason     String?
+  reviewedById     String?
+  reviewedBy       User?                 @relation("OrdersReviewed", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt       DateTime?
+  paymentId        String?
+  createdAt        DateTime              @default(now())
+
+  membership Membership?
+
+  @@index([status])
+  @@index([userId])
+}
+
+// A period a member may join classes: unlimited when credits is null, else
+// that many class sessions. Created by a confirmed app order or by an
+// admin for someone who paid at the front desk.
+model Membership {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation("MemberMemberships", fields: [userId], references: [id], onDelete: Cascade)
+  packageName String
+  credits     Int?
+  creditsUsed Int              @default(0)
+  startsAt    DateTime
+  expiresAt   DateTime
+  orderId     String?          @unique
+  order       MembershipOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  createdById String?
+  createdBy   User?            @relation("MembershipsCreated", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime         @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+// Where members send money for an app purchase; one row, edited by OWNER.
+model GymPaymentInfo {
+  id            Int      @id @default(1)
+  bankName      String   @default("")
+  accountNumber String   @default("")
+  accountName   String   @default("")
+  // Compressed QRIS image as a data URL (small, shown on the checkout).
+  qrisImage     String?
+  updatedAt     DateTime @updatedAt
 }

@@ -57,6 +57,14 @@ const FEATURES = [
   ['Ubah tanggal Dilatih (set ikut pindah) / Tandai belum dilatih', 'src/app/api/coach/pt/[packageId]/sessions/[number]/route.ts', 'export async function PATCH'],
   ['Selebrasi PR penuh 1 layar, timer tetap jalan di pojok', 'src/components/shared/PRCelebration.tsx', 'Timer tetap jalan'],
   ['Slide program penuh di samping timer', 'src/components/shared/SlideShow.tsx', '<ProgramSlide fill'],
+  ['Beli member di aplikasi (transfer/QRIS + bukti)', 'src/components/member/MembershipShop.tsx', 'membership-orders'],
+  ['Konfirmasi pembelian member → Payment + pengingat', 'src/lib/membership.ts', 'scheduleRenewalReminder'],
+  ['Aktifkan member yang bayar di meja depan', 'src/app/leads/member-app/page.tsx', 'AddMembershipForm'],
+  ['Paket unlimited / kredit, jual di aplikasi', 'src/components/leads/PackageListManager.tsx', 'Jual di aplikasi member'],
+  ['Kartu status member di dashboard', 'src/app/member/dashboard/page.tsx', 'MembershipCard'],
+  ['Kode unik di nominal pembelian member', 'src/lib/membership.ts', 'pickUniqueCode'],
+  ['Admin centang "uang sudah masuk" sebelum konfirmasi', 'src/lib/validation.ts', 'verified: z.literal(true'],
+  ['Calon member: Daftar & beli paket dari halaman login', 'src/app/login/page.tsx', '/register?beli=1'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);

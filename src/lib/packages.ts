@@ -5,6 +5,12 @@ export function formatRupiah(amount: number): string {
   return `Rp ${amount.toLocaleString("id-ID")}`;
 }
 
+/** "30 hari · 8 sesi kelas" / "30 hari · kelas unlimited". */
+export function packageDetail(p: { durationDays: number | null; credits: number | null }): string {
+  const kind = p.credits == null ? "kelas unlimited" : `${p.credits} sesi kelas`;
+  return p.durationDays ? `${p.durationDays} hari · ${kind}` : kind;
+}
+
 export const PAYMENT_METHOD_LABEL: Record<string, string> = {
   QRIS: "QRIS",
   TRANSFER: "Transfer",

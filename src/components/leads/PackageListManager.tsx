@@ -7,14 +7,46 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
-import { formatRupiah } from "@/lib/packages";
+import { formatRupiah, packageDetail } from "@/lib/packages";
 
 export interface PackageRow {
   id: string;
   name: string;
   price: number;
   durationDays: number | null;
+  credits: number | null;
+  showInApp: boolean;
   isActive: boolean;
+}
+
+/** Sesi (kosong = unlimited) + Jual di aplikasi, shared by add and edit. */
+function AppFields({
+  credits,
+  setCredits,
+  showInApp,
+  setShowInApp,
+}: {
+  credits: string;
+  setCredits: (v: string) => void;
+  showInApp: boolean;
+  setShowInApp: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <Input
+        type="number"
+        inputMode="numeric"
+        placeholder="Jumlah sesi kelas (kosong = unlimited)"
+        value={credits}
+        onChange={(e) => setCredits(e.target.value)}
+        className="sm:max-w-[300px]"
+      />
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={showInApp} onChange={(e) => setShowInApp(e.target.checked)} className="h-4 w-4" />
+        Jual di aplikasi member
+      </label>
+    </div>
+  );
 }
 
 function AddPackageForm() {
@@ -22,6 +54,8 @@ function AddPackageForm() {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [durationDays, setDurationDays] = useState("");
+  const [credits, setCredits] = useState("");
+  const [showInApp, setShowInApp] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,6 +77,8 @@ function AddPackageForm() {
           name: name.trim(),
           price: priceNum,
           durationDays: durationDaysNum > 0 ? durationDaysNum : undefined,
+          credits: Number(credits) > 0 ? Number(credits) : null,
+          showInApp,
         }),
       });
       const data = await res.json();
@@ -53,6 +89,8 @@ function AddPackageForm() {
       setName("");
       setPrice("");
       setDurationDays("");
+      setCredits("");
+      setShowInApp(false);
       router.refresh();
     } catch {
       setError("Terjadi kesalahan. Coba lagi.");
@@ -64,7 +102,8 @@ function AddPackageForm() {
   return (
     <Card>
       <h2 className="mb-3 font-display text-lg font-semibold">Tambah Paket Baru</h2>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-2 sm:flex-row">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
         <Input placeholder="Nama paket" value={name} onChange={(e) => setName(e.target.value)} />
         <Input
           type="number"
@@ -82,8 +121,10 @@ function AddPackageForm() {
           onChange={(e) => setDurationDays(e.target.value)}
           className="sm:max-w-[140px]"
         />
-        <Button type="submit" disabled={pending} className="whitespace-nowrap">
-          {pending ? "..." : "+ Tambah"}
+        </div>
+        <AppFields credits={credits} setCredits={setCredits} showInApp={showInApp} setShowInApp={setShowInApp} />
+        <Button type="submit" disabled={pending} className="whitespace-nowrap sm:self-start">
+          {pending ? "..." : "+ Tambah paket"}
         </Button>
       </form>
       {error && <p className="mt-2 text-sm text-danger">{error}</p>}
@@ -98,6 +139,8 @@ function PackageRowItem({ pkg }: { pkg: PackageRow }) {
   const [name, setName] = useState(pkg.name);
   const [price, setPrice] = useState(String(pkg.price));
   const [durationDays, setDurationDays] = useState(pkg.durationDays ? String(pkg.durationDays) : "");
+  const [credits, setCredits] = useState(pkg.credits ? String(pkg.credits) : "");
+  const [showInApp, setShowInApp] = useState(pkg.showInApp);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -167,6 +210,7 @@ function PackageRowItem({ pkg }: { pkg: PackageRow }) {
           onChange={(e) => setDurationDays(e.target.value)}
           placeholder="Durasi (hari, opsional)"
         />
+        <AppFields credits={credits} setCredits={setCredits} showInApp={showInApp} setShowInApp={setShowInApp} />
         {error && <p className="text-sm text-danger">{error}</p>}
         <div className="flex gap-2">
           <Button
@@ -178,6 +222,8 @@ function PackageRowItem({ pkg }: { pkg: PackageRow }) {
                 name: name.trim(),
                 price: Number(price),
                 durationDays: durationDaysNum > 0 ? durationDaysNum : null,
+                credits: Number(credits) > 0 ? Number(credits) : null,
+                showInApp,
               });
             }}
           >
@@ -197,23 +243,25 @@ function PackageRowItem({ pkg }: { pkg: PackageRow }) {
         <p className={`font-medium ${!pkg.isActive ? "text-muted line-through" : ""}`}>{pkg.name}</p>
         <p className="text-sm text-muted">
           {formatRupiah(pkg.price)}
-          {pkg.durationDays ? ` · ${pkg.durationDays} hari` : ""}
+          {/* Older packages (no sessions set, not sold in the app) keep their old line. */}
+          {pkg.credits != null || pkg.showInApp ? ` · ${packageDetail(pkg)}` : pkg.durationDays ? ` · ${pkg.durationDays} hari` : ""}
         </p>
       </div>
       <div className="flex items-center gap-2">
+        {pkg.showInApp && pkg.isActive && <Badge tone="accent">Di aplikasi</Badge>}
         <Badge tone={pkg.isActive ? "success" : "muted"}>{pkg.isActive ? "Aktif" : "Nonaktif"}</Badge>
         <Button variant="secondary" className="px-3 py-1.5 text-xs" disabled={pending} onClick={() => setEditing(true)}>
           Edit
         </Button>
         <Button
-          variant={pkg.isActive ? "danger" : "secondary"}
+          variant="secondary"
           className="px-3 py-1.5 text-xs"
           disabled={pending}
           onClick={() => patch({ isActive: !pkg.isActive })}
         >
           {pending ? "..." : pkg.isActive ? "Nonaktifkan" : "Aktifkan"}
         </Button>
-        <Button variant="danger" className="px-3 py-1.5 text-xs" disabled={pending} onClick={handleDelete}>
+        <Button variant="ghost" className="px-3 py-1.5 text-xs !text-danger hover:!bg-danger/10" disabled={pending} onClick={handleDelete}>
           {pending ? "..." : "Hapus"}
         </Button>
       </div>

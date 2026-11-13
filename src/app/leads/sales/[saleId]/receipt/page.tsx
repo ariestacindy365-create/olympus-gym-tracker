@@ -31,7 +31,7 @@ export default async function SaleReceiptPage({ params }: { params: Promise<{ sa
     <div className="mx-auto flex max-w-md flex-col gap-4 py-4 print:max-w-none print:gap-2 print:py-0">
       {sale.deletedAt && (
         <div className="rounded-md border border-danger/40 bg-danger/5 p-3 text-sm text-danger print:hidden">
-          Transaksi ini sudah dihapus pada {sale.deletedAt.toLocaleDateString("id-ID")}.
+          Transaksi ini sudah dihapus pada {sale.deletedAt.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" })}.
         </div>
       )}
       <div className="rounded-lg border border-border bg-surface p-6 print:border-0 print:p-2">

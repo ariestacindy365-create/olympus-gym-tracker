@@ -72,7 +72,7 @@ export default async function RenewalsPage() {
                         {lead.name}
                       </Link>{" "}
                       <span className="text-xs text-muted">
-                        {lead.waNumber} · {packageName} · berakhir {expiresAt.toLocaleDateString("id-ID")} · capture:{" "}
+                        {lead.waNumber} · {packageName} · berakhir {expiresAt.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" })} · capture:{" "}
                         {lead.capturedBy.name}
                       </span>
                     </div>

@@ -17,6 +17,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Data tidak valid." }, { status: 400 });
   }
 
+  if (parsed.data.showInApp && !parsed.data.durationDays) {
+    return NextResponse.json({ error: "Paket yang dijual di aplikasi harus punya durasi." }, { status: 400 });
+  }
+
   const maxSortOrder = await prisma.package.aggregate({ _max: { sortOrder: true } });
 
   const pkg = await prisma.package.create({
@@ -24,6 +28,8 @@ export async function POST(request: NextRequest) {
       name: parsed.data.name,
       price: parsed.data.price,
       durationDays: parsed.data.durationDays,
+      credits: parsed.data.credits ?? null,
+      showInApp: parsed.data.showInApp ?? false,
       sortOrder: (maxSortOrder._max.sortOrder ?? -1) + 1,
     },
   });

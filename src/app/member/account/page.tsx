@@ -19,6 +19,16 @@ export default async function MemberAccountPage() {
         <p className="text-sm text-muted">{user.name}</p>
       </div>
 
+      <Link href="/member/membership" className="block">
+        <Card className="flex items-center justify-between gap-3 transition hover:border-border-strong">
+          <span>
+            <span className="block font-display text-lg font-semibold">Member Saya</span>
+            <span className="block text-xs text-muted">Masa aktif, sisa sesi, beli / perpanjang paket</span>
+          </span>
+          <span className="text-sm font-semibold text-accent">Buka ›</span>
+        </Card>
+      </Link>
+
       <Card>
         <h2 className="mb-1 font-display text-lg font-semibold">Ubah Email</h2>
         <p className="mb-4 text-xs text-muted">Email ini dipakai untuk login. Pastikan email masih aktif.</p>

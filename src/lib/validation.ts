@@ -221,6 +221,8 @@ export const createPackageSchema = z.object({
   name: z.string().trim().min(1, { error: "Isi nama paket." }).max(80),
   price: z.number().int().positive({ error: "Harga harus lebih dari 0." }).max(100_000_000),
   durationDays: z.number().int().positive({ error: "Durasi harus lebih dari 0." }).max(3650).optional(),
+  credits: z.number().int().positive({ error: "Jumlah sesi harus lebih dari 0." }).max(500).nullable().optional(),
+  showInApp: z.boolean().optional(),
 });
 
 export const createProductSchema = z.object({
@@ -257,7 +259,54 @@ export const updatePackageSchema = z.object({
   name: z.string().trim().min(1, { error: "Isi nama paket." }).max(80).optional(),
   price: z.number().int().positive({ error: "Harga harus lebih dari 0." }).max(100_000_000).optional(),
   durationDays: z.number().int().positive({ error: "Durasi harus lebih dari 0." }).max(3650).nullable().optional(),
+  credits: z.number().int().positive({ error: "Jumlah sesi harus lebih dari 0." }).max(500).nullable().optional(),
+  showInApp: z.boolean().optional(),
   isActive: z.boolean().optional(),
+});
+
+const waNumberSchema = z
+  .string()
+  .trim()
+  .regex(/^\+?[0-9\s-]{9,20}$/, { error: "Nomor WhatsApp tidak valid." });
+
+// A member picks a package; they get the exact amount to pay (with a unique code).
+export const createMembershipOrderSchema = z.object({
+  packageId: z.string().min(1),
+});
+
+// Then they send the proof of payment.
+export const submitMembershipPaymentSchema = z.object({
+  paymentMethod: z.enum(["QRIS", "TRANSFER"]),
+  waNumber: waNumberSchema,
+  senderName: z.string().trim().min(2, { error: "Isi nama pemilik rekening / akun pengirim." }).max(80),
+  proofImage: z
+    .string()
+    .startsWith("data:image/", { error: "Upload bukti pembayaran dulu." })
+    .max(3_000_000, { error: "Ukuran bukti terlalu besar." }),
+});
+
+export const reviewMembershipOrderSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("approve"), verified: z.literal(true, { error: "Centang dulu bahwa uangnya sudah masuk." }) }),
+  z.object({ action: z.literal("reject"), reason: z.string().trim().min(1, { error: "Tulis alasannya." }).max(200) }),
+]);
+
+// Admin adds a membership for someone who paid at the front desk.
+export const createMembershipSchema = z.object({
+  userId: z.string().min(1),
+  packageId: z.string().min(1),
+  startsAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Tanggal tidak valid." }).optional(),
+});
+
+export const paymentInfoSchema = z.object({
+  bankName: z.string().trim().max(60),
+  accountNumber: z.string().trim().max(40),
+  accountName: z.string().trim().max(80),
+  qrisImage: z
+    .string()
+    .startsWith("data:image/", { error: "Format gambar QRIS tidak valid." })
+    .max(1_500_000, { error: "Gambar QRIS terlalu besar." })
+    .nullable()
+    .optional(),
 });
 
 export const createMovementSchema = z.object({
