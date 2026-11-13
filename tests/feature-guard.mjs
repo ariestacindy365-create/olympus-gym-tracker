@@ -24,7 +24,8 @@ for (const r of routes) {
 const FEATURES = [
   ['Selebrasi PR barbell di slideshow coach', 'src/components/shared/SlideShow.tsx', 'celebratePRs'],
   ['Selebrasi PR barbell di slideshow coach', 'src/components/coach/SlideShowButton.tsx', 'celebratePRs'],
-  ['Selebrasi PR: karakter + papan PR', 'src/components/shared/PRCelebration.tsx', 'prc-body'],
+  ['Selebrasi PR: karakter + papan PR', 'src/components/shared/PRLifter.tsx', 'prc-body'],
+  ['Selebrasi PR: karakter mengikuti pilihan member', 'src/app/api/coach/pr-events/route.ts', 'storyCharacter'],
   ['Selebrasi PR: tombol suara 🔊/🔇', 'src/components/shared/SlideShow.tsx', 'togglePrSound'],
   ['Hapus set tetap jalan saat pindah halaman', 'src/components/ui/UndoDeleteButton.tsx', 'pagehide'],
   ['Hapus set langsung di layar latihan hari ini', 'src/components/member/TodayWorkoutPlan.tsx', 'removeSet'],

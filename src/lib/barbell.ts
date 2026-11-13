@@ -24,4 +24,8 @@ export interface PREvent {
   reps: number;
   /** kg above the member's previous best on this movement; null on a first lift. */
   delta: number | null;
+  /** The look the member picked for their share cards ("pria" | "wanita" | "hijab"); null if none yet. */
+  character?: string | null;
+  /** Their skin tone pick ("terang" | "langsat" | "sawo" | "gelap"). */
+  skinTone?: string | null;
 }
