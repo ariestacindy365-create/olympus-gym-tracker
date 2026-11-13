@@ -103,7 +103,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
       {isDeleted && (
         <Card className="border-danger/40 bg-danger/5">
           <p className="text-sm text-danger">
-            Lead ini sudah dihapus pada {lead.deletedAt?.toLocaleDateString("id-ID")} oleh {lead.deletedBy?.name}.
+            Lead ini sudah dihapus pada {lead.deletedAt?.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" })} oleh {lead.deletedBy?.name}.
           </p>
         </Card>
       )}
@@ -111,7 +111,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
       <Card className="flex flex-wrap items-center gap-3">
         <Badge tone={STATUS_TONE[lead.status] ?? "default"}>{STATUS_LABEL[lead.status] ?? lead.status}</Badge>
         <span className="text-xs text-muted">
-          Dicapture oleh {lead.capturedBy.name} · {lead.capturedAt.toLocaleDateString("id-ID")}
+          Dicapture oleh {lead.capturedBy.name} · {lead.capturedAt.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" })}
         </span>
         {!isDeleted && (
           <WhatsAppLink waNumber={lead.waNumber} message={waMessage}>
@@ -152,8 +152,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
                     <p className="text-xs text-muted">
                       {formatRupiah(payment.amount)} ·{" "}
                       {PAYMENT_METHOD_LABEL[payment.paymentMethod] ?? payment.paymentMethod} ·{" "}
-                      {payment.paidAt.toLocaleDateString("id-ID")} · oleh {payment.createdBy.name}
-                      {payment.expiresAt && ` · berlaku sampai ${payment.expiresAt.toLocaleDateString("id-ID")}`}
+                      {payment.paidAt.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" })} · oleh {payment.createdBy.name}
+                      {payment.expiresAt && ` · berlaku sampai ${payment.expiresAt.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" })}`}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -189,7 +189,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-sm">
                     <Badge tone={FOLLOWUP_TYPE_TONE[fu.type] ?? "default"}>{FOLLOWUP_TYPE_LABEL[fu.type] ?? fu.type}</Badge>{" "}
-                    {fu.dueDate.toLocaleDateString("id-ID")}
+                    {fu.dueDate.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" })}
                   </span>
                   <Badge tone={fu.status === "DONE" ? "success" : "muted"}>
                     {FOLLOWUP_STATUS_LABEL[fu.status] ?? fu.status}

@@ -38,6 +38,8 @@ export function ClassScheduleEditor({ weekdays, sessions, coaches, initial }: Cl
   }
 
   return (
+    <div>
+    <p className="mb-1 text-xs text-muted sm:hidden">Geser tabel ke kanan untuk kolom lainnya →</p>
     <div className="overflow-x-auto rounded-xl border border-border bg-surface">
       <table className="w-full min-w-[640px] border-collapse text-sm">
         <thead>
@@ -84,6 +86,7 @@ export function ClassScheduleEditor({ weekdays, sessions, coaches, initial }: Cl
       {Object.values(status).includes("error") && (
         <p className="border-t border-border px-3 py-2 text-xs text-danger">Ada perubahan yang gagal disimpan. Coba pilih lagi.</p>
       )}
+    </div>
     </div>
   );
 }

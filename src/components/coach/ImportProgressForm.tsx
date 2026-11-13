@@ -64,12 +64,13 @@ export function ImportProgressForm() {
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
               File Excel (.xlsx)
             </label>
-            <input
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="block w-full text-sm text-foreground file:mr-3 file:rounded-md file:border-0 file:bg-accent file:px-3 file:py-2 file:text-sm file:font-semibold file:text-background file:cursor-pointer"
-            />
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="inline-flex min-h-11 cursor-pointer items-center rounded-lg bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-2 focus-within:ring-2 focus-within:ring-accent focus-within:ring-offset-2">
+                Pilih file
+                <input type="file" accept=".xlsx,.xls" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="sr-only" />
+              </label>
+              <span className="min-w-0 break-all text-sm text-muted">{file ? file.name : "Belum ada file dipilih"}</span>
+            </div>
           </div>
           {error && <p className="text-sm text-danger">{error}</p>}
           <Button type="submit" disabled={pending || !file} className="w-full sm:w-auto">
