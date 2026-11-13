@@ -11,7 +11,7 @@ interface StickerLine {
   sets: number;
 }
 
-interface WorkoutStickerModalProps {
+export interface WorkoutStickerModalProps {
   title: string;
   lines: StickerLine[];
   levels: Partial<Record<MuscleKey, number>>;
@@ -27,7 +27,7 @@ interface WorkoutStickerModalProps {
 const SIZE = 1080;
 /** Exercise rows in the top-right list (the last one becomes "+N gerakan lagi" when there are more). */
 const MAX_LINES = 6;
-type Ink = "light" | "dark";
+export type Ink = "light" | "dark";
 const INK = {
   light: { text: "#ffffff", muted: "rgba(255,255,255,0.72)", accent: "#3b82f6", track: "rgba(255,255,255,0.22)", shadow: "rgba(0,0,0,0.45)", logo: "/olympus-logo-light-bw.png" },
   dark: { text: "#0b1220", muted: "rgba(11,18,32,0.65)", accent: "#2563eb", track: "rgba(11,18,32,0.14)", shadow: "rgba(255,255,255,0.5)", logo: "/olympus-logo-bw.png" },
@@ -75,7 +75,8 @@ async function figureImages(host: HTMLElement) {
   );
 }
 
-async function drawSticker(canvas: HTMLCanvasElement, host: HTMLElement, p: WorkoutStickerModalProps, ink: Ink) {
+/** Draws the transparent workout sticker; `host` holds the rendered MuscleMap. */
+export async function drawSticker(canvas: HTMLCanvasElement, host: HTMLElement, p: Omit<WorkoutStickerModalProps, "onClose">, ink: Ink) {
   await document.fonts?.ready;
   const c = INK[ink];
   const { display, body } = fontFamilies();
