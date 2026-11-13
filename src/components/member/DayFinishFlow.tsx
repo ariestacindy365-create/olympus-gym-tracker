@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MuscleMap } from "@/components/shared/MuscleMap";
 import { VolumeStoryModal } from "@/components/member/VolumeStoryModal";
-import { WorkoutStickerModal } from "@/components/shared/WorkoutStickerModal";
+import { ShareCards } from "@/components/member/ShareCards";
 import { formatKg, pickEquivalent, type LifterCharacter, type SkinTone } from "@/lib/volumeStory";
 import { MUSCLE_LABEL, type MuscleKey } from "@/lib/muscles";
 import type { DaySummary } from "@/lib/workoutSummary";
@@ -74,9 +74,7 @@ export function DayFinishFlow({
   const [pending, setPending] = useState(false);
   const [totals, setTotals] = useState<Totals | null>(null);
   const [story, setStory] = useState(false);
-  const [sticker, setSticker] = useState(false);
   const [calCard, setCalCard] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [bodyWeightKg, setBodyWeightKg] = useState<number | null>(null);
   const [durationMin, setDurationMin] = useState(DEFAULT_WORKOUT_MINUTES);
 
@@ -309,71 +307,83 @@ export function DayFinishFlow({
                 <p className="mt-1 font-display text-2xl font-bold">Kerja bagus, {firstName}!</p>
                 <p className="text-sm text-muted">Ini latihan ke-{totals.workoutNumber} kamu di Olympus.</p>
               </div>
-              <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2">
-                {[
-                  { big: String(totals.workoutNumber), unit: "latihan", sub: `${formatDuration(totals.durationSec)} · ${formatKg(totals.totalKg)} kg diangkat total` },
-                  { big: formatKg(summary.totalVolume), unit: date ? "kg diangkat" : "kg hari ini", sub: eq ? `${eq.emoji} setara ${formatKg(eq.factor)}× ${eq.name}` : "" },
-                  { big: String(summary.prCount), unit: "rekor pribadi", sub: summary.prCount ? date ? "Rekor baru 🏆" : "Rekor baru hari ini 🏆" : "Terus dorong, rekor menunggu!" },
-                  ...(cal ? [{ big: `±${cal.kcal.toLocaleString("id-ID")}`, unit: "kcal terbakar", sub: `${food?.main.emoji} setara ${food?.main.text} · estimasi, bukan angka pasti` }] : []),
-                  { big: String(totals.daysThisWeek), unit: "hari minggu ini", sub: totals.daysThisWeek >= 3 ? "Konsisten seperti dewa Olympus ⚡" : "Tambah satu hari lagi minggu ini?" },
-                ].map((c) => (
-                  <div
-                    key={c.unit}
-                    className="flex w-[78%] shrink-0 snap-center flex-col items-center justify-center rounded-2xl bg-nav-bg px-4 py-6 text-center text-white [background-image:radial-gradient(20rem_9rem_at_50%_0%,rgb(37_99_235/0.55),transparent)]"
-                  >
-                    <p className="font-display text-5xl font-bold">{c.big}</p>
-                    <p className="text-sm font-semibold uppercase tracking-wider text-white/80">{c.unit}</p>
-                    {c.sub && <p className="mt-2 text-xs text-white/65">{c.sub}</p>}
-                  </div>
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={() => setSticker(true)}
-                className="flex h-12 items-center justify-center gap-2 rounded-xl bg-nav-bg text-sm font-semibold text-white hover:opacity-90"
-              >
-                🖼️ Stiker latihan <span className="text-xs font-normal text-white/70">PNG transparan</span>
-              </button>
-              {cal && (
-                <button
-                  type="button"
-                  onClick={() => setCalCard(true)}
-                  className="flex h-12 items-center justify-center gap-2 rounded-xl bg-[#ea580c] text-sm font-semibold text-white hover:opacity-90"
-                >
-                  🔥 Kartu kalori <span className="text-xs font-normal text-white/80">
-                    {food?.main.emoji} {food?.main.text}
-                  </span>
-                </button>
-              )}
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setStory(true)}
-                  className="h-11 rounded-xl bg-accent text-sm font-semibold text-white hover:bg-accent-2"
-                >
-                  📸 Story volume
-                </button>
-                <a
-                  href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex h-11 items-center justify-center rounded-xl bg-[#22c55e] text-sm font-semibold text-white"
-                >
-                  WhatsApp
-                </a>
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard?.writeText(shareText).then(() => setCopied(true), () => {});
-                  }}
-                  className="h-11 rounded-xl border border-border text-sm font-semibold"
-                >
-                  {copied ? "✓ Tersalin" : "Salin teks"}
-                </button>
-                <Link href="/member/feed" className="flex h-11 items-center justify-center rounded-xl border border-border text-sm font-semibold">
-                  Lihat di Feed
-                </Link>
-              </div>
+              <ShareCards
+                memberName={memberName}
+                shareText={shareText}
+                fileSlug={(title || defaultTitle).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "latihan"}
+                onVideo={(kind) => (kind === "kalori" ? setCalCard(true) : setStory(true))}
+                cards={[
+                  {
+                    id: "ringkasan",
+                    kind: "stat",
+                    stat: {
+                      eyebrow: title || defaultTitle,
+                      big: formatKg(summary.totalVolume),
+                      unit: date ? "kg diangkat" : "kg hari ini",
+                      sub: eq ? `Setara ${formatKg(eq.factor)}× ${eq.name} ${eq.emoji}` : undefined,
+                      stats: [
+                        { value: formatDuration(totals.durationSec), label: "Durasi" },
+                        { value: String(summary.totalSets), label: "Set" },
+                        { value: String(summary.prCount), label: "Rekor" },
+                      ],
+                    },
+                    video: "volume",
+                  },
+                  {
+                    id: "stiker",
+                    kind: "sticker",
+                    sticker: {
+                      title: title || defaultTitle,
+                      lines: summary.lines,
+                      levels: summary.levels,
+                      muscleSets: summary.muscleSets,
+                      totalVolume: summary.totalVolume,
+                      totalSets: summary.totalSets,
+                      prCount: summary.prCount,
+                      memberName,
+                    },
+                  },
+                  ...(summary.prCount
+                    ? [
+                        {
+                          id: "rekor",
+                          kind: "stat" as const,
+                          stat: { eyebrow: title || defaultTitle, emoji: "🏆", big: String(summary.prCount), unit: "rekor pribadi", sub: date ? "Rekor baru" : "Rekor baru hari ini" },
+                        },
+                      ]
+                    : []),
+                  ...(cal && food
+                    ? [
+                        {
+                          id: "kalori",
+                          kind: "stat" as const,
+                          stat: {
+                            eyebrow: "Estimasi kalori",
+                            emoji: food.main.emoji,
+                            big: `±${cal.kcal.toLocaleString("id-ID")}`,
+                            unit: "kcal terbakar",
+                            sub: `Setara ${food.main.text}. Estimasi, bukan angka pasti.`,
+                          },
+                          video: "kalori" as const,
+                        },
+                      ]
+                    : []),
+                  {
+                    id: "konsisten",
+                    kind: "stat",
+                    stat: {
+                      eyebrow: "Olympus Lifting Club",
+                      big: String(totals.workoutNumber),
+                      unit: "latihan di Olympus",
+                      sub: totals.daysThisWeek >= 3 ? `${totals.daysThisWeek} hari minggu ini. Konsisten seperti dewa Olympus ⚡` : `${totals.daysThisWeek} hari minggu ini`,
+                      stats: [{ value: `${formatKg(totals.totalKg)} kg`, label: "Total diangkat" }],
+                    },
+                  },
+                ]}
+              />
+              <Link href="/member/feed" className="self-center text-sm font-semibold text-accent hover:underline">
+                Lihat di Feed
+              </Link>
             </div>
           )}
         </div>
@@ -411,19 +421,6 @@ export function DayFinishFlow({
           stats={`${formatDuration(durationSec)} · ${formatKg(summary.totalVolume)} kg`}
           memberName={memberName}
           onClose={() => setCalCard(false)}
-        />
-      )}
-      {sticker && summary && (
-        <WorkoutStickerModal
-          title={title || defaultTitle}
-          lines={summary.lines}
-          levels={summary.levels}
-          muscleSets={summary.muscleSets}
-          totalVolume={summary.totalVolume}
-          totalSets={summary.totalSets}
-          prCount={summary.prCount}
-          memberName={memberName}
-          onClose={() => setSticker(false)}
         />
       )}
       {story && summary && (

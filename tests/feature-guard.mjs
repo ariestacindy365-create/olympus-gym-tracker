@@ -26,6 +26,8 @@ const FEATURES = [
   ['Selebrasi PR barbell di slideshow coach', 'src/components/coach/SlideShowButton.tsx', 'celebratePRs'],
   ['Selebrasi PR: karakter + papan PR', 'src/components/shared/PRLifter.tsx', 'prc-body'],
   ['Selebrasi PR: karakter mengikuti pilihan member', 'src/app/api/coach/pr-events/route.ts', 'storyCharacter'],
+  ['Layar share: kartu geser + satu baris tombol', 'src/components/member/DayFinishFlow.tsx', '<ShareCards'],
+  ['Layar share: latar biru / transparan', 'src/components/member/ShareCards.tsx', 'fillOlympusBackground'],
   ['Selebrasi PR: tombol suara 🔊/🔇', 'src/components/shared/SlideShow.tsx', 'togglePrSound'],
   ['Hapus set tetap jalan saat pindah halaman', 'src/components/ui/UndoDeleteButton.tsx', 'pagehide'],
   ['Hapus set langsung di layar latihan hari ini', 'src/components/member/TodayWorkoutPlan.tsx', 'removeSet'],
