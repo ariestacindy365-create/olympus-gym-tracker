@@ -382,6 +382,7 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks, draft
           Jadwal Latihan &mdash; Minggu {activeWeek}
         </div>
 
+        <p className="mb-1 text-xs text-muted sm:hidden">Geser tabel ke kanan untuk kolom lainnya →</p>
         <div className="overflow-x-auto">
           <DndContext
             id="program-dnd"
@@ -437,6 +438,7 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks, draft
           Rangkuman Volume Otot &mdash; Minggu {activeWeek}
         </div>
 
+        <p className="mb-1 text-xs text-muted sm:hidden">Geser tabel ke kanan untuk kolom lainnya →</p>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] border-collapse text-sm">
             <thead>

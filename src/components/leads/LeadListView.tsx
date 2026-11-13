@@ -72,7 +72,7 @@ export function LeadListView({ leads }: { leads: LeadRow[] }) {
               <p className="font-medium">{lead.name}</p>
               <p className="text-xs text-muted">
                 {lead.waNumber} · dicapture oleh {lead.capturedByName} ·{" "}
-                {new Date(lead.capturedAt).toLocaleDateString("id-ID")}
+                {new Date(lead.capturedAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" })}
               </p>
             </Link>
             <div className="flex flex-wrap items-center gap-2">

@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   const parsed = registerSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Enter your name, a valid email, and a 4-digit PIN." },
+      { error: "Isi nama, email yang benar, dan PIN 4 angka." },
       { status: 400 }
     );
   }
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
-    return NextResponse.json({ error: "An account with that email already exists." }, { status: 409 });
+    return NextResponse.json({ error: "Sudah ada akun dengan email itu. Silakan masuk." }, { status: 409 });
   }
 
   const pinHash = await hashPin(pin);

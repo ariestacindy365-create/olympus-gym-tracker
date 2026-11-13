@@ -68,8 +68,8 @@ export default async function PaymentsPage({
                   </p>
                   <p className="text-xs text-muted">
                     {formatRupiah(payment.amount)} · {PAYMENT_METHOD_LABEL[payment.paymentMethod] ?? payment.paymentMethod} ·{" "}
-                    {payment.paidAt.toLocaleDateString("id-ID")} · oleh {payment.createdBy.name}
-                    {payment.expiresAt && ` · berlaku sampai ${payment.expiresAt.toLocaleDateString("id-ID")}`}
+                    {payment.paidAt.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" })} · oleh {payment.createdBy.name}
+                    {payment.expiresAt && ` · berlaku sampai ${payment.expiresAt.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" })}`}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
