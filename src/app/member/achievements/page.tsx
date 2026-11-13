@@ -79,7 +79,7 @@ export default async function MemberAchievementsPage() {
           <div className="mt-5 flex items-center gap-4 rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
             <Emblem code={next.code} size={64} locked progress={progressOf(next)} className="shrink-0" />
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-nav-muted">Target berikutnya</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-nav-muted">Target berikutnya</p>
               <p className="font-display text-lg font-bold">{next.name}</p>
               <p className="text-xs text-white/70">
                 {next.description} · {formatProgress(next, stats[next.statKey])}
@@ -117,17 +117,17 @@ export default async function MemberAchievementsPage() {
                     }`}
                   >
                     <Emblem code={achievement.code} size={96} locked={!isUnlocked} progress={progress} />
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${isUnlocked ? TIER_PILL[style.tier] : "bg-border text-muted"}`}>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold uppercase tracking-wider ${isUnlocked ? TIER_PILL[style.tier] : "bg-border text-muted"}`}>
                       {TIER_LABEL[style.tier]}
                     </span>
                     <p className={`font-display text-sm font-bold leading-tight ${isUnlocked ? "text-foreground" : "text-muted"}`}>
                       {achievement.name}
                     </p>
-                    <p className="text-[11px] leading-snug text-muted">{achievement.description}</p>
+                    <p className="text-xs leading-snug text-muted">{achievement.description}</p>
                     {isUnlocked ? (
-                      <p className="text-[11px] font-medium text-success">✓ {formatDate(unlockedAtByCode.get(achievement.code)!)}</p>
+                      <p className="text-xs font-medium text-success">✓ {formatDate(unlockedAtByCode.get(achievement.code)!)}</p>
                     ) : (
-                      <p className="text-[11px] font-semibold text-accent">{formatProgress(achievement, currentValue)}</p>
+                      <p className="text-xs font-semibold text-accent">{formatProgress(achievement, currentValue)}</p>
                     )}
                   </div>
                 );

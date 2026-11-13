@@ -299,11 +299,11 @@ export function TodayWorkoutPlan({
     <section className="flex flex-col gap-3">
       <div className="rounded-2xl bg-nav-bg p-4 text-white shadow-raised [background-image:radial-gradient(28rem_10rem_at_100%_0%,rgb(37_99_235/0.5),transparent)]">
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-nav-muted">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-nav-muted">
             {plan.dayLabel} · {plan.pt ? `${plan.pt.coachName}${plan.pt.partners.length ? ` · bareng ${plan.pt.partners.join(", ")}` : ""}` : plan.klass ? `Kelas ${plan.klass.label}` : "Program dari pelatih"}
           </p>
           {plan.classOptions.length > 1 && (
-            <label className="flex items-center gap-1 text-[11px] text-white/70">
+            <label className="flex items-center gap-1 text-xs text-white/70">
               Ganti kelas
               <select
                 value={plan.klass?.sessionId ?? ""}
@@ -406,7 +406,7 @@ export function TodayWorkoutPlan({
                       const field = savedNow ? "border-transparent bg-success/10" : row.queued ? "border-transparent bg-[#f59e0b]/15" : "border-border bg-surface";
                       return (
                         <div key={j} className="mt-1.5 grid grid-cols-[52px_1fr_1fr_44px_44px] items-center gap-1.5">
-                          <span className="text-[11px] font-bold uppercase text-muted">
+                          <span className="text-xs font-bold uppercase text-muted">
                             Set {j + 1}
                             {row.saved?.isPR && " 🏆"}
                           </span>
@@ -422,14 +422,14 @@ export function TodayWorkoutPlan({
                             field
                           }`}
                         />
-                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-muted">kg</span>
+                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted">kg</span>
                       </label>
                       ) : (
                         <button
                           type="button"
                           onClick={() => setKgOpen((current) => ({ ...current, [i]: true }))}
                           aria-label={`${it.name}: tambah beban`}
-                          className="flex h-11 flex-col items-center justify-center rounded-lg border border-dashed border-border text-[11px] leading-tight text-muted hover:border-accent hover:text-foreground"
+                          className="flex h-11 flex-col items-center justify-center rounded-lg border border-dashed border-border text-xs leading-tight text-muted hover:border-accent hover:text-foreground"
                         >
                           <span>Tanpa beban</span>
                           <span className="font-semibold text-accent">+ kg</span>
@@ -446,7 +446,7 @@ export function TodayWorkoutPlan({
                                 field
                               }`}
                             />
-                            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-muted">
+                            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted">
                               {UNIT_LABEL[it.unit]}
                               {it.perSide && "/sisi"}
                             </span>
@@ -515,7 +515,7 @@ export function TodayWorkoutPlan({
           className="flex w-full flex-col items-center rounded-2xl bg-accent py-3 text-white shadow-overlay transition hover:bg-accent-2 disabled:opacity-60"
         >
           <span className="text-base font-bold">{date ? "🏁 Selesai & simpan latihan" : "🏁 Selesai latihan hari ini"}</span>
-          <span className="text-[11px] opacity-85">
+          <span className="text-xs opacity-85">
             {queuedCount > 0 ? `Tunggu ${queuedCount} set terkirim dulu` : `${done.length} set tercatat · ${formatKg(volume)} kg`}
           </span>
         </button>

@@ -99,7 +99,7 @@ export function PtSessionLogger({
                 <div className="mt-2 overflow-x-auto">
                   <table className="w-full min-w-[360px] border-separate border-spacing-x-1.5 border-spacing-y-1 text-sm">
                     <thead>
-                      <tr className="text-left text-[11px] font-bold uppercase text-muted">
+                      <tr className="text-left text-xs font-bold uppercase text-muted">
                         <th className="w-12" />
                         {members.map((m) => (
                           <th key={m.id} className="truncate">{m.name}</th>
@@ -109,7 +109,7 @@ export function PtSessionLogger({
                     <tbody>
                       {Array.from({ length: rows }, (_, j) => (
                         <tr key={j}>
-                          <td className="text-[11px] font-bold uppercase text-muted">Set {j + 1}</td>
+                          <td className="text-xs font-bold uppercase text-muted">Set {j + 1}</td>
                           {members.map((m) => {
                             const k = key(m.id, item.exerciseId, j + 1);
                             const c = cell(k);

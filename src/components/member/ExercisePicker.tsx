@@ -108,7 +108,7 @@ export function ExercisePicker({ exercises, value, onChange, coachExerciseId, re
             <div className="overflow-y-auto px-2 pb-4">
               {sections.map((sec) => (
                 <div key={sec.title}>
-                  <p className="px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-muted">{sec.title}</p>
+                  <p className="px-2 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-muted">{sec.title}</p>
                   {sec.items.length === 0 ? (
                     <p className="px-2 py-2 text-sm text-muted">Tidak ada gerakan yang cocok.</p>
                   ) : (

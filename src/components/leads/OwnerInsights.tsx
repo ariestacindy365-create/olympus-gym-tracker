@@ -46,7 +46,7 @@ export function RetentionCard({ months }: { months: RetentionMonth[] }) {
                     {m.renewed}/{m.renewed + m.churned}
                   </span>
                 </span>
-                {m.pending > 0 && <span className="text-[11px] text-muted">{m.pending} menunggu</span>}
+                {m.pending > 0 && <span className="text-xs text-muted">{m.pending} menunggu</span>}
               </span>
             </li>
           ))}

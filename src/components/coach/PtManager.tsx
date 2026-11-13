@@ -163,7 +163,7 @@ function PackageList({ title, packages, empty }: { title: string; packages: PtPa
               <Link href={`/coach/pt/${p.id}`} className="flex h-full flex-col gap-1 rounded-xl border border-border bg-surface p-4 shadow-card hover:border-accent">
                 <span className="flex items-center gap-2">
                   <span className="font-semibold">{p.name || p.members.join(" & ")}</span>
-                  {p.members.length > 1 && <span className="rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-accent">Couple</span>}
+                  {p.members.length > 1 && <span className="rounded bg-accent/10 px-1.5 py-0.5 text-xs font-bold uppercase text-accent">Couple</span>}
                 </span>
                 {p.name && <span className="text-sm text-muted">{p.members.join(", ")}</span>}
                 <span className="text-sm text-muted">
