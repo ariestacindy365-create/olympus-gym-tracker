@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       createdAt: true,
       weight: true,
       reps: true,
-      member: { select: { name: true } },
+      member: { select: { name: true, storyCharacter: true, storySkinTone: true } },
       exercise: { select: { name: true } },
     },
   });
@@ -73,6 +73,9 @@ export async function GET(request: NextRequest) {
           weight: s.weight,
           reps: s.reps,
           delta: best == null ? null : Math.round((s.weight - best) * 10) / 10,
+          // Stored as PRIA / WANITA / HIJAB and TERANG / …; the TV draws that lifter.
+          character: s.member.storyCharacter ? ({ PRIA: "pria", WANITA: "wanita", HIJAB: "hijab" }[s.member.storyCharacter as string] ?? null) : null,
+          skinTone: s.member.storySkinTone ? (s.member.storySkinTone as string).toLowerCase() : null,
         };
       })
   );

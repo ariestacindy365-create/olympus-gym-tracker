@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { PREvent } from "@/lib/barbell";
+import { PRLifter } from "@/components/shared/PRLifter";
+import { DEFAULT_SKIN_TONE, SKIN_TONES, type LifterCharacter, type SkinTone } from "@/lib/volumeStory";
 
 // The celebration on the coach's slideshow when a member logs a barbell PR:
 // one full blue screen, a lifter walks in holding a "REKOR BARU!" board over their
@@ -161,6 +163,7 @@ interface Bit { x: number; y: number; vx: number; vy: number; r: number; vr: num
 export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?: string | null }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
+  const raysRef = useRef<HTMLDivElement>(null);
   const walkerRef = useRef<HTMLDivElement>(null);
   const signRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -251,16 +254,31 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
     if (!current || !root || !bar || !walker || !sign || !canvas) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const part = (id: string) => root.querySelector<SVGGElement>(`#prc-${id}`)!;
-    const p = { body: part("body"), legL: part("legL"), legR: part("legR"), armL: part("armL"), armR: part("armR") };
-    const rot = (el: SVGGElement, deg: number) => el.setAttribute("transform", `rotate(${deg.toFixed(2)})`);
-    // Front view: the legs swing while walking, the arms keep the board up.
-    const pose = (ph: number, walking: boolean) => {
-      const swing = walking && !reduce ? Math.sin(ph) : 0;
-      rot(p.legL, 16 * swing);
-      rot(p.legR, -16 * swing);
-      rot(p.armL, 3 * swing);
-      rot(p.armR, 3 * swing);
-      p.body.setAttribute("transform", walking && !reduce ? `translate(0 ${(-2.5 * Math.abs(Math.cos(ph))).toFixed(2)})` : "");
+    const p = {
+      body: part("body"), legL: part("legL"), legR: part("legR"), armL: part("armL"), armR: part("armR"),
+      faceWalk: part("faceWalk"), faceJoy: part("faceJoy"), shadow: part("shadow"),
+    };
+    const rays = raysRef.current;
+    // Front view. Walking is a march: each knee comes up in turn (the leg
+    // shortens and swings out a little), the body bobs and leans into the
+    // step, the arms flex under the board. `air` 0→1 is how far off the
+    // ground a hop is: legs tuck, the shadow shrinks.
+    const pose = (ph: number, walking: boolean, air: number) => {
+      const on = walking && !reduce;
+      const up = (k: number) => (on ? Math.max(0, k) : 0);
+      const l = up(Math.sin(ph)), r = up(-Math.sin(ph));
+      const tuck = reduce ? 0 : air * 0.22;
+      p.legL.setAttribute("transform", `rotate(${(l * 9 + air * 6).toFixed(2)}) scale(1 ${(1 - l * 0.24 - tuck).toFixed(3)})`);
+      p.legR.setAttribute("transform", `rotate(${(-r * 9 - air * 6).toFixed(2)}) scale(1 ${(1 - r * 0.24 - tuck).toFixed(3)})`);
+      const flex = on ? Math.sin(ph * 2) * 2.5 : -air * 5;
+      p.armL.setAttribute("transform", `rotate(${flex.toFixed(2)})`);
+      p.armR.setAttribute("transform", `rotate(${(-flex).toFixed(2)})`);
+      const bob = on ? -3 * Math.abs(Math.sin(ph)) : 0;
+      const lean = on ? Math.sin(ph) * 2.2 : 0;
+      p.body.setAttribute("transform", `translate(0 ${bob.toFixed(2)}) rotate(${lean.toFixed(2)} 70 230)`);
+      p.shadow.setAttribute("transform", `translate(70 234) scale(${(1 - air * 0.35).toFixed(3)}) translate(-70 -234)`);
+      p.faceWalk.setAttribute("display", walking ? "inline" : "none");
+      p.faceJoy.setAttribute("display", walking ? "none" : "inline");
     };
 
     const ctx = canvas.getContext("2d")!;
@@ -300,7 +318,9 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
       // Hops in place while standing, three jumps at a time with a breather.
       const hop = !walking && ht > 0 && !reduce && ht % 2.4 < 1.5 ? Math.abs(Math.sin(ht * Math.PI * 2)) * H * 0.05 : 0;
       walker.style.transform = `translate(${x}px, ${-hop}px)`;
-      pose(ph, walking);
+      pose(ph, walking, H ? Math.min(1, hop / (H * 0.05)) : 0);
+      // Spotlight rays fade in while standing in the middle.
+      if (rays) rays.style.opacity = reduce ? "0" : String(Math.max(0, Math.min(1, walking ? (t < IN ? 0 : 1 - (t - IN - hold) * 2) : (t - IN) * 2)) * 0.9);
       sign.style.transform = reduce ? "" : walking ? `rotate(${Math.sin(ph) * 2}deg)` : `rotate(${Math.sin(t * 5) * 2.5}deg)`;
       bar.style.width = `${Math.min(100, (t / total) * 100).toFixed(2)}%`;
       if (walking) {
@@ -386,6 +406,12 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
   // Long names get smaller so the sign keeps to its size.
   const nameSize = (name: string, base: number, fits: number) => `calc(var(--u) * ${(base * Math.min(1, fits / Math.max(1, name.length))).toFixed(2)})`;
 
+  // The member's own look (their share-card pick); the first name's on a group board.
+  const shown = one ?? group?.[0] ?? null;
+  const look: { character: LifterCharacter; skinTone: SkinTone } = {
+    character: shown?.character === "wanita" || shown?.character === "hijab" ? shown.character : "pria",
+    skinTone: SKIN_TONES.find((t) => t.id === shown?.skinTone)?.id ?? DEFAULT_SKIN_TONE,
+  };
   const prev = one && one.delta != null && one.delta > 0 ? `+${fmtKg(one.delta)} kg dari rekor sebelumnya 🔥` : one ? "Rekor pertama kali! 🔥" : null;
 
   return (
@@ -406,6 +432,21 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
       }}
       title={current ? "Ketuk untuk menutup" : undefined}
     >
+      {/* Slowly turning light rays behind the lifter while they celebrate. */}
+      <div
+        ref={raysRef}
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-[58%] aspect-square animate-[spin_40s_linear_infinite] motion-reduce:animate-none"
+        style={{
+          width: "150cqmax",
+          marginLeft: "-75cqmax",
+          marginTop: "-75cqmax",
+          opacity: 0,
+          background: "repeating-conic-gradient(from 0deg, rgb(255 255 255 / .13) 0deg 7deg, transparent 7deg 20deg)",
+          maskImage: "radial-gradient(circle, #000 8%, transparent 58%)",
+          WebkitMaskImage: "radial-gradient(circle, #000 8%, transparent 58%)",
+        }}
+      />
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
       {clock && (
@@ -420,7 +461,7 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
       )}
 
       {/* Board held over the head + the lifter, walking as one. */}
-      <div ref={walkerRef} className="absolute left-0 flex flex-col items-center" style={{ bottom: "6cqh", transform: "translateX(-200%)", willChange: "transform" }}>
+      <div ref={walkerRef} className="absolute left-0 flex flex-col items-center" style={{ bottom: "3.5cqh", transform: "translateX(-200%)", willChange: "transform" }}>
         <div
           ref={signRef}
           className="relative z-10 overflow-hidden whitespace-nowrap bg-white text-center text-slate-900"
@@ -463,40 +504,8 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
             </ul>
           )}
         </div>
-        <svg className="block w-auto overflow-visible" style={{ height: "min(34cqh, 45cqw)", marginTop: "-1.5cqh" }} viewBox="0 0 120 210" aria-hidden>
-          <ellipse cx="60" cy="205" rx="34" ry="5" fill="rgb(0 0 0 / .28)" />
-          <g id="prc-body">
-            {/* Arms up to the board's bottom edge. */}
-            <g transform="translate(44 74)"><g id="prc-armL">
-              <path d="M-5 0 L-14 -66 L-5 -67 L5 -2 Z" fill="#d8a06b" />
-              <circle cx="-10" cy="-68" r="6.5" fill="#c48a55" />
-            </g></g>
-            <g transform="translate(76 74)"><g id="prc-armR">
-              <path d="M5 0 L14 -66 L5 -67 L-5 -2 Z" fill="#d8a06b" />
-              <circle cx="10" cy="-68" r="6.5" fill="#c48a55" />
-            </g></g>
-            {/* Legs swing from the hips. */}
-            <g transform="translate(51 140)"><g id="prc-legL">
-              <rect x="-6.5" y="0" width="13" height="50" rx="5" fill="#c48a55" />
-              <path d="M-9 48 L9 48 C12 48 13 56 9 56 L-10 56 C-12 56 -12 48 -9 48 Z" fill="#ffffff" />
-            </g></g>
-            <g transform="translate(69 140)"><g id="prc-legR">
-              <rect x="-6.5" y="0" width="13" height="50" rx="5" fill="#d8a06b" />
-              <path d="M-9 48 L9 48 C12 48 12 56 10 56 L-9 56 C-13 56 -12 48 -9 48 Z" fill="#ffffff" />
-            </g></g>
-            <path d="M40 128 L80 128 L83 150 L62 150 L60 142 L58 150 L37 150 Z" fill="#111827" />
-            <path d="M42 70 C50 64 70 64 78 70 L82 130 L38 130 Z" fill="#facc15" />
-            <path d="M52 66 C55 72 65 72 68 66" stroke="#d8a06b" strokeWidth="4" fill="none" strokeLinecap="round" />
-            <circle cx="60" cy="98" r="9" fill="none" stroke="#1e3a8a" strokeWidth="3.4" />
-            <text x="60" y="122" textAnchor="middle" fontFamily="Oswald, Impact, sans-serif" fontSize="7" fontWeight="700" fill="#1e3a8a" letterSpacing=".4">OLYMPUS</text>
-            <rect x="55" y="54" width="10" height="12" fill="#c48a55" />
-            <circle cx="60" cy="42" r="17" fill="#d8a06b" />
-            <path d="M43 40 C42 24 54 20 62 21 C74 22 79 30 77 40 C72 32 64 30 56 31 C50 32 46 35 43 40 Z" fill="#1b130d" />
-            <circle cx="53.5" cy="44" r="2.1" fill="#1b130d" />
-            <circle cx="66.5" cy="44" r="2.1" fill="#1b130d" />
-            <path d="M53 51 C57 56 63 56 67 51" stroke="#7c2d12" strokeWidth="2.2" fill="#fff" strokeLinecap="round" />
-          </g>
-        </svg>
+        {/* Bigger when carrying one name; a group board is taller, so the lifter gives it room. */}
+        <PRLifter character={look.character} skinTone={look.skinTone} style={{ height: group ? "min(34cqh, 45cqw)" : "min(48cqh, 60cqw)", marginTop: "-1.4cqh" }} />
       </div>
 
       <div className="absolute inset-x-0 bottom-0 bg-white/15" style={{ height: "0.8cqh" }}>
