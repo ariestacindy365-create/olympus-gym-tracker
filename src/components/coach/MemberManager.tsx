@@ -200,7 +200,7 @@ export function MemberManager({ members: initialMembers }: { members: Member[] }
                 </>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <MemberStatusBadge online={member.online} loggedToday={member.loggedToday} />
               {editingId !== member.id && (
                 <>
@@ -221,8 +221,8 @@ export function MemberManager({ members: initialMembers }: { members: Member[] }
                     Reset PIN
                   </Button>
                   <Button
-                    variant="danger"
-                    className="px-2 py-1.5 text-xs"
+                    variant="ghost"
+                    className="px-2 py-1.5 text-xs !text-danger hover:!bg-danger/10"
                     disabled={actionPendingId === member.id}
                     onClick={() => handleDelete(member.id, member.name)}
                   >

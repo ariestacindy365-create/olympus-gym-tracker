@@ -206,14 +206,14 @@ function PackageRowItem({ pkg }: { pkg: PackageRow }) {
           Edit
         </Button>
         <Button
-          variant={pkg.isActive ? "danger" : "secondary"}
+          variant="secondary"
           className="px-3 py-1.5 text-xs"
           disabled={pending}
           onClick={() => patch({ isActive: !pkg.isActive })}
         >
           {pending ? "..." : pkg.isActive ? "Nonaktifkan" : "Aktifkan"}
         </Button>
-        <Button variant="danger" className="px-3 py-1.5 text-xs" disabled={pending} onClick={handleDelete}>
+        <Button variant="ghost" className="px-3 py-1.5 text-xs !text-danger hover:!bg-danger/10" disabled={pending} onClick={handleDelete}>
           {pending ? "..." : "Hapus"}
         </Button>
       </div>

@@ -58,7 +58,7 @@ export default async function LeadsHistoryPage() {
                     <Link href={`/leads/${fu.leadId}`} className="font-medium hover:text-accent">
                       {fu.lead.name}
                     </Link>{" "}
-                    <span className="text-xs text-muted">{fu.lead.waNumber} · jatuh tempo {fu.dueDate.toLocaleDateString("id-ID")}</span>
+                    <span className="text-xs text-muted">{fu.lead.waNumber} · jatuh tempo {fu.dueDate.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" })}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     {overdueDays > 0 && <Badge tone="danger">Terlambat {overdueDays} hari</Badge>}
@@ -88,7 +88,7 @@ export default async function LeadsHistoryPage() {
                   <Link href={`/leads/${fu.leadId}`} className="font-medium hover:text-accent">
                     {fu.lead.name}
                   </Link>{" "}
-                  <span className="text-xs text-muted">{fu.lead.waNumber} · terjadwal {fu.dueDate.toLocaleDateString("id-ID")}</span>
+                  <span className="text-xs text-muted">{fu.lead.waNumber} · terjadwal {fu.dueDate.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" })}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <FollowUpTypeBadge type={fu.type} />
@@ -113,7 +113,7 @@ export default async function LeadsHistoryPage() {
                     {fu.lead.name}
                   </Link>{" "}
                   <span className="text-xs text-muted">
-                    {fu.lead.waNumber} · {fu.completedAt?.toLocaleDateString("id-ID")} oleh {fu.completedBy?.name}
+                    {fu.lead.waNumber} · {fu.completedAt?.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" })} oleh {fu.completedBy?.name}
                     {fu.note ? ` · "${fu.note}"` : ""}
                   </span>
                 </div>
@@ -141,7 +141,7 @@ export default async function LeadsHistoryPage() {
                   </Link>{" "}
                   <span className="text-xs text-muted">
                     {lead.waNumber} · dicapture oleh {lead.capturedBy.name} · dihapus{" "}
-                    {lead.deletedAt?.toLocaleDateString("id-ID")} oleh {lead.deletedBy?.name}
+                    {lead.deletedAt?.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" })} oleh {lead.deletedBy?.name}
                   </span>
                 </div>
                 <LeadStatusBadge status={lead.status} />
@@ -169,7 +169,7 @@ export default async function LeadsHistoryPage() {
                   <span className="text-xs text-muted">
                     {payment.packageName} · {formatRupiah(payment.amount)} ·{" "}
                     {PAYMENT_METHOD_LABEL[payment.paymentMethod] ?? payment.paymentMethod} · dicatat oleh{" "}
-                    {payment.createdBy.name} · dihapus {payment.deletedAt?.toLocaleDateString("id-ID")} oleh{" "}
+                    {payment.createdBy.name} · dihapus {payment.deletedAt?.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" })} oleh{" "}
                     {payment.deletedBy?.name}
                   </span>
                 </div>
@@ -194,7 +194,7 @@ export default async function LeadsHistoryPage() {
                   <p className="font-medium">{sale.productName}</p>
                   <span className="text-xs text-muted">
                     {formatRupiah(sale.price)} · {PAYMENT_METHOD_LABEL[sale.paymentMethod] ?? sale.paymentMethod} ·
-                    dicatat oleh {sale.createdBy.name} · dihapus {sale.deletedAt?.toLocaleDateString("id-ID")} oleh{" "}
+                    dicatat oleh {sale.createdBy.name} · dihapus {sale.deletedAt?.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" })} oleh{" "}
                     {sale.deletedBy?.name}
                   </span>
                 </div>

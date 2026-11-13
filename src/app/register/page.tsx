@@ -22,11 +22,11 @@ export default function RegisterPage() {
     setError(null);
 
     if (pin.length !== 4) {
-      setError("Choose a 4-digit PIN.");
+      setError("Pilih PIN 4 angka.");
       return;
     }
     if (pin !== confirmPin) {
-      setError("PINs don't match.");
+      setError("PIN dan konfirmasinya tidak sama.");
       return;
     }
 
@@ -40,7 +40,7 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? "Could not create your account.");
+        setError(data.error ?? "Akun tidak bisa dibuat. Coba lagi.");
         setPending(false);
         return;
       }
@@ -48,7 +48,7 @@ export default function RegisterPage() {
       router.push("/member/dashboard");
       router.refresh();
     } catch {
-      setError("Something went wrong. Try again.");
+      setError("Terjadi kesalahan. Coba lagi.");
       setPending(false);
     }
   }
@@ -62,18 +62,18 @@ export default function RegisterPage() {
       <div className="relative w-full max-w-sm animate-pop-in">
         <div className="mb-8 flex flex-col items-center text-center">
           <OlympusLogo height={64} variant="light" />
-          <p className="mt-3 text-sm font-medium uppercase tracking-[0.2em] text-nav-muted">Create Your Member Account</p>
+          <p className="mt-3 text-sm font-medium uppercase tracking-[0.2em] text-nav-muted">Buat Akun Member</p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5 rounded-2xl border border-border bg-surface p-6 shadow-raised">
           <div>
             <label htmlFor="name" className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
-              Name
+              Nama
             </label>
             <Input
               id="name"
               type="text"
-              placeholder="Your name"
+              placeholder="Nama kamu"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -88,7 +88,7 @@ export default function RegisterPage() {
             <Input
               id="email"
               type="email"
-              placeholder="you@olympus.gym"
+              placeholder="kamu@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -97,14 +97,14 @@ export default function RegisterPage() {
 
           <div>
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
-              Choose a 4-Digit PIN
+              Pilih PIN 4 angka
             </label>
             <PinInput value={pin} onChange={setPin} disabled={pending} />
           </div>
 
           <div>
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
-              Confirm PIN
+              Ulangi PIN
             </label>
             <PinInput value={confirmPin} onChange={setConfirmPin} disabled={pending} />
           </div>
@@ -116,13 +116,13 @@ export default function RegisterPage() {
           )}
 
           <Button type="submit" disabled={pending} className="mt-1 w-full">
-            {pending ? "Creating account..." : "Create Account"}
+            {pending ? "Membuat akun..." : "Buat Akun"}
           </Button>
 
           <p className="text-center text-sm text-muted">
-            Already have an account?{" "}
+            Sudah punya akun?{" "}
             <Link href="/login" className="font-medium text-accent hover:underline">
-              Sign in
+              Masuk
             </Link>
           </p>
         </form>
