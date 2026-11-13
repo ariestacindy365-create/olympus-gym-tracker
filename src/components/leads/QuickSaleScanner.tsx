@@ -307,7 +307,7 @@ export function QuickSaleScanner() {
       {toast && (
         <div
           role="status"
-          className="fixed inset-x-4 bottom-4 z-40 mx-auto max-w-md rounded-xl bg-success px-4 py-3 text-sm font-semibold text-white shadow-overlay animate-pop-in print:hidden"
+          className="fixed inset-x-4 bottom-24 z-40 sm:bottom-4 mx-auto max-w-md rounded-xl bg-success px-4 py-3 text-sm font-semibold text-white shadow-overlay animate-pop-in print:hidden"
         >
           ✓ {toast}
         </div>

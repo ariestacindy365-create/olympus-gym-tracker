@@ -20,7 +20,7 @@ export function ChallengeCard({ challenge, compact = false }: { challenge: Month
     <section className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 shadow-card">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">Challenge {monthLabel}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Challenge {monthLabel}</p>
           <p className="font-display text-xl font-bold">Latihan {CHALLENGE.days} hari bulan ini</p>
         </div>
         <span className="shrink-0 rounded-full bg-surface-2 px-2.5 py-1 text-xs font-semibold text-muted">

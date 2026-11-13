@@ -361,7 +361,7 @@ export function TopSetForm({
                   </li>
                 ) : (
                   <li key={s.id} className="flex items-center gap-2 px-3 py-1.5 text-sm">
-                    <span className="w-11 shrink-0 text-[11px] font-semibold text-muted">SET {s.setNumber}</span>
+                    <span className="w-11 shrink-0 text-xs font-semibold text-muted">SET {s.setNumber}</span>
                     <span className="tabular min-w-0 flex-1 whitespace-nowrap font-semibold">
                       {formatKg(s.weight)} kg × {s.reps}
                     </span>
@@ -429,7 +429,7 @@ export function TopSetForm({
             {showWeight ? <StepperInput label="Beban (kg)" value={weight} onChange={setWeight} step={WEIGHT_STEP} decimal placeholder="mis. 40" /> : <button type="button" onClick={() => setKgOpen((current) => ({ ...current, [exerciseId]: true }))} aria-label={`${exerciseName}: tambah beban`} className="flex min-h-11 flex-1 flex-col items-center justify-center self-end rounded-lg border border-dashed border-border py-2 text-xs text-muted hover:border-accent"><span>Tanpa beban</span><span className="font-semibold text-accent">+ kg</span></button>}
             <StepperInput label="Reps" value={reps} onChange={setReps} step={1} placeholder="mis. 8" />
           </div>
-          <p className="mt-1.5 text-[11px] text-muted">Tombol − / + mengubah beban 2,5 kg dan reps 1.</p>
+          <p className="mt-1.5 text-xs text-muted">Tombol − / + mengubah beban 2,5 kg dan reps 1.</p>
         </div>
 
         <div>

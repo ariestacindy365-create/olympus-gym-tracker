@@ -229,7 +229,6 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
         <>
           <PageHeader eyebrow={todayLabel()} title={`Halo, ${user.name}`} subtitle="Berikut latihan hari ini." />
           <PushPrompt />
-          <TrainingStats summary={summary} />
           <CoachNotesCard notes={coachNotes} />
           {ptPackage && (
             <PtClientCard
@@ -297,6 +296,9 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
       )}
 
       <BackfillPicker days={backfill} active={dateStr} />
+
+      {/* Under the logging, so the first thing on a phone is today's workout. */}
+      {!pastDay && <TrainingStats summary={summary} />}
 
       {challenge && <ChallengeCard challenge={challenge} compact />}
 

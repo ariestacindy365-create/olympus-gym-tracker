@@ -16,7 +16,7 @@ export default async function MemberNotificationsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader eyebrow="Olympus Lifting Club" title="Notifikasi" subtitle="Kabar terbaru untukmu dan pengumuman dari Olympus." />
+      <PageHeader title="Notifikasi" subtitle="Kabar terbaru untukmu dan pengumuman dari Olympus." />
       <PushSettings initialProgram={user.notifyProgram} initialReminder={user.notifyReminder} />
       <NotificationList
         items={rows.map((n) => ({

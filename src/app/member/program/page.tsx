@@ -66,7 +66,7 @@ export default async function MemberProgramPage(props: PageProps<"/member/progra
               >
                 <span className="truncate text-sm font-bold">
                   {c.name}
-                  {c.id === myCoachId && <span className={`ml-1 text-[11px] font-semibold ${active ? "text-white/80" : "text-accent"}`}>· kelasmu</span>}
+                  {c.id === myCoachId && <span className={`ml-1 text-xs font-semibold ${active ? "text-white/80" : "text-accent"}`}>· kelasmu</span>}
                 </span>
                 <span className={`truncate text-[11.5px] ${active ? "text-white/80" : "text-muted"}`}>
                   {c.times.length > 0 ? `Hari ini ${c.times.join(" · ")}` : "Tidak mengajar hari ini"}

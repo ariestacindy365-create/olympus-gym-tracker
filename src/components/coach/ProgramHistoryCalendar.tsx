@@ -260,7 +260,7 @@ export function ProgramHistoryCalendar({
                 <span>{cell.day}</span>
                 {entry && (
                   <span
-                    className={`text-[10px] leading-none ${entry.overridden ? "font-bold text-amber-500" : "opacity-70"}`}
+                    className={`text-xs leading-none ${entry.overridden ? "font-bold text-amber-500" : "opacity-70"}`}
                     title={entry.overridden ? "Diganti khusus minggu ini" : undefined}
                   >
                     M{entry.weekNumber}

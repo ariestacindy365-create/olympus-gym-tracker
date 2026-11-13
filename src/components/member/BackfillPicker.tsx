@@ -20,9 +20,9 @@ export function BackfillPicker({ days, active }: { days: { date: string; sets: n
               d.date === active ? "border-accent bg-accent/10" : "border-border bg-surface-2 hover:border-accent"
             }`}
           >
-            <span className="text-[11px] font-semibold uppercase text-muted">{i === 0 ? "Kemarin" : label(d.date, { weekday: "long" })}</span>
+            <span className="text-xs font-semibold uppercase text-muted">{i === 0 ? "Kemarin" : label(d.date, { weekday: "long" })}</span>
             <span className="font-display text-lg font-bold leading-tight">{label(d.date, { day: "numeric", month: "short" })}</span>
-            <span className={`text-[11px] font-semibold ${d.sets ? "text-success" : "text-muted"}`}>
+            <span className={`text-xs font-semibold ${d.sets ? "text-success" : "text-muted"}`}>
               {d.sets ? `✓ ${d.sets} set` : "Belum diisi"}
             </span>
           </Link>

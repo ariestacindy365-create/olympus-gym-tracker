@@ -43,7 +43,6 @@ export default async function CoachPtPage() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
-        eyebrow="Personal training"
         title="Klien PT"
         subtitle="Jadikan member klien PT, sendiri atau couple/grup kecil dalam satu paket. Program PT ditulis per sesi."
       />

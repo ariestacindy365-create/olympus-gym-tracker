@@ -28,7 +28,7 @@ export function TrainingStats({ summary }: { summary: TrainingSummaryData }) {
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {tiles.map((t) => (
         <div key={t.label} className="rounded-xl border border-border bg-surface p-3 shadow-card">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{t.label}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t.label}</p>
           <p className="tabular mt-0.5 truncate font-display text-xl font-bold">{t.value}</p>
           <p className="truncate text-xs text-muted">{t.hint}</p>
         </div>
@@ -49,7 +49,7 @@ export function TrainingHeatmap({ summary }: { summary: TrainingSummaryData }) {
         </span>
       </div>
       <div className="flex gap-1.5">
-        <div className="grid grid-rows-7 gap-1 pr-1 text-[10px] text-muted">
+        <div className="grid grid-rows-7 gap-1 pr-1 text-xs text-muted">
           {DAY_LABELS.map((l, i) => (
             <span key={i} className="flex h-full items-center leading-none">
               {l}
@@ -66,7 +66,7 @@ export function TrainingHeatmap({ summary }: { summary: TrainingSummaryData }) {
           ))}
         </div>
       </div>
-      <div className="mt-3 flex items-center justify-end gap-1 text-[10px] text-muted">
+      <div className="mt-3 flex items-center justify-end gap-1 text-xs text-muted">
         Sedikit
         {LEVEL_CLASS.map((c, i) => (
           <span key={i} className={`h-3 w-3 rounded-[3px] ${c}`} />

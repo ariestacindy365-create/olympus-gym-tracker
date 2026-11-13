@@ -112,16 +112,16 @@ function PostCard({ post }: { post: FeedPost }) {
         {post.note && <p className="mt-0.5 whitespace-pre-line text-sm text-foreground/85">{post.note}</p>}
         <dl className="mt-2 flex gap-5 text-sm">
           <div>
-            <dt className="text-[11px] text-muted">Durasi</dt>
+            <dt className="text-xs text-muted">Durasi</dt>
             <dd className="font-semibold">{formatDuration(post.durationSec)}</dd>
           </div>
           <div>
-            <dt className="text-[11px] text-muted">Volume</dt>
+            <dt className="text-xs text-muted">Volume</dt>
             <dd className="font-semibold">{formatKg(post.totalVolume)} kg</dd>
           </div>
           {post.prCount > 0 && (
             <div>
-              <dt className="text-[11px] text-muted">Rekor</dt>
+              <dt className="text-xs text-muted">Rekor</dt>
               <dd className="font-semibold">🏆 {post.prCount}</dd>
             </div>
           )}
@@ -202,10 +202,10 @@ function PostCard({ post }: { post: FeedPost }) {
                 <li key={c.id} className="text-sm">
                   <span className="font-semibold">{c.name}</span>
                   {c.coach && (
-                    <span className="ml-1 rounded bg-accent/10 px-1 py-px text-[10px] font-bold uppercase text-accent">Coach</span>
+                    <span className="ml-1 rounded bg-accent/10 px-1 py-px text-xs font-bold uppercase text-accent">Coach</span>
                   )}{" "}
                   {c.body}
-                  <span className="ml-1 text-[11px] text-muted">{timeAgo(c.createdAt)}</span>
+                  <span className="ml-1 text-xs text-muted">{timeAgo(c.createdAt)}</span>
                 </li>
               ))}
               {comments.length === 0 && <li className="text-xs text-muted">Belum ada komentar. Jadi yang pertama!</li>}

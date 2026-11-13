@@ -112,7 +112,7 @@ export function ProgramVersionList({ versions, weekCount }: { versions: ProgramV
                 <p className="font-display text-lg font-bold">
                   Minggu {v.weekNumber}
                   {v.current && (
-                    <span className="ml-2 rounded bg-success/10 px-1.5 py-0.5 align-middle font-sans text-[11px] font-bold uppercase text-success">
+                    <span className="ml-2 rounded bg-success/10 px-1.5 py-0.5 align-middle font-sans text-xs font-bold uppercase text-success">
                       Dipakai sekarang
                     </span>
                   )}

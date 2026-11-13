@@ -67,7 +67,7 @@ export default async function MemberFeedPage({
   const posts = await getFeed(user);
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader eyebrow="Olympus Lifting Club" title="Feed" subtitle="Latihan member Olympus. Kasih 💪 dan semangat!" />
+      <PageHeader title="Feed" subtitle="Latihan member Olympus. Kasih 💪 dan semangat!" />
       {tabs}
       <FeedView posts={posts} />
     </div>
