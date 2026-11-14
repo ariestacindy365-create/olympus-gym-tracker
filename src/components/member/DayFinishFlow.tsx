@@ -6,7 +6,7 @@ import { MuscleMap } from "@/components/shared/MuscleMap";
 import { VolumeStoryModal } from "@/components/member/VolumeStoryModal";
 import { ShareCards } from "@/components/member/ShareCards";
 import { formatKg, pickEquivalent, type LifterCharacter, type SkinTone } from "@/lib/volumeStory";
-import { MUSCLE_LABEL, type MuscleKey } from "@/lib/muscles";
+import { MUSCLE_LABEL, focusTitle, type MuscleKey } from "@/lib/muscles";
 import type { DaySummary } from "@/lib/workoutSummary";
 import { DEFAULT_WORKOUT_MINUTES, WORKOUT_DURATION_OPTIONS } from "@/lib/workoutDuration";
 import { formatDuration } from "@/lib/duration";
@@ -27,6 +27,16 @@ interface Totals {
   durationSec: number;
   totalKg: number;
   daysThisWeek: number;
+  /** Days trained this week, 0 = Monday … 6 = Sunday. */
+  weekDays?: number[];
+  /** Each record set today, with the best weight before today. */
+  records?: { exercise: string; weight: number; reps: number; previous: number | null }[];
+}
+
+/** 0 = Monday … 6 = Sunday, for "YYYY-MM-DD" (or today in Jakarta). */
+function weekdayIndex(date: string | null) {
+  const ymd = date ?? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
+  return (new Date(`${ymd}T00:00:00Z`).getUTCDay() + 6) % 7;
 }
 
 interface DayFinishFlowProps {
@@ -313,6 +323,33 @@ export function DayFinishFlow({
                 fileSlug={(title || defaultTitle).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "latihan"}
                 onVideo={(kind) => (kind === "kalori" ? setCalCard(true) : setStory(true))}
                 cards={[
+                  ...(() => {
+                    const recs = [...(totals.records ?? [])].sort((a, b) => b.weight - a.weight);
+                    const top = recs[0];
+                    if (!summary.prCount) return [];
+                    const others = Math.max(recs.length, summary.prCount > 0 ? 1 : 0) - 1;
+                    const more = others > 0 ? ` · +${others} rekor lainnya` : "";
+                    return [
+                      {
+                        id: "rekor",
+                        kind: "stat" as const,
+                        stat: top
+                          ? {
+                              eyebrow: date ? "Rekor baru" : "Rekor baru hari ini",
+                              emoji: "🏆",
+                              big: `${formatKg(top.weight)} kg`,
+                              unit: top.exercise,
+                              sub:
+                                (top.previous != null && top.weight > top.previous
+                                  ? `Rekor lama ${formatKg(top.previous)} kg → +${formatKg(Math.round((top.weight - top.previous) * 10) / 10)} kg`
+                                  : top.previous == null
+                                    ? "Rekor pertama gerakan ini"
+                                    : `${formatKg(top.weight)} kg × ${top.reps}, perkiraan 1RM tertinggi`) + more,
+                            }
+                          : { eyebrow: title || defaultTitle, emoji: "🏆", big: String(summary.prCount), unit: "rekor pribadi", sub: date ? "Rekor baru" : "Rekor baru hari ini" },
+                      },
+                    ];
+                  })(),
                   {
                     id: "ringkasan",
                     kind: "stat",
@@ -343,12 +380,44 @@ export function DayFinishFlow({
                       memberName,
                     },
                   },
-                  ...(summary.prCount
+                  ...(muscles.length
                     ? [
                         {
-                          id: "rekor",
-                          kind: "stat" as const,
-                          stat: { eyebrow: title || defaultTitle, emoji: "🏆", big: String(summary.prCount), unit: "rekor pribadi", sub: date ? "Rekor baru" : "Rekor baru hari ini" },
+                          id: "fokus",
+                          kind: "muscle" as const,
+                          levels: summary.levels,
+                          muscle: {
+                            eyebrow: title || defaultTitle,
+                            title: focusTitle(summary.muscleSets),
+                            muscles: muscles.slice(0, 3).map(([k, v]) => ({
+                              label: MUSCLE_LABEL[k],
+                              sets: Math.round(v * 2) / 2,
+                              share: v / muscles[0][1],
+                            })),
+                          },
+                        },
+                      ]
+                    : []),
+                  ...(summary.lines.length
+                    ? [
+                        {
+                          id: "gerakan",
+                          kind: "list" as const,
+                          list: {
+                            eyebrow: title || defaultTitle,
+                            title: `${summary.lines.length} gerakan`,
+                            rows: summary.lines.map((l) => ({
+                              name: l.exercise,
+                              pr: l.pr,
+                              value:
+                                l.unit === "REPS"
+                                  ? l.best
+                                    ? `${formatKg(l.best.weight)} kg × ${l.best.reps}`
+                                    : `${l.sets} set`
+                                  : formatAmount(l.amount, l.unit),
+                            })),
+                            more: summary.lines.length > 7 ? `+${summary.lines.length - 7} gerakan lainnya` : undefined,
+                          },
                         },
                       ]
                     : []),
@@ -368,17 +437,23 @@ export function DayFinishFlow({
                         },
                       ]
                     : []),
-                  {
-                    id: "konsisten",
-                    kind: "stat",
-                    stat: {
-                      eyebrow: "Olympus Lifting Club",
-                      big: String(totals.workoutNumber),
-                      unit: "latihan di Olympus",
-                      sub: totals.daysThisWeek >= 3 ? `${totals.daysThisWeek} hari minggu ini. Konsisten seperti dewa Olympus ⚡` : `${totals.daysThisWeek} hari minggu ini`,
-                      stats: [{ value: `${formatKg(totals.totalKg)} kg`, label: "Total diangkat" }],
-                    },
-                  },
+                  totals.weekDays
+                    ? {
+                        id: "minggu",
+                        kind: "week",
+                        week: { eyebrow: `Latihan ke-${totals.workoutNumber} di Olympus`, days: totals.weekDays, today: weekdayIndex(date) },
+                      }
+                    : {
+                        id: "konsisten",
+                        kind: "stat",
+                        stat: {
+                          eyebrow: "Olympus Lifting Club",
+                          big: String(totals.workoutNumber),
+                          unit: "latihan di Olympus",
+                          sub: `${totals.daysThisWeek} hari minggu ini`,
+                          stats: [{ value: `${formatKg(totals.totalKg)} kg`, label: "Total diangkat" }],
+                        },
+                      },
                 ]}
               />
               <Link href="/member/feed" className="self-center text-sm font-semibold text-accent hover:underline">
