@@ -35,6 +35,8 @@ const FEATURES = [
   ['Kartu Rekor baru dengan rekor lama', 'src/components/member/DayFinishFlow.tsx', 'Rekor lama'],
   ['Story foto (kolase + stiker)', 'src/components/member/PhotoStory.tsx', 'Bagikan ke Story'],
   ['Tombol Story foto di layar share', 'src/components/member/ShareCards.tsx', 'Story foto'],
+  ['Set lain hari ini di layar latihan', 'src/components/member/TodayWorkoutPlan.tsx', 'Set lain hari ini'],
+  ['Catatan PT dari sesi sebelumnya', 'src/components/coach/PtSessionLogger.tsx', 'previous['],
   ['Selebrasi PR: tombol suara 🔊/🔇', 'src/components/shared/SlideShow.tsx', 'togglePrSound'],
   ['Hapus set tetap jalan saat pindah halaman', 'src/components/ui/UndoDeleteButton.tsx', 'pagehide'],
   ['Hapus set langsung di layar latihan hari ini', 'src/components/member/TodayWorkoutPlan.tsx', 'removeSet'],

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { todayDateKey } from "@/lib/workout";
 import { planRounds } from "@/lib/todayPlan";
 import { PtSessionLogger, type LoggerSet } from "@/components/coach/PtSessionLogger";
+import { previousNotes } from "@/lib/ptPrevious";
 
 // "Catat sesi berdua": the coach logs a PT session for everyone in the
 // package on one screen, one column per person. Clients can also log from
@@ -27,6 +28,12 @@ export default async function PtSessionLogPage(props: PageProps<"/coach/pt/[pack
     select: { memberId: true, exerciseId: true, setNumber: true, weight: true, reps: true, isPR: true },
   });
   const saved: LoggerSet[] = sets.map((s) => ({ ...s }));
+  const previous = await previousNotes({
+    packageId,
+    memberIds: members.map((m) => m.id),
+    exercises: rounds.flatMap((r) => r.items.map((i) => ({ id: i.exerciseId, name: i.name }))),
+    before: today,
+  });
 
   return (
     <div className="flex flex-col gap-4">
@@ -48,7 +55,7 @@ export default async function PtSessionLogPage(props: PageProps<"/coach/pt/[pack
           latihan hari ini, dan sesi berikutnya tetap jadi sesi klien hari ini.
         </p>
       )}
-      <PtSessionLogger sessionId={session.id} members={members} rounds={rounds} saved={saved} />
+      <PtSessionLogger sessionId={session.id} members={members} rounds={rounds} saved={saved} previous={previous} />
     </div>
   );
 }

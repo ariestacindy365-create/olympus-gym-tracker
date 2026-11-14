@@ -12,7 +12,7 @@ import {
   type UnlockedBadge,
 } from "@/components/shared/AchievementCelebrationModal";
 import { formatKg, type LifterCharacter, type SkinTone } from "@/lib/volumeStory";
-import { UNIT_LABEL, setVolume } from "@/lib/setUnits";
+import { UNIT_LABEL, formatAmount, setVolume, type SetUnit } from "@/lib/setUnits";
 import { isNoWeightExercise, shouldShowWeight } from "@/lib/bodyweight";
 import { parseLiftWeight } from "@/lib/parseWeight";
 import { mainMuscles, muscleLoad, muscleLevels, type MuscleKey } from "@/lib/muscles";
@@ -28,6 +28,13 @@ export interface LoggedSet {
   isPR: boolean;
 }
 
+/** A set logged today for a movement that isn't in this program (another class, Catat bebas). */
+export interface OtherSet extends LoggedSet {
+  exerciseName: string;
+  unit: SetUnit;
+  perSide: boolean;
+}
+
 interface Row {
   w: string;
   r: string;
@@ -40,6 +47,8 @@ interface Row {
 interface TodayWorkoutPlanProps {
   plan: TodayPlan;
   todaysSets: Record<string, LoggedSet[]>;
+  /** Today's sets for movements outside this program, so the count matches the day's summary. */
+  otherSets?: OtherSet[];
   /** Heaviest recent weight per exercise, shown as "Terakhir" and prefilled. */
   lastWeights: Record<string, number>;
   /** Best estimated 1RM per exercise (from the member's records), for "Saran beban". */
@@ -60,6 +69,7 @@ interface TodayWorkoutPlanProps {
 export function TodayWorkoutPlan({
   plan,
   todaysSets,
+  otherSets = [],
   lastWeights,
   best1RM = {},
   memberName,
@@ -89,6 +99,18 @@ export function TodayWorkoutPlan({
   const [error, setError] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<AchievementCelebrationData | null>(null);
   const [finishing, setFinishing] = useState(false);
+  const [others, setOthers] = useState<OtherSet[]>(otherSets);
+
+  async function removeOther(id: string) {
+    const res = await fetch(`/api/member/sets/${id}`, { method: "DELETE", keepalive: true }).catch(() => null);
+    if (!res?.ok) {
+      setError("Gagal menghapus set. Coba lagi.");
+      return;
+    }
+    setError(null);
+    setOthers((prev) => prev.filter((s) => s.id !== id));
+    router.refresh();
+  }
 
   // A mistaken set: delete it here. Its row goes back to empty (rows are set
   // numbers), and an extra row past the program's sets goes away.
@@ -121,7 +143,10 @@ export function TodayWorkoutPlan({
   // Volume counts rep sets only (timed / lap / distance sets add 0 kg).
   // and a per-side ("each") set counts both sides.
   const itemOfRow = new Map(rows.flatMap((rs, i) => rs.map((r) => [r, items[i]] as const)));
-  const volume = done.reduce((a, r) => a + setVolume({ ...r.saved!, unit: itemOfRow.get(r)?.unit, perSide: itemOfRow.get(r)?.perSide }), 0);
+  const planVolume = done.reduce((a, r) => a + setVolume({ ...r.saved!, unit: itemOfRow.get(r)?.unit, perSide: itemOfRow.get(r)?.perSide }), 0);
+  // The finish button counts the whole day, like the summary after it.
+  const volume = planVolume + others.reduce((a, s) => a + setVolume(s), 0);
+  const dayCount = done.length + others.length;
 
   // Planned muscles glow faintly; logged ones light up by how many sets they got.
   const levels = useMemo(() => {
@@ -534,6 +559,28 @@ export function TodayWorkoutPlan({
         </div>
       ))}
 
+      {others.length > 0 && (
+        <div className="rounded-2xl border border-border bg-surface p-4 shadow-card">
+          <h3 className="font-display text-lg font-bold">Set lain hari ini</h3>
+          <p className="mt-0.5 text-xs text-muted">
+            Dicatat di luar program ini (misalnya kelas lain atau Catat bebas) dan ikut terhitung di ringkasan. Hapus kalau salah catat.
+          </p>
+          <ul className="mt-2 divide-y divide-border">
+            {others.map((s) => (
+              <li key={s.id} className="flex items-center gap-2 py-2">
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold">
+                  {s.exerciseName}
+                  {s.isPR && " 🏆"}
+                </span>
+                <span className="shrink-0 text-sm tabular-nums text-muted">
+                  {s.unit === "REPS" ? `${formatKg(s.weight)} kg × ${s.reps}${s.perSide ? "/sisi" : ""}` : formatAmount(s.reps, s.unit, s.perSide)}
+                </span>
+                <UndoDeleteButton label={`${s.exerciseName}: ${formatKg(s.weight)} kg × ${s.reps}`} onDelete={() => removeOther(s.id)} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {storageWarning && <div role="alert" className="rounded-xl border border-danger/40 bg-danger/10 p-3 text-sm"><p>{storageWarning}</p><button type="button" onClick={() => downloadPending(memberName, day)} className="mt-2 min-h-11 font-semibold text-accent">Unduh cadangan set</button></div>}
       {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
       {queuedCount > 0 && (
@@ -551,12 +598,12 @@ export function TodayWorkoutPlan({
         <button
           type="button"
           onClick={() => setFinishing(true)}
-          disabled={done.length === 0 || queuedCount > 0}
+          disabled={dayCount === 0 || queuedCount > 0}
           className="flex w-full flex-col items-center rounded-2xl bg-accent py-3 text-white shadow-overlay transition hover:bg-accent-2 disabled:opacity-60"
         >
           <span className="text-base font-bold">{date ? "🏁 Selesai & simpan latihan" : "🏁 Selesai latihan hari ini"}</span>
           <span className="text-xs opacity-85">
-            {queuedCount > 0 ? `Tunggu ${queuedCount} set terkirim dulu` : `${done.length} set tercatat · ${formatKg(volume)} kg`}
+            {queuedCount > 0 ? `Tunggu ${queuedCount} set terkirim dulu` : `${dayCount} set tercatat · ${formatKg(volume)} kg`}
           </span>
         </button>
       </div>
