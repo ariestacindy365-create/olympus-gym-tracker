@@ -29,6 +29,10 @@ const FEATURES = [
   ['Layar share: kartu geser + satu baris tombol', 'src/components/member/DayFinishFlow.tsx', '<ShareCards'],
   ['Layar share: latar biru / transparan', 'src/components/member/ShareCards.tsx', 'fillOlympusBackground'],
   ['Saran beban di tiap gerakan program', 'src/components/member/TodayWorkoutPlan.tsx', 'Saran beban'],
+  ['Kartu share Fokus otot', 'src/components/member/DayFinishFlow.tsx', 'id: "fokus"'],
+  ['Kartu share Gerakan', 'src/components/member/DayFinishFlow.tsx', 'id: "gerakan"'],
+  ['Kartu share Minggu ini', 'src/components/member/DayFinishFlow.tsx', 'id: "minggu"'],
+  ['Kartu Rekor baru dengan rekor lama', 'src/components/member/DayFinishFlow.tsx', 'Rekor lama'],
   ['Selebrasi PR: tombol suara 🔊/🔇', 'src/components/shared/SlideShow.tsx', 'togglePrSound'],
   ['Hapus set tetap jalan saat pindah halaman', 'src/components/ui/UndoDeleteButton.tsx', 'pagehide'],
   ['Hapus set langsung di layar latihan hari ini', 'src/components/member/TodayWorkoutPlan.tsx', 'removeSet'],
@@ -141,6 +145,15 @@ const { repDefaultOf } = await load('src/lib/setUnits.ts');
 check('Target "12 each" terbaca 12 reps tiap sisi', () => {
   for (const [t, n] of [['12', 12], ['10 reps each', 10], ['12 each', 12], ['8-10', 8], ['10/sisi', 10], ['12 per side', 12]]) assert.equal(repDefaultOf(t), n, t);
   for (const t of ['30"', '1 lap', '200 m']) assert.equal(repDefaultOf(t), null, t);
+});
+
+const { focusTitle } = await load('src/lib/muscles.ts');
+check('Judul Fokus otot mengikuti bagian badan terbanyak', () => {
+  assert.equal(focusTitle({ quads: 6, glutes: 4, abs: 2 }), 'Hari kaki');
+  assert.equal(focusTitle({ chest: 6, triceps: 3, quads: 2 }), 'Hari tubuh atas');
+  assert.equal(focusTitle({ abs: 5, obliques: 3, chest: 2 }), 'Hari perut & inti');
+  assert.equal(focusTitle({ chest: 4, quads: 4, abs: 2 }), 'Seluruh tubuh');
+  assert.equal(focusTitle({}), 'Seluruh tubuh');
 });
 
 const { formatRepTarget } = await load('src/lib/programSlide.ts');

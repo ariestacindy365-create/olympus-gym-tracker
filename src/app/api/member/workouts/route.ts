@@ -69,6 +69,21 @@ export async function POST(request: NextRequest) {
   ]);
   const allSets = await prisma.setEntry.findMany({ where: { memberId: user.id }, select: { weight: true, reps: true, unit: true, perSide: true } });
 
+  // "Rekor baru" card: each record set today against the best before today.
+  const prSets = await prisma.setEntry.findMany({
+    where: { memberId: user.id, workoutDate, isPR: true },
+    select: { exerciseId: true, weight: true, reps: true, exercise: { select: { name: true } } },
+    orderBy: { weight: "desc" },
+  });
+  const prExercises = [...new Map(prSets.map((s) => [s.exerciseId, s])).values()];
+  const before = await prisma.setEntry.groupBy({
+    by: ["exerciseId"],
+    where: { memberId: user.id, exerciseId: { in: prExercises.map((s) => s.exerciseId) }, workoutDate: { lt: workoutDate } },
+    _max: { weight: true },
+  });
+  const beforeOf = new Map(before.map((b) => [b.exerciseId, b._max.weight]));
+  const weekEnd = new Date(weekStart.getTime() + 7 * 86400_000);
+
   return NextResponse.json({
     workout,
     summary,
@@ -77,6 +92,11 @@ export async function POST(request: NextRequest) {
       durationSec: totals._sum.durationSec ?? 0,
       totalKg: Math.round(allSets.reduce((a, s) => a + setVolume(s), 0)),
       daysThisWeek: weekDays.length,
+      /** Days trained this week, 0 = Monday … 6 = Sunday. */
+      weekDays: weekDays
+        .filter((d) => d.workoutDate < weekEnd)
+        .map((d) => Math.round((d.workoutDate.getTime() - weekStart.getTime()) / 86400_000)),
+      records: prExercises.map((s) => ({ exercise: s.exercise.name, weight: s.weight, reps: s.reps, previous: beforeOf.get(s.exerciseId) ?? null })),
     },
   });
 }

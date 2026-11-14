@@ -16,6 +16,8 @@ export interface DaySummaryLine {
   /** Unit of this exercise's sets; for non-rep units `amount` is their total (e.g. 90 detik). */
   unit: SetUnit;
   amount: number;
+  /** The day's best set: heaviest, then most reps. */
+  best?: { weight: number; reps: number; perSide: boolean };
 }
 
 export interface DaySummary {
@@ -72,6 +74,8 @@ export async function summarizeSets(sets: SetRow[], muscles?: Map<string, Muscle
     line.volume += setVolume(s);
     if (s.unit !== "REPS") line.amount += s.reps;
     line.pr ||= s.isPR;
+    if (!line.best || s.weight > line.best.weight || (s.weight === line.best.weight && s.reps > line.best.reps))
+      line.best = { weight: s.weight, reps: s.reps, perSide: s.perSide };
     byExercise.set(s.exercise.name, line);
   }
   const lines = [...byExercise.values()];

@@ -60,7 +60,7 @@ function fit(ctx: CanvasRenderingContext2D, text: string, max: number) {
 }
 
 /** The front/back figures from the hidden MuscleMap, as self-contained SVG images. */
-async function figureImages(host: HTMLElement) {
+export async function figureImages(host: HTMLElement) {
   const svgs = [...host.querySelectorAll("svg")];
   return Promise.all(
     svgs.map((svg) => {

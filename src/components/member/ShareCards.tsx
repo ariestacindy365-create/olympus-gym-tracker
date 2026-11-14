@@ -2,13 +2,28 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MuscleMap } from "@/components/shared/MuscleMap";
-import { drawSticker, type WorkoutStickerModalProps } from "@/components/shared/WorkoutStickerModal";
-import { CARD_SIZE, drawStatCard, fillOlympusBackground, type StatCard } from "@/lib/shareCards";
+import { drawSticker, figureImages, type WorkoutStickerModalProps } from "@/components/shared/WorkoutStickerModal";
+import {
+  CARD_SIZE,
+  drawListCard,
+  drawMuscleCard,
+  drawStatCard,
+  drawWeekCard,
+  fillOlympusBackground,
+  type ListCard,
+  type MuscleCard,
+  type StatCard,
+  type WeekCard,
+} from "@/lib/shareCards";
+import type { MuscleKey } from "@/lib/muscles";
 import { shareOrDownload } from "@/lib/shareFile";
 
 export type ShareCard =
   | { id: string; kind: "sticker"; sticker: Omit<WorkoutStickerModalProps, "onClose">; video?: undefined }
-  | { id: string; kind: "stat"; stat: StatCard; /** An animated version exists (opens its own screen). */ video?: "volume" | "kalori" };
+  | { id: string; kind: "stat"; stat: StatCard; /** An animated version exists (opens its own screen). */ video?: "volume" | "kalori" }
+  | { id: string; kind: "list"; list: ListCard; video?: undefined }
+  | { id: string; kind: "week"; week: WeekCard; video?: undefined }
+  | { id: string; kind: "muscle"; muscle: MuscleCard; levels: Partial<Record<MuscleKey, number>>; video?: undefined };
 
 /** Olympus background, or transparent with white / dark text for pasting on a photo. */
 type Backdrop = "solid" | "light" | "dark";
@@ -66,7 +81,9 @@ export function ShareCards({
   const [pending, setPending] = useState(false);
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const ink = backdrop === "dark" ? "dark" : "light";
-  const sticker = cards.find((c) => c.kind === "sticker");
+  // The muscle figures drawn onto the sticker / Fokus otot card.
+  const figureCard = cards.find((c) => c.kind === "sticker" || c.kind === "muscle");
+  const figureLevels = figureCard?.kind === "sticker" ? figureCard.sticker.levels : figureCard?.kind === "muscle" ? figureCard.levels : null;
   const current = cards[Math.min(index, cards.length - 1)];
 
   // Draw every card: on a transparent layer first, then over the backdrop.
@@ -81,7 +98,12 @@ export function ShareCards({
           if (card.kind === "sticker") {
             if (!hostRef.current) continue;
             await drawSticker(layer, hostRef.current, card.sticker, ink);
-          } else await drawStatCard(layer, card.stat, ink, memberName);
+          } else if (card.kind === "muscle") {
+            if (!hostRef.current) continue;
+            await drawMuscleCard(layer, await figureImages(hostRef.current), card.muscle, ink, memberName);
+          } else if (card.kind === "list") await drawListCard(layer, card.list, ink, memberName);
+          else if (card.kind === "week") await drawWeekCard(layer, card.week, ink, memberName);
+          else await drawStatCard(layer, card.stat, ink, memberName);
         } catch {
           continue;
         }
@@ -99,7 +121,7 @@ export function ShareCards({
     };
     // cards is rebuilt each render; its content only changes with these.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [backdrop, ink, memberName, cards.map((c) => c.id + (c.kind === "stat" ? c.stat.big + c.stat.eyebrow : c.sticker.title)).join("|")]);
+  }, [backdrop, ink, memberName, cards.map((c) => c.id + JSON.stringify(c.kind === "sticker" ? c.sticker.title : c.kind === "stat" ? c.stat : c.kind === "list" ? c.list : c.kind === "week" ? c.week : c.muscle)).join("|")]);
 
   const onScroll = useCallback(() => {
     const el = scroller.current;
@@ -238,9 +260,9 @@ export function ShareCards({
       )}
 
       {/* Source of the muscle figures drawn onto the sticker card. */}
-      {sticker?.kind === "sticker" && (
+      {figureLevels && (
         <div ref={hostRef} aria-hidden className="pointer-events-none fixed -left-[9999px] top-0">
-          <MuscleMap levels={sticker.sticker.levels} height={380} labels={false} tone={ink} />
+          <MuscleMap levels={figureLevels} height={380} labels={false} tone={ink} />
         </div>
       )}
     </div>

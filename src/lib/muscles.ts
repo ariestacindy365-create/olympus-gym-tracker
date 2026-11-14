@@ -177,3 +177,29 @@ export function muscleLevels(load: MuscleWeights): Partial<Record<MuscleKey, num
 export function mainMuscles(m: MuscleWeights): string[] {
   return (Object.entries(m) as [MuscleKey, number][]).filter(([, w]) => w >= 1).map(([k]) => MUSCLE_LABEL[k]);
 }
+
+const MUSCLE_AREA: Record<MuscleKey, "atas" | "kaki" | "inti"> = {
+  chest: "atas", delts: "atas", rdelts: "atas", traps: "atas", upback: "atas", lats: "atas",
+  biceps: "atas", triceps: "atas", forearms: "atas",
+  abs: "inti", obliques: "inti", lowback: "inti",
+  glutes: "kaki", quads: "kaki", hams: "kaki", adductors: "kaki", calves: "kaki",
+};
+
+/**
+ * The "Fokus otot" card title: the body area that got more than half of the
+ * day's sets, else "Seluruh tubuh".
+ */
+export function focusTitle(m: MuscleWeights): string {
+  const by = { atas: 0, kaki: 0, inti: 0 };
+  let total = 0;
+  for (const [k, v] of Object.entries(m) as [MuscleKey, number][]) {
+    if (!v || v <= 0) continue;
+    by[MUSCLE_AREA[k]] += v;
+    total += v;
+  }
+  if (total <= 0) return "Seluruh tubuh";
+  if (by.kaki / total > 0.5) return "Hari kaki";
+  if (by.atas / total > 0.5) return "Hari tubuh atas";
+  if (by.inti / total > 0.5) return "Hari perut & inti";
+  return "Seluruh tubuh";
+}
