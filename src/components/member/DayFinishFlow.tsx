@@ -5,6 +5,7 @@ import Link from "next/link";
 import { MuscleMap } from "@/components/shared/MuscleMap";
 import { VolumeStoryModal } from "@/components/member/VolumeStoryModal";
 import { ShareCards } from "@/components/member/ShareCards";
+import { PhotoStory } from "@/components/member/PhotoStory";
 import { formatKg, pickEquivalent, type LifterCharacter, type SkinTone } from "@/lib/volumeStory";
 import { MUSCLE_LABEL, focusTitle, type MuscleKey } from "@/lib/muscles";
 import type { DaySummary } from "@/lib/workoutSummary";
@@ -85,6 +86,7 @@ export function DayFinishFlow({
   const [totals, setTotals] = useState<Totals | null>(null);
   const [story, setStory] = useState(false);
   const [calCard, setCalCard] = useState(false);
+  const [photoStory, setPhotoStory] = useState(false);
   const [bodyWeightKg, setBodyWeightKg] = useState<number | null>(null);
   const [durationMin, setDurationMin] = useState(DEFAULT_WORKOUT_MINUTES);
 
@@ -322,6 +324,7 @@ export function DayFinishFlow({
                 shareText={shareText}
                 fileSlug={(title || defaultTitle).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "latihan"}
                 onVideo={(kind) => (kind === "kalori" ? setCalCard(true) : setStory(true))}
+                onPhotoStory={() => setPhotoStory(true)}
                 cards={[
                   ...(() => {
                     const recs = [...(totals.records ?? [])].sort((a, b) => b.weight - a.weight);
@@ -359,7 +362,7 @@ export function DayFinishFlow({
                       unit: date ? "kg diangkat" : "kg hari ini",
                       sub: eq ? `Setara ${formatKg(eq.factor)}× ${eq.name} ${eq.emoji}` : undefined,
                       stats: [
-                        { value: formatDuration(totals.durationSec), label: "Durasi" },
+                        { value: formatDuration(summary.durationSec), label: "Durasi" },
                         { value: String(summary.totalSets), label: "Set" },
                         { value: String(summary.prCount), label: "Rekor" },
                       ],
@@ -504,6 +507,34 @@ export function DayFinishFlow({
           character={storyCharacter}
           skinTone={storySkinTone}
           onClose={() => setStory(false)}
+        />
+      )}
+      {photoStory && summary && totals && (
+        <PhotoStory
+          sticker={{
+            title: title || defaultTitle,
+            lines: summary.lines,
+            levels: summary.levels,
+            muscleSets: summary.muscleSets,
+            totalVolume: summary.totalVolume,
+            totalSets: summary.totalSets,
+            prCount: summary.prCount,
+            memberName,
+          }}
+          summary={{
+            eyebrow: title || defaultTitle,
+            big: formatKg(summary.totalVolume),
+            unit: date ? "kg diangkat" : "kg hari ini",
+            stats: [
+              { value: formatDuration(summary.durationSec), label: "Durasi" },
+              { value: String(summary.totalSets), label: "Set" },
+              { value: String(summary.prCount), label: "Rekor" },
+            ],
+          }}
+          memberName={memberName}
+          shareText={shareText}
+          fileSlug={(title || defaultTitle).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "latihan"}
+          onClose={() => setPhotoStory(false)}
         />
       )}
     </div>

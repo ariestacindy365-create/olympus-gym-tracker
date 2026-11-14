@@ -40,6 +40,7 @@ const ICONS = {
   download: "M12 4v11m0 0l-4-4m4 4l4-4M5 19h14",
   text: "M5 6h14M5 11h14M5 16h9",
   video: "M4 6h11v12H4zM15 10l5-3v10l-5-3",
+  photo: "M4 7h4l2-2h4l2 2h4v12H4zM12 10a3 3 0 100 6 3 3 0 000-6z",
 };
 
 function Action({ icon, label, onClick, disabled, primary }: { icon: keyof typeof ICONS; label: string; onClick: () => void; disabled?: boolean; primary?: boolean }) {
@@ -66,12 +67,15 @@ export function ShareCards({
   shareText,
   fileSlug,
   onVideo,
+  onPhotoStory,
 }: {
   cards: ShareCard[];
   memberName: string;
   shareText: string;
   fileSlug: string;
   onVideo: (kind: "volume" | "kalori") => void;
+  /** Opens "Story foto" (photos + the workout sticker). */
+  onPhotoStory?: () => void;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
   const canvases = useRef<(HTMLCanvasElement | null)[]>([]);
@@ -240,9 +244,10 @@ export function ShareCards({
         ))}
       </div>
 
-      {/* Up to six actions, all on screen at once. */}
+      {/* Up to seven actions, all on screen at once. */}
       <div className="flex justify-center gap-0.5">
         <Action icon="share" label="Bagikan" onClick={share} disabled={pending} primary />
+        {onPhotoStory && <Action icon="photo" label="Story foto" onClick={onPhotoStory} />}
         <Action icon="backdrop" label={`Latar ${BACKDROPS.find((b) => b.id === backdrop)!.label}`} onClick={nextBackdrop} />
         <Action icon="copy" label="Salin gambar" onClick={copyImage} disabled={pending} />
         <Action icon="download" label="Unduh" onClick={download} disabled={pending} />
