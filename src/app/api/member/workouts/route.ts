@@ -76,11 +76,13 @@ export async function POST(request: NextRequest) {
     orderBy: { weight: "desc" },
   });
   const prExercises = [...new Map(prSets.map((s) => [s.exerciseId, s])).values()];
-  const before = await prisma.setEntry.groupBy({
-    by: ["exerciseId"],
-    where: { memberId: user.id, exerciseId: { in: prExercises.map((s) => s.exerciseId) }, workoutDate: { lt: workoutDate } },
-    _max: { weight: true },
-  });
+  const before = prExercises.length
+    ? await prisma.setEntry.groupBy({
+        by: ["exerciseId"],
+        where: { memberId: user.id, exerciseId: { in: prExercises.map((s) => s.exerciseId) }, workoutDate: { lt: workoutDate } },
+        _max: { weight: true },
+      })
+    : [];
   const beforeOf = new Map(before.map((b) => [b.exerciseId, b._max.weight]));
   const weekEnd = new Date(weekStart.getTime() + 7 * 86400_000);
 
