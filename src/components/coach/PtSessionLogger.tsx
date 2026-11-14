@@ -4,6 +4,7 @@ import { useState } from "react";
 import { parseLiftWeight } from "@/lib/parseWeight";
 import { UNIT_LABEL } from "@/lib/setUnits";
 import type { PlanRound } from "@/lib/todayPlan";
+import type { PreviousNote } from "@/lib/ptPrevious";
 
 export interface LoggerSet {
   memberId: string;
@@ -29,11 +30,14 @@ export function PtSessionLogger({
   members,
   rounds,
   saved,
+  previous = {},
 }: {
   sessionId: string;
   members: { id: string; name: string }[];
   rounds: PlanRound[];
   saved: LoggerSet[];
+  /** Last time each client did each movement, keyed "memberId|exerciseId". */
+  previous?: Record<string, PreviousNote>;
 }) {
   const [cells, setCells] = useState<Record<string, Cell>>(() => {
     const out: Record<string, Cell> = {};
@@ -129,6 +133,27 @@ export function PtSessionLogger({
                           })}
                         </tr>
                       ))}
+                      {members.some((m) => previous[`${m.id}|${item.exerciseId}`]) && (
+                        <tr>
+                          <td />
+                          {members.map((m) => {
+                            const p = previous[`${m.id}|${item.exerciseId}`];
+                            return (
+                              <td key={m.id} className="align-top">
+                                {p && (
+                                  <div className="mt-1 rounded-lg border border-dashed border-border-strong px-2 py-1.5 text-xs leading-snug">
+                                    <p className="font-bold uppercase tracking-wide text-muted">{p.label}</p>
+                                    {p.sets && <p className="mt-0.5 tabular-nums">{p.sets}</p>}
+                                    {p.notes.map((n, x) => (
+                                      <p key={x} className="mt-0.5 italic text-muted">“{n}”</p>
+                                    ))}
+                                  </div>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
