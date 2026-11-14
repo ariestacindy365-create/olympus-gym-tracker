@@ -22,7 +22,7 @@ import { BackfillPicker } from "@/components/member/BackfillPicker";
 import { getMonthlyChallenge } from "@/lib/challenge";
 import { ChallengeCard } from "@/components/member/ChallengeCard";
 import { PushPrompt } from "@/components/member/PushPrompt";
-import { TodayWorkoutPlan, type LoggedSet } from "@/components/member/TodayWorkoutPlan";
+import { TodayWorkoutPlan, type LoggedSet, type OtherSet } from "@/components/member/TodayWorkoutPlan";
 import { getActivePtPackage, getPtTodayPlan, sessionFor } from "@/lib/pt";
 import { scheduleLabel, upcomingSchedule } from "@/lib/ptSession";
 import { PtClientCard } from "@/components/member/PtClientCard";
@@ -147,6 +147,12 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
   for (const [id, rows] of Object.entries(todaysSetsMap)) {
     planSets[id] = rows.map(({ id: setId, setNumber, weight, reps, isPR }) => ({ id: setId, setNumber, weight, reps, isPR }));
   }
+  // Today's sets for movements this program doesn't have (another class, Catat bebas).
+  const planExerciseIds = new Set(todayPlan?.rounds.flatMap((r) => r.items.map((it) => it.exerciseId)) ?? []);
+  const otherSets: OtherSet[] = todaysSets
+    .filter((s) => !planExerciseIds.has(s.exerciseId))
+    .map((s) => ({ id: s.id, setNumber: s.setNumber, weight: s.weight, reps: s.reps, isPR: s.isPR, exerciseName: s.exercise.name, unit: s.unit, perSide: s.perSide }))
+    .sort((a, b) => a.exerciseName.localeCompare(b.exerciseName) || a.setNumber - b.setNumber);
   const lastWeights: Record<string, number> = {};
   for (const [id, rows] of Object.entries(lastSetsMap)) lastWeights[id] = Math.max(...rows.map((r) => r.weight));
 
@@ -255,6 +261,7 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
           key={`${dateStr ?? "today"}-${todayPlan.klass?.sessionId ?? "plan"}`}
           plan={todayPlan}
           todaysSets={planSets}
+          otherSets={otherSets}
           lastWeights={lastWeights}
           best1RM={Object.fromEntries(
             Object.entries(personalRecordsByExercise).map(([id, r]) => [id, Math.max(r.maxWeight ?? 0, r.maxEstimated1RM ?? 0)])
