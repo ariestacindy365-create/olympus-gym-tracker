@@ -42,6 +42,8 @@ interface TodayWorkoutPlanProps {
   todaysSets: Record<string, LoggedSet[]>;
   /** Heaviest recent weight per exercise, shown as "Terakhir" and prefilled. */
   lastWeights: Record<string, number>;
+  /** Best estimated 1RM per exercise (from the member's records), for "Saran beban". */
+  best1RM?: Record<string, number>;
   memberName: string;
   storyCharacter: LifterCharacter | null;
   storySkinTone: SkinTone | null;
@@ -59,6 +61,7 @@ export function TodayWorkoutPlan({
   plan,
   todaysSets,
   lastWeights,
+  best1RM = {},
   memberName,
   storyCharacter,
   storySkinTone,
@@ -69,6 +72,8 @@ export function TodayWorkoutPlan({
   // The day these sets belong to: the past day being filled in, else today (Jakarta).
   const [day] = useState(() => date ?? jakartaToday());
   const items = useMemo(() => plan.rounds.flatMap((r) => r.items), [plan]);
+  // Which movement has its "Saran beban" panel open.
+  const [adviceFor, setAdviceFor] = useState<number | null>(null);
   const [rows, setRows] = useState<Row[][]>(() =>
     items.map((it) => {
       const logged = todaysSets[it.exerciseId] ?? [];
@@ -395,17 +400,52 @@ export function TodayWorkoutPlan({
                   </div>
                 ) : (
                   <>
-                    <p className="mb-1 text-[11.5px] text-muted">
-                      {!showKg(i) ? "Tanpa beban" : last != null ? `Terakhir: ${formatKg(last)} kg` : "Belum pernah dicatat"}
-                      {it.repDefault != null
-                        ? ` · target ${it.repDefault} ${UNIT_LABEL[it.unit]}${it.perSide ? " tiap sisi" : ""}`
-                        : ` · isi ${UNIT_LABEL[it.unit]} yang selesai`}
-                    </p>
+                    <div className="mb-1 flex items-start justify-between gap-2">
+                      <p className="text-xs text-muted">
+                        {!showKg(i) ? "Tanpa beban" : last != null ? `Terakhir: ${formatKg(last)} kg` : "Belum pernah dicatat"}
+                        {it.repDefault != null
+                          ? ` · target ${it.repDefault} ${UNIT_LABEL[it.unit]}${it.perSide ? " tiap sisi" : ""}`
+                          : ` · isi ${UNIT_LABEL[it.unit]} yang selesai`}
+                      </p>
+                      {showKg(i) && it.unit === "REPS" && (
+                        <button
+                          type="button"
+                          aria-expanded={adviceFor === i}
+                          onClick={() => setAdviceFor(adviceFor === i ? null : i)}
+                          className={`inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold ${
+                            adviceFor === i ? "border-accent bg-accent/10 text-accent" : "border-border bg-surface hover:bg-surface-2"
+                          }`}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                            <path d="M6 3h12v18H6zM9 7h6M9 11h.01M12 11h.01M15 11h.01M9 15h.01M12 15h.01M15 15h.01" />
+                          </svg>
+                          Saran beban
+                        </button>
+                      )}
+                    </div>
+                    {adviceFor === i && (
+                      <LoadAdvice
+                        oneRepMax={best1RM[it.exerciseId] ?? 0}
+                        last={last ?? null}
+                        reps={it.repDefault}
+                        perSide={it.perSide}
+                        onUse={(kg) => {
+                          // Fill the rows not ticked yet; saved sets stay as logged.
+                          setRows((prev) => prev.map((rs, a) => (a !== i ? rs : rs.map((r) => (r.saved || r.queued ? r : { ...r, w: String(kg) })))));
+                          setAdviceFor(null);
+                        }}
+                      />
+                    )}
                     {rows[i].map((row, j) => {
                       const savedNow = row.saved && row.w === String(row.saved.weight) && row.r === String(row.saved.reps);
                       const field = savedNow ? "border-transparent bg-success/10" : row.queued ? "border-transparent bg-[#f59e0b]/15" : "border-border bg-surface";
                       return (
-                        <div key={j} className="mt-1.5 grid grid-cols-[52px_1fr_1fr_44px_44px] items-center gap-1.5">
+                        <div
+                          key={j}
+                          // "reps/sisi" is a longer unit: give that field more of the row.
+                          // Narrow phones have no room for it and show "/sisi" alone.
+                          className={`mt-1.5 grid items-center gap-1.5 grid-cols-[52px_minmax(0,1fr)_minmax(0,1fr)_44px_44px] ${it.perSide ? "min-[380px]:grid-cols-[52px_minmax(0,1fr)_minmax(0,1.35fr)_44px_44px]" : ""}`}
+                        >
                           <span className="text-xs font-bold uppercase text-muted">
                             Set {j + 1}
                             {row.saved?.isPR && " 🏆"}
@@ -439,15 +479,15 @@ export function TodayWorkoutPlan({
                             <input
                               inputMode="numeric"
                               value={row.r}
-                              placeholder={it.repDefault != null ? String(it.repDefault) : UNIT_LABEL[it.unit]}
+                              placeholder={it.repDefault != null ? String(it.repDefault) : "0"}
                               onChange={(e) => update(i, j, { r: e.target.value })}
                               aria-label={`${it.label} set ${j + 1} ${UNIT_LABEL[it.unit]}`}
-                              className={`h-11 w-full min-w-0 rounded-lg border px-2 pr-9 text-center text-base font-semibold text-foreground placeholder:text-muted/70 focus:border-accent focus:outline-none ${
-                                field
-                              }`}
+                              className={`h-11 w-full min-w-0 rounded-lg border pl-2 text-center text-base font-semibold text-foreground placeholder:text-muted/70 focus:border-accent focus:outline-none ${
+                                it.perSide ? "pr-10 min-[380px]:pr-[4.1rem]" : "pr-9"
+                              } ${field}`}
                             />
                             <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted">
-                              {UNIT_LABEL[it.unit]}
+                              <span className={it.perSide ? "max-[379px]:hidden" : undefined}>{UNIT_LABEL[it.unit]}</span>
                               {it.perSide && "/sisi"}
                             </span>
                           </label>
@@ -535,5 +575,68 @@ export function TodayWorkoutPlan({
       )}
       {celebration && <AchievementCelebrationModal data={celebration} onClose={() => setCelebration(null)} />}
     </section>
+  );
+}
+
+const roundToHalf = (n: number) => Math.round(n * 2) / 2;
+
+/**
+ * "Saran beban": what to load for this movement's target reps, worked out
+ * from the member's best lift on it (Epley), with a lighter and a heavier
+ * option. Without a record it says how to pick a first weight.
+ */
+function LoadAdvice({
+  oneRepMax,
+  last,
+  reps,
+  perSide,
+  onUse,
+}: {
+  oneRepMax: number;
+  last: number | null;
+  reps: number | null;
+  perSide: boolean;
+  onUse: (kg: number) => void;
+}) {
+  const target = reps && reps > 0 ? reps : null;
+  if (oneRepMax <= 0 || !target) {
+    return (
+      <p className="mb-2 rounded-xl bg-surface-2 px-3 py-2 text-xs leading-relaxed">
+        {oneRepMax <= 0
+          ? `Belum ada catatan untuk gerakan ini. Mulai dari beban yang bisa kamu angkat ${target ? `${target} kali` : "sesuai target"} dengan rapi dan masih sisa 2–3 reps. Setelah set pertama tercatat, saran beban muncul di sini.`
+          : "Target gerakan ini bukan jumlah reps tetap, jadi pakai beban terakhirmu sebagai patokan."}
+      </p>
+    );
+  }
+  const main = roundToHalf(oneRepMax / (1 + target / 30));
+  // Keep the options apart by at least one plate change.
+  const step = Math.max(2.5, roundToHalf(main * 0.07));
+  const options = [
+    { label: "Ringan", kg: Math.max(0.5, roundToHalf(main - step)) },
+    { label: "Sesuai target", kg: main },
+    { label: "Menantang", kg: roundToHalf(main + step) },
+  ];
+  return (
+    <div className="mb-2 rounded-xl bg-surface-2 px-3 py-2.5">
+      <p className="text-xs text-muted">
+        Untuk {target} reps{perSide ? " tiap sisi" : ""}, dari rekor terbaikmu{last != null ? ` (terakhir ${formatKg(last)} kg)` : ""}:
+      </p>
+      <div className="mt-2 grid grid-cols-3 gap-1.5">
+        {options.map((o) => (
+          <button
+            key={o.label}
+            type="button"
+            onClick={() => onUse(o.kg)}
+            className={`flex min-h-12 flex-col items-center justify-center rounded-lg border px-1 py-1.5 ${
+              o.label === "Sesuai target" ? "border-accent bg-accent/10" : "border-border bg-surface"
+            }`}
+          >
+            <span className="font-display text-base font-bold leading-none">{formatKg(o.kg)} kg</span>
+            <span className="mt-1 text-xs text-muted">{o.label}</span>
+          </button>
+        ))}
+      </div>
+      <p className="mt-2 text-xs text-muted">Ketuk untuk mengisi set yang belum dicentang. Ini perkiraan; turunkan kalau gerakan mulai tidak rapi.</p>
+    </div>
   );
 }

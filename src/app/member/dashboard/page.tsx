@@ -256,6 +256,9 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
           plan={todayPlan}
           todaysSets={planSets}
           lastWeights={lastWeights}
+          best1RM={Object.fromEntries(
+            Object.entries(personalRecordsByExercise).map(([id, r]) => [id, Math.max(r.maxWeight ?? 0, r.maxEstimated1RM ?? 0)])
+          )}
           memberName={user.name}
           storyCharacter={lifterFromStored(user.storyCharacter)}
           storySkinTone={skinToneFromStored(user.storySkinTone)}

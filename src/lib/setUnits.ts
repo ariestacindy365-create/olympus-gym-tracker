@@ -58,6 +58,14 @@ export function amountFromTarget(target: string | null | undefined): number | nu
   return /\d\s*km\b/.test(t) ? n * 1000 : n;
 }
 
+/** "12" / "10 reps each" / "12 each" / "8-10" → 12 / 10 / 12 / 8; units like 30" or 1 lap → null. */
+export function repDefaultOf(rep: string | null): number | null {
+  const r = (rep ?? "").trim().toLowerCase();
+  // The per-side wording may follow the number directly ("12 each", "10/sisi") or after "reps".
+  const m = r.match(/^(\d+)(?:\s*[-–]\s*\d+)?(?:\s*(?:reps?|x|kali))?(?:\s*\/?\s*(?:each|per\s*side|side|tiap\s*sisi|per\s*sisi|sisi|kanan.*|\(?l\s*\/\s*r\)?))?$/);
+  return m ? Number(m[1]) : null;
+}
+
 /** One side at a time: "10 reps each", "per side", "kanan-kiri", "(L/R)". */
 export function perSideFromTarget(target: string | null | undefined): boolean {
   return /\beach\b|per\s*side|\/\s*side|tiap\s*sisi|per\s*sisi|kanan[\s-]*kiri|\(?\bl\s*\/\s*r\b\)?/i.test(target ?? "");

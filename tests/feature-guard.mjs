@@ -28,6 +28,7 @@ const FEATURES = [
   ['Selebrasi PR: karakter mengikuti pilihan member', 'src/app/api/coach/pr-events/route.ts', 'storyCharacter'],
   ['Layar share: kartu geser + satu baris tombol', 'src/components/member/DayFinishFlow.tsx', '<ShareCards'],
   ['Layar share: latar biru / transparan', 'src/components/member/ShareCards.tsx', 'fillOlympusBackground'],
+  ['Saran beban di tiap gerakan program', 'src/components/member/TodayWorkoutPlan.tsx', 'Saran beban'],
   ['Selebrasi PR: tombol suara 🔊/🔇', 'src/components/shared/SlideShow.tsx', 'togglePrSound'],
   ['Hapus set tetap jalan saat pindah halaman', 'src/components/ui/UndoDeleteButton.tsx', 'pagehide'],
   ['Hapus set langsung di layar latihan hari ini', 'src/components/member/TodayWorkoutPlan.tsx', 'removeSet'],
@@ -134,6 +135,12 @@ const { unitForMovement } = await load('src/lib/setUnits.ts');
 check('Gerakan tahan (plank, wall sit) dicatat dalam detik', () => {
   for (const [n, t] of [['Plank', '45'], ['Banded Wall Sit', '45'], ['Dead Hang', '30'], ['Side Plank', '']]) assert.equal(unitForMovement(n, t), 'SECONDS', n);
   for (const [n, t] of [['Plank Jacks', '20'], ['Hollow Rock', '15'], ['Hang Clean', '5'], ['Wall Sit', '10 reps'], ['Back Squat', '8']]) assert.equal(unitForMovement(n, t), 'REPS', n);
+});
+
+const { repDefaultOf } = await load('src/lib/setUnits.ts');
+check('Target "12 each" terbaca 12 reps tiap sisi', () => {
+  for (const [t, n] of [['12', 12], ['10 reps each', 10], ['12 each', 12], ['8-10', 8], ['10/sisi', 10], ['12 per side', 12]]) assert.equal(repDefaultOf(t), n, t);
+  for (const t of ['30"', '1 lap', '200 m']) assert.equal(repDefaultOf(t), null, t);
 });
 
 const { formatRepTarget } = await load('src/lib/programSlide.ts');

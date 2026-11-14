@@ -6,7 +6,7 @@ import { matchesWeekday, weekdayLabelForDate } from "@/lib/programRotation";
 import { formatRepTarget } from "@/lib/programSlide";
 import { parseScheme, schemeLine, schemeUsesSets } from "@/lib/roundScheme";
 import { musclesFor, type MuscleWeights } from "@/lib/muscles";
-import { amountFromTarget, perSideFromTarget, unitForMovement, type SetUnit } from "@/lib/setUnits";
+import { amountFromTarget, perSideFromTarget, unitForMovement, type SetUnit, repDefaultOf } from "@/lib/setUnits";
 import { classLabel, type TodayClasses } from "@/lib/classSchedule";
 import { needsLoadInput } from "@/lib/loadInput";
 import { createEachSkippingDuplicates, idsByNameIgnoringCase } from "@/lib/sqlite";
@@ -71,13 +71,6 @@ export interface PlanSlot {
 function roundKey(label: string): string {
   const m = label.trim().toUpperCase().match(/^([A-Z]+)/);
   return m ? m[1] : label.trim().toUpperCase() || "_";
-}
-
-/** "12" / "10 reps each" / "8-10" → 12 / 10 / 8; units like 30" or 1 lap → null. */
-function repDefaultOf(rep: string | null): number | null {
-  const r = (rep ?? "").trim().toLowerCase();
-  const m = r.match(/^(\d+)(?:\s*[-–]\s*\d+)?(?:\s*(reps?|x|kali)(\s*each|\s*per\s*side|\s*kanan.*)?)?$/);
-  return m ? Number(m[1]) : null;
 }
 
 /**
