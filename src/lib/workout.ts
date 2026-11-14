@@ -24,6 +24,12 @@ function jakartaYmd(date: Date): { year: number; month: number; day: number } {
   return { year: get("year"), month: get("month"), day: get("day") };
 }
 
+/** The Jakarta day a moment falls on, as a date key (same convention as todayDateKey). */
+export function dateKeyOf(date: Date): Date {
+  const { year, month, day } = jakartaYmd(date);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
 export function todayDateKey(): Date {
   const { year, month, day } = jakartaYmd(new Date());
   return new Date(Date.UTC(year, month - 1, day));
