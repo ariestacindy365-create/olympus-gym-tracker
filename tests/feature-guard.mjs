@@ -33,6 +33,8 @@ const FEATURES = [
   ['Kartu share Gerakan', 'src/components/member/DayFinishFlow.tsx', 'id: "gerakan"'],
   ['Kartu share Minggu ini', 'src/components/member/DayFinishFlow.tsx', 'id: "minggu"'],
   ['Kartu Rekor baru dengan rekor lama', 'src/components/member/DayFinishFlow.tsx', 'Rekor lama'],
+  ['Story foto (kolase + stiker)', 'src/components/member/PhotoStory.tsx', 'Bagikan ke Story'],
+  ['Tombol Story foto di layar share', 'src/components/member/ShareCards.tsx', 'Story foto'],
   ['Selebrasi PR: tombol suara 🔊/🔇', 'src/components/shared/SlideShow.tsx', 'togglePrSound'],
   ['Hapus set tetap jalan saat pindah halaman', 'src/components/ui/UndoDeleteButton.tsx', 'pagehide'],
   ['Hapus set langsung di layar latihan hari ini', 'src/components/member/TodayWorkoutPlan.tsx', 'removeSet'],
@@ -154,6 +156,22 @@ check('Judul Fokus otot mengikuti bagian badan terbanyak', () => {
   assert.equal(focusTitle({ abs: 5, obliques: 3, chest: 2 }), 'Hari perut & inti');
   assert.equal(focusTitle({ chest: 4, quads: 4, abs: 2 }), 'Seluruh tubuh');
   assert.equal(focusTitle({}), 'Seluruh tubuh');
+});
+
+const story = await load('src/lib/photoStory.ts');
+check('Story foto: kolase 1–4 foto dan foto selalu menutupi kotak', () => {
+  for (const n of [1, 2, 3, 4]) assert.equal(story.layoutBoxes(n).length, n);
+  const [big, a, b] = story.layoutBoxes(3);
+  assert.equal(big.h, Math.round(1920 * 0.58));
+  assert.equal(a.y, big.h + 8);
+  assert.equal(b.x - (a.x + a.w), 8);
+  const img = { width: 4000, height: 3000 };
+  const box = story.layoutBoxes(1)[0];
+  const p = story.clampPlacement(img, box, { zoom: 9, dx: 99999, dy: -99999 });
+  assert.equal(p.zoom, 4);
+  const r = story.imageRect(img, box, p);
+  assert.ok(r.x <= box.x + 0.01 && r.y <= box.y + 0.01 && r.x + r.w >= box.x + box.w - 0.01 && r.y + r.h >= box.y + box.h - 0.01);
+  assert.equal(story.clampPlacement(img, box, { zoom: 0.2, dx: 0, dy: 0 }).zoom, 1);
 });
 
 const { formatRepTarget } = await load('src/lib/programSlide.ts');
