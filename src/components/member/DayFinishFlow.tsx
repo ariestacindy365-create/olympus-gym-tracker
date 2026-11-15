@@ -34,6 +34,12 @@ interface Totals {
   records?: { exercise: string; weight: number; reps: number; previous: number | null }[];
 }
 
+/** "Sabtu, 14 November 2026" for "YYYY-MM-DD" (or today in Jakarta). */
+function dayLabel(date: string | null) {
+  const ymd = date ?? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
+  return new Date(`${ymd}T00:00:00Z`).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+}
+
 /** 0 = Monday … 6 = Sunday, for "YYYY-MM-DD" (or today in Jakarta). */
 function weekdayIndex(date: string | null) {
   const ymd = date ?? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
@@ -87,6 +93,8 @@ export function DayFinishFlow({
   const [story, setStory] = useState(false);
   const [calCard, setCalCard] = useState(false);
   const [photoStory, setPhotoStory] = useState(false);
+  // "Bagikan latihan" opens by itself after Simpan; it can be closed and opened again.
+  const [sharing, setSharing] = useState(true);
   const [bodyWeightKg, setBodyWeightKg] = useState<number | null>(null);
   const [durationMin, setDurationMin] = useState(DEFAULT_WORKOUT_MINUTES);
 
@@ -319,6 +327,18 @@ export function DayFinishFlow({
                 <p className="mt-1 font-display text-2xl font-bold">Kerja bagus, {firstName}!</p>
                 <p className="text-sm text-muted">Ini latihan ke-{totals.workoutNumber} kamu di Olympus.</p>
               </div>
+              {!sharing ? (
+                <button type="button" onClick={() => setSharing(true)} className="h-12 rounded-xl bg-accent font-bold text-white hover:bg-accent-2">
+                  Bagikan latihan
+                </button>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <p className="font-display text-lg font-bold">Bagikan latihan</p>
+                    <button type="button" onClick={() => setSharing(false)} className="min-h-11 px-2 text-sm font-semibold text-muted hover:text-foreground">
+                      Tutup
+                    </button>
+                  </div>
               <ShareCards
                 memberName={memberName}
                 shareText={shareText}
@@ -355,32 +375,16 @@ export function DayFinishFlow({
                   })(),
                   {
                     id: "ringkasan",
-                    kind: "stat",
-                    stat: {
-                      eyebrow: title || defaultTitle,
-                      big: formatKg(summary.totalVolume),
-                      unit: date ? "kg diangkat" : "kg hari ini",
-                      sub: eq ? `Setara ${formatKg(eq.factor)}× ${eq.name} ${eq.emoji}` : undefined,
-                      stats: [
+                    kind: "summary",
+                    summary: {
+                      date: dayLabel(date),
+                      title: title || defaultTitle,
+                      tiles: [
                         { value: formatDuration(summary.durationSec), label: "Durasi" },
+                        { value: `${formatKg(summary.totalVolume)} kg`, label: "Volume" },
                         { value: String(summary.totalSets), label: "Set" },
                         { value: String(summary.prCount), label: "Rekor" },
                       ],
-                    },
-                    video: "volume",
-                  },
-                  {
-                    id: "stiker",
-                    kind: "sticker",
-                    sticker: {
-                      title: title || defaultTitle,
-                      lines: summary.lines,
-                      levels: summary.levels,
-                      muscleSets: summary.muscleSets,
-                      totalVolume: summary.totalVolume,
-                      totalSets: summary.totalSets,
-                      prCount: summary.prCount,
-                      memberName,
                     },
                   },
                   ...(muscles.length
@@ -424,19 +428,19 @@ export function DayFinishFlow({
                         },
                       ]
                     : []),
-                  ...(cal && food
+                  ...(summary.totalVolume > 0
                     ? [
                         {
-                          id: "kalori",
-                          kind: "stat" as const,
-                          stat: {
-                            eyebrow: "Estimasi kalori",
-                            emoji: food.main.emoji,
-                            big: `±${cal.kcal.toLocaleString("id-ID")}`,
-                            unit: "kcal terbakar",
-                            sub: `Setara ${food.main.text}. Estimasi, bukan angka pasti.`,
+                          id: "total",
+                          kind: "total" as const,
+                          total: {
+                            eyebrow: title || defaultTitle,
+                            big: formatKg(summary.totalVolume),
+                            emoji: eq?.emoji,
+                            times: eq?.factor,
+                            sub: eq ? `Setara mengangkat ${formatKg(eq.factor)}× ${eq.name}` : undefined,
                           },
-                          video: "kalori" as const,
+                          video: "volume" as const,
                         },
                       ]
                     : []),
@@ -457,8 +461,40 @@ export function DayFinishFlow({
                           stats: [{ value: `${formatKg(totals.totalKg)} kg`, label: "Total diangkat" }],
                         },
                       },
+                  ...(cal && food
+                    ? [
+                        {
+                          id: "kalori",
+                          kind: "stat" as const,
+                          stat: {
+                            eyebrow: "Estimasi kalori",
+                            emoji: food.main.emoji,
+                            big: `±${cal.kcal.toLocaleString("id-ID")}`,
+                            unit: "kcal terbakar",
+                            sub: `Setara ${food.main.text}. Estimasi, bukan angka pasti.`,
+                          },
+                          video: "kalori" as const,
+                        },
+                      ]
+                    : []),
+                  {
+                    id: "stiker",
+                    kind: "sticker",
+                    sticker: {
+                      title: title || defaultTitle,
+                      lines: summary.lines,
+                      levels: summary.levels,
+                      muscleSets: summary.muscleSets,
+                      totalVolume: summary.totalVolume,
+                      totalSets: summary.totalSets,
+                      prCount: summary.prCount,
+                      memberName,
+                    },
+                  },
                 ]}
               />
+                </>
+              )}
               <Link href="/member/feed" className="self-center text-sm font-semibold text-accent hover:underline">
                 Lihat di Feed
               </Link>
