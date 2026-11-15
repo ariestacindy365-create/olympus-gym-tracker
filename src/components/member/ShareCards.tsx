@@ -111,7 +111,7 @@ export function ShareCards({
   const [index, setIndex] = useState(0);
   const [backdrop, setBackdrop] = useState<Backdrop>("biru");
   const [pending, setPending] = useState(false);
-  // WhatsApp, Salin teks and Versi video stay under "Lainnya" so the screen shows few buttons.
+  // WhatsApp and Salin teks stay under "Lainnya" so the screen shows few buttons.
   const [moreOpen, setMoreOpen] = useState(false);
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const ink = inkFor(backdrop);
@@ -278,6 +278,14 @@ export function ShareCards({
         ))}
       </div>
 
+      {/* Only on cards with an animated version (Total angkatan, Kalori). */}
+      {current.video && (
+        <button type="button" onClick={() => onVideo(current.video!)} className="-mt-1 inline-flex min-h-10 items-center gap-1.5 self-center px-2 text-sm font-semibold text-accent hover:underline">
+          <Icon name="video" />
+          Versi video
+        </button>
+      )}
+
       <div role="radiogroup" aria-label="Warna kartu" className="flex justify-center gap-2">
         {BACKDROPS.map((b) => (
           <button
@@ -314,7 +322,6 @@ export function ShareCards({
         <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
           <MoreItem icon="whatsapp" label="Kirim teks ke WhatsApp" onClick={whatsapp} />
           <MoreItem icon="text" label="Salin teks" onClick={copyText} />
-          {current.video && <MoreItem icon="video" label="Versi video kartu ini" onClick={() => onVideo(current.video!)} />}
         </div>
       )}
 
