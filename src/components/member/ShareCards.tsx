@@ -45,19 +45,41 @@ const ICONS = {
   download: "M12 4v11m0 0l-4-4m4 4l4-4M5 19h14",
   text: "M5 6h14M5 11h14M5 16h9",
   video: "M4 6h11v12H4zM15 10l5-3v10l-5-3",
+  more: "M5 12h.01M12 12h.01M19 12h.01",
   photo: "M4 7h4l2-2h4l2 2h4v12H4zM12 10a3 3 0 100 6 3 3 0 000-6z",
   whatsapp: "M4 20l1.3-4A8 8 0 1112 20a8 8 0 01-4-1.1L4 20zM9 9c0 3 3 6 6 6l1-1.5-2-1-1 1c-1-.5-2-1.5-2.5-2.5l1-1-1-2L9 9z",
 };
 
-function Action({ icon, label, onClick, disabled, primary }: { icon: keyof typeof ICONS; label: string; onClick: () => void; disabled?: boolean; primary?: boolean }) {
+function Icon({ name }: { name: keyof typeof ICONS }) {
   return (
-    <button type="button" onClick={onClick} disabled={disabled} className="flex min-w-0 max-w-[4.75rem] flex-1 basis-0 flex-col items-center gap-1.5 text-[11px] font-semibold text-muted disabled:opacity-50">
-      <span className={`flex h-12 w-12 items-center justify-center rounded-full ${primary ? "bg-accent text-white" : "bg-surface-2 text-foreground"}`}>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <path d={ICONS[icon]} />
-        </svg>
-      </span>
-      <span className="w-full break-words text-center leading-tight">{label}</span>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d={ICONS[name]} />
+    </svg>
+  );
+}
+
+/** A secondary button next to the main one. */
+function Action({ icon, label, onClick, disabled, expanded }: { icon: keyof typeof ICONS; label: string; onClick: () => void; disabled?: boolean; expanded?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-expanded={expanded}
+      className="flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border border-border px-2 text-sm font-semibold disabled:opacity-50"
+    >
+      <Icon name={icon} />
+      <span className="truncate">{label}</span>
+    </button>
+  );
+}
+
+/** A row in the "Lainnya" list. */
+function MoreItem({ icon, label, onClick }: { icon: keyof typeof ICONS; label: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="flex min-h-11 w-full items-center gap-3 px-3 text-left text-sm font-semibold active:bg-surface-2">
+      <Icon name={icon} />
+      {label}
     </button>
   );
 }
@@ -89,6 +111,8 @@ export function ShareCards({
   const [index, setIndex] = useState(0);
   const [backdrop, setBackdrop] = useState<Backdrop>("biru");
   const [pending, setPending] = useState(false);
+  // WhatsApp, Salin teks and Versi video stay under "Lainnya" so the screen shows few buttons.
+  const [moreOpen, setMoreOpen] = useState(false);
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const ink = inkFor(backdrop);
   // The muscle figures drawn onto the sticker / Fokus otot card.
@@ -281,13 +305,18 @@ export function ShareCards({
         </button>
       )}
 
-      <div className="flex justify-center gap-0.5">
-        <Action icon="whatsapp" label="WhatsApp" onClick={whatsapp} />
+      <div className="flex gap-2">
         {onPhotoStory && <Action icon="photo" label="Story foto" onClick={onPhotoStory} />}
-        <Action icon="text" label="Salin teks" onClick={copyText} />
         <Action icon="download" label="Simpan" onClick={download} disabled={pending} />
-        {current.video && <Action icon="video" label="Versi video" onClick={() => onVideo(current.video!)} />}
+        <Action icon="more" label="Lainnya" onClick={() => setMoreOpen((o) => !o)} expanded={moreOpen} />
       </div>
+      {moreOpen && (
+        <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
+          <MoreItem icon="whatsapp" label="Kirim teks ke WhatsApp" onClick={whatsapp} />
+          <MoreItem icon="text" label="Salin teks" onClick={copyText} />
+          {current.video && <MoreItem icon="video" label="Versi video kartu ini" onClick={() => onVideo(current.video!)} />}
+        </div>
+      )}
 
       {note && (
         <p role="status" className={`rounded-xl px-3 py-2 text-center text-[13px] ${note.tone === "ok" ? "bg-surface-2" : "bg-danger/10 text-danger"}`}>

@@ -34,6 +34,7 @@ const FEATURES = [
   ['Tombol Salin stiker untuk Story (Bening)', 'src/components/member/ShareCards.tsx', 'Salin stiker untuk Story'],
   ['Bagikan latihan bisa ditutup dan dibuka lagi', 'src/components/member/DayFinishFlow.tsx', 'setSharing(true)'],
   ['Kartu yang dibagikan = kartu di tengah layar', 'src/components/member/ShareCards.tsx', 'nearest the middle'],
+  ['Tombol share ringkas: WhatsApp, Salin teks, Versi video di Lainnya', 'src/components/member/ShareCards.tsx', 'setMoreOpen'],
   ['Saran beban di tiap gerakan program', 'src/components/member/TodayWorkoutPlan.tsx', 'Saran beban'],
   ['Kartu share Fokus otot', 'src/components/member/DayFinishFlow.tsx', 'id: "fokus"'],
   ['Kartu share Gerakan', 'src/components/member/DayFinishFlow.tsx', 'id: "gerakan"'],
