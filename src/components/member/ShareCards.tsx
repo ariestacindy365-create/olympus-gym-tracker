@@ -4,15 +4,22 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { MuscleMap } from "@/components/shared/MuscleMap";
 import { drawSticker, figureImages, type WorkoutStickerModalProps } from "@/components/shared/WorkoutStickerModal";
 import {
-  CARD_SIZE,
+  CARD_H,
+  CARD_W,
   drawListCard,
   drawMuscleCard,
   drawStatCard,
+  drawSummaryCard,
+  drawTotalCard,
   drawWeekCard,
-  fillOlympusBackground,
+  fillBackdrop,
+  inkFor,
+  type Backdrop,
   type ListCard,
   type MuscleCard,
   type StatCard,
+  type SummaryCard,
+  type TotalCard,
   type WeekCard,
 } from "@/lib/shareCards";
 import type { MuscleKey } from "@/lib/muscles";
@@ -21,26 +28,25 @@ import { shareOrDownload } from "@/lib/shareFile";
 export type ShareCard =
   | { id: string; kind: "sticker"; sticker: Omit<WorkoutStickerModalProps, "onClose">; video?: undefined }
   | { id: string; kind: "stat"; stat: StatCard; /** An animated version exists (opens its own screen). */ video?: "volume" | "kalori" }
+  | { id: string; kind: "summary"; summary: SummaryCard; video?: undefined }
+  | { id: string; kind: "total"; total: TotalCard; video?: "volume" }
   | { id: string; kind: "list"; list: ListCard; video?: undefined }
   | { id: string; kind: "week"; week: WeekCard; video?: undefined }
   | { id: string; kind: "muscle"; muscle: MuscleCard; levels: Partial<Record<MuscleKey, number>>; video?: undefined };
 
-/** Olympus background, or transparent with white / dark text for pasting on a photo. */
-type Backdrop = "solid" | "light" | "dark";
-const BACKDROPS: { id: Backdrop; label: string }[] = [
-  { id: "solid", label: "Biru" },
-  { id: "light", label: "Transparan" },
-  { id: "dark", label: "Teks gelap" },
+/** Biru and Terang are solid; Bening is transparent with a see-through panel, for pasting on a photo. */
+const BACKDROPS: { id: Backdrop; label: string; swatch: string }[] = [
+  { id: "biru", label: "Biru", swatch: "radial-gradient(circle at 50% 10%, #2563eb, #0b1220 75%)" },
+  { id: "bening", label: "Bening", swatch: "repeating-conic-gradient(#94a3b8 0 25%, #e2e8f0 0 50%) 0 0 / 10px 10px" },
+  { id: "terang", label: "Terang", swatch: "radial-gradient(circle at 50% 10%, #bfdbfe, #f8fafc 75%)" },
 ];
 
 const ICONS = {
-  backdrop: "M4 4h16v16H4zM4 12h16M12 4v16",
-  share: "M12 15V4m0 0l-4 4m4-4l4 4M5 13v6h14v-6",
-  copy: "M9 9h10v10H9zM5 15V5h10",
   download: "M12 4v11m0 0l-4-4m4 4l4-4M5 19h14",
   text: "M5 6h14M5 11h14M5 16h9",
   video: "M4 6h11v12H4zM15 10l5-3v10l-5-3",
   photo: "M4 7h4l2-2h4l2 2h4v12H4zM12 10a3 3 0 100 6 3 3 0 000-6z",
+  whatsapp: "M4 20l1.3-4A8 8 0 1112 20a8 8 0 01-4-1.1L4 20zM9 9c0 3 3 6 6 6l1-1.5-2-1-1 1c-1-.5-2-1.5-2.5-2.5l1-1-1-2L9 9z",
 };
 
 function Action({ icon, label, onClick, disabled, primary }: { icon: keyof typeof ICONS; label: string; onClick: () => void; disabled?: boolean; primary?: boolean }) {
@@ -81,10 +87,10 @@ export function ShareCards({
   const canvases = useRef<(HTMLCanvasElement | null)[]>([]);
   const hostRef = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
-  const [backdrop, setBackdrop] = useState<Backdrop>("solid");
+  const [backdrop, setBackdrop] = useState<Backdrop>("biru");
   const [pending, setPending] = useState(false);
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
-  const ink = backdrop === "dark" ? "dark" : "light";
+  const ink = inkFor(backdrop);
   // The muscle figures drawn onto the sticker / Fokus otot card.
   const figureCard = cards.find((c) => c.kind === "sticker" || c.kind === "muscle");
   const figureLevels = figureCard?.kind === "sticker" ? figureCard.sticker.levels : figureCard?.kind === "muscle" ? figureCard.levels : null;
@@ -105,19 +111,21 @@ export function ShareCards({
           } else if (card.kind === "muscle") {
             if (!hostRef.current) continue;
             await drawMuscleCard(layer, await figureImages(hostRef.current), card.muscle, ink, memberName);
-          } else if (card.kind === "list") await drawListCard(layer, card.list, ink, memberName);
+          } else if (card.kind === "summary") await drawSummaryCard(layer, card.summary, ink, memberName);
+          else if (card.kind === "total") await drawTotalCard(layer, card.total, ink, memberName);
+          else if (card.kind === "list") await drawListCard(layer, card.list, ink, memberName);
           else if (card.kind === "week") await drawWeekCard(layer, card.week, ink, memberName);
           else await drawStatCard(layer, card.stat, ink, memberName);
         } catch {
           continue;
         }
         if (cancelled) return;
-        target.width = CARD_SIZE;
-        target.height = CARD_SIZE;
+        target.width = CARD_W;
+        target.height = CARD_H;
         const ctx = target.getContext("2d")!;
-        ctx.clearRect(0, 0, CARD_SIZE, CARD_SIZE);
-        if (backdrop === "solid") fillOlympusBackground(ctx);
-        ctx.drawImage(layer, 0, 0);
+        fillBackdrop(ctx, backdrop);
+        // The sticker is square: centred on the portrait card.
+        ctx.drawImage(layer, 0, (CARD_H - layer.height) / 2);
       }
     })();
     return () => {
@@ -125,14 +133,25 @@ export function ShareCards({
     };
     // cards is rebuilt each render; its content only changes with these.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [backdrop, ink, memberName, cards.map((c) => c.id + JSON.stringify(c.kind === "sticker" ? c.sticker.title : c.kind === "stat" ? c.stat : c.kind === "list" ? c.list : c.kind === "week" ? c.week : c.muscle)).join("|")]);
+  }, [backdrop, ink, memberName, cards.map((c) => JSON.stringify(c.kind === "sticker" ? c.id + c.sticker.title : c)).join("|")]);
 
   const onScroll = useCallback(() => {
     const el = scroller.current;
     if (!el) return;
-    const first = el.firstElementChild as HTMLElement | null;
-    const step = first ? first.offsetWidth + 12 : el.clientWidth;
-    setIndex(Math.max(0, Math.min(cards.length - 1, Math.round(el.scrollLeft / step))));
+    // The card nearest the middle of the screen is the one being shared
+    // (dividing the scroll by a card's width drifted onto the previous one).
+    const mid = el.getBoundingClientRect().left + el.clientWidth / 2;
+    let best = 0;
+    let bestDist = Infinity;
+    [...el.children].forEach((child, i) => {
+      const r = child.getBoundingClientRect();
+      const d = Math.abs(r.left + r.width / 2 - mid);
+      if (d < bestDist) {
+        bestDist = d;
+        best = i;
+      }
+    });
+    setIndex(Math.min(cards.length - 1, best));
   }, [cards.length]);
 
   const toBlob = () =>
@@ -188,7 +207,7 @@ export function ShareCards({
     }
     try {
       await navigator.clipboard.write([new ClipboardItem({ "image/png": toBlob() })]);
-      setNote({ tone: "ok", text: "Gambar tersalin. Di Instagram Story: ketuk Aa, tahan di kolom teks, lalu Tempel." });
+      setNote({ tone: "ok", text: "Stiker tersalin. Di Instagram: buka Story, ketuk Aa, tahan di kolom teks, lalu Tempel." });
     } catch {
       setNote({ tone: "error", text: "Gagal menyalin. Pakai Unduh." });
     }
@@ -203,35 +222,26 @@ export function ShareCards({
     }
   }
 
-  const nextBackdrop = () => setBackdrop((b) => BACKDROPS[(BACKDROPS.findIndex((x) => x.id === b) + 1) % BACKDROPS.length].id);
+  // WhatsApp gets the text (a picture goes through Bagikan ke Story).
+  const whatsapp = () => window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank", "noopener");
 
   return (
     <div className="flex flex-col gap-3">
-      <div ref={scroller} onScroll={onScroll} className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-[11%]" aria-label="Kartu untuk dibagikan">
+      <div ref={scroller} onScroll={onScroll} className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-[18%]" aria-label="Kartu untuk dibagikan">
         {cards.map((card, i) => (
           <div
             key={card.id}
-            className={`w-full shrink-0 snap-center overflow-hidden rounded-2xl border border-border ${backdrop === "dark" ? "bg-[#f1f5f9]" : "bg-[#1f2937]"}`}
+            className="w-full shrink-0 snap-center overflow-hidden rounded-2xl border border-border"
             // Checkerboard shows which parts are transparent.
-            style={
-              backdrop === "solid"
-                ? undefined
-                : {
-                    backgroundImage:
-                      backdrop === "light"
-                        ? "conic-gradient(#374151 25%, transparent 0 50%, #374151 0 75%, transparent 0)"
-                        : "conic-gradient(#e2e8f0 25%, transparent 0 50%, #e2e8f0 0 75%, transparent 0)",
-                    backgroundSize: "24px 24px",
-                  }
-            }
+            style={backdrop === "bening" ? { background: "repeating-conic-gradient(#cbd5e1 0 25%, #f1f5f9 0 50%) 0 0 / 24px 24px" } : undefined}
           >
             <canvas
               ref={(el) => {
                 canvases.current[i] = el;
               }}
-              width={CARD_SIZE}
-              height={CARD_SIZE}
-              className="block aspect-square h-auto w-full"
+              width={CARD_W}
+              height={CARD_H}
+              className="block aspect-[3/4] h-auto w-full"
               aria-label={`Kartu ${i + 1} dari ${cards.length}`}
             />
           </div>
@@ -244,14 +254,38 @@ export function ShareCards({
         ))}
       </div>
 
-      {/* Up to seven actions, all on screen at once. */}
+      <div role="radiogroup" aria-label="Warna kartu" className="flex justify-center gap-2">
+        {BACKDROPS.map((b) => (
+          <button
+            key={b.id}
+            type="button"
+            role="radio"
+            aria-checked={backdrop === b.id}
+            onClick={() => setBackdrop(b.id)}
+            className={`flex min-h-10 items-center gap-2 rounded-full border px-3 text-sm font-semibold ${backdrop === b.id ? "border-accent bg-accent/10" : "border-border"}`}
+          >
+            <span aria-hidden className="h-5 w-5 rounded-full border border-border" style={{ background: b.swatch }} />
+            {b.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Bening is for pasting on a photo, so it copies; the solid colours share. */}
+      {backdrop === "bening" ? (
+        <button type="button" onClick={copyImage} disabled={pending} className="h-12 rounded-xl bg-accent font-bold text-white disabled:opacity-60">
+          Salin stiker untuk Story
+        </button>
+      ) : (
+        <button type="button" onClick={share} disabled={pending} className="h-12 rounded-xl bg-accent font-bold text-white disabled:opacity-60">
+          {pending ? "Menyiapkan…" : "Bagikan ke Story"}
+        </button>
+      )}
+
       <div className="flex justify-center gap-0.5">
-        <Action icon="share" label="Bagikan" onClick={share} disabled={pending} primary />
+        <Action icon="whatsapp" label="WhatsApp" onClick={whatsapp} />
         {onPhotoStory && <Action icon="photo" label="Story foto" onClick={onPhotoStory} />}
-        <Action icon="backdrop" label={`Latar ${BACKDROPS.find((b) => b.id === backdrop)!.label}`} onClick={nextBackdrop} />
-        <Action icon="copy" label="Salin gambar" onClick={copyImage} disabled={pending} />
-        <Action icon="download" label="Unduh" onClick={download} disabled={pending} />
         <Action icon="text" label="Salin teks" onClick={copyText} />
+        <Action icon="download" label="Simpan" onClick={download} disabled={pending} />
         {current.video && <Action icon="video" label="Versi video" onClick={() => onVideo(current.video!)} />}
       </div>
 
@@ -260,8 +294,8 @@ export function ShareCards({
           {note.text}
         </p>
       )}
-      {backdrop !== "solid" && (
-        <p className="text-center text-xs text-muted">Latar transparan: pakai Salin gambar atau Unduh. Bagikan langsung ke Instagram/WhatsApp membuat latarnya hitam.</p>
+      {backdrop === "bening" && (
+        <p className="text-center text-xs text-muted">Bening untuk ditempel di atas foto Story: salin, lalu tempel di Instagram. Kalau dibagikan langsung, latarnya jadi hitam.</p>
       )}
 
       {/* Source of the muscle figures drawn onto the sticker card. */}
