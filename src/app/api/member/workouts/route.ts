@@ -7,6 +7,7 @@ import { BACKFILL_DAYS, loggableDateKey } from "@/lib/workout";
 import { workoutDurationSchema } from "@/lib/workoutDuration";
 import { summarizeDay } from "@/lib/workoutSummary";
 import { mondayOf } from "@/lib/programRotation";
+import { firstPerExercise } from "@/lib/records";
 import { Role, WorkoutVisibility } from "@/generated/prisma/client";
 import { setVolume } from "@/lib/setUnits";
 
@@ -75,7 +76,8 @@ export async function POST(request: NextRequest) {
     select: { exerciseId: true, weight: true, reps: true, exercise: { select: { name: true } } },
     orderBy: { weight: "desc" },
   });
-  const prExercises = [...new Map(prSets.map((s) => [s.exerciseId, s])).values()];
+  // One per movement: its heaviest record set (the list is heaviest first).
+  const prExercises = firstPerExercise(prSets);
   const before = prExercises.length
     ? await prisma.setEntry.groupBy({
         by: ["exerciseId"],
@@ -85,6 +87,8 @@ export async function POST(request: NextRequest) {
     : [];
   const beforeOf = new Map(before.map((b) => [b.exerciseId, b._max.weight]));
   const weekEnd = new Date(weekStart.getTime() + 7 * 86400_000);
+  // Only that week: filling in an old day mustn't count the weeks after it.
+  const daysOfWeek = weekDays.filter((d) => d.workoutDate < weekEnd);
 
   return NextResponse.json({
     workout,
@@ -93,11 +97,9 @@ export async function POST(request: NextRequest) {
       workoutNumber: trainingDays.length,
       durationSec: totals._sum.durationSec ?? 0,
       totalKg: Math.round(allSets.reduce((a, s) => a + setVolume(s), 0)),
-      daysThisWeek: weekDays.length,
+      daysThisWeek: daysOfWeek.length,
       /** Days trained this week, 0 = Monday … 6 = Sunday. */
-      weekDays: weekDays
-        .filter((d) => d.workoutDate < weekEnd)
-        .map((d) => Math.round((d.workoutDate.getTime() - weekStart.getTime()) / 86400_000)),
+      weekDays: daysOfWeek.map((d) => Math.round((d.workoutDate.getTime() - weekStart.getTime()) / 86400_000)),
       records: prExercises.map((s) => ({ exercise: s.exercise.name, weight: s.weight, reps: s.reps, previous: beforeOf.get(s.exerciseId) ?? null })),
     },
   });

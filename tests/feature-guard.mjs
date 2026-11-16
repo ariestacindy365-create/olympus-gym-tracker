@@ -187,6 +187,12 @@ check('Story foto: kolase 1–4 foto dan foto selalu menutupi kotak', () => {
   assert.equal(story.clampPlacement(img, box, { zoom: 0.2, dx: 0, dy: 0 }).zoom, 1);
 });
 
+const { firstPerExercise } = await load('src/lib/records.ts');
+check('Kartu Rekor baru memakai set rekor terberat per gerakan', () => {
+  const sets = [{ exerciseId: 'squat', weight: 151 }, { exerciseId: 'dl', weight: 180 }, { exerciseId: 'squat', weight: 140 }, { exerciseId: 'dl', weight: 170 }];
+  assert.deepEqual(firstPerExercise(sets).map((s) => s.weight), [151, 180]);
+});
+
 const { formatRepTarget } = await load('src/lib/programSlide.ts');
 check('Slide menulis gerakan tahan dalam detik', () => {
   assert.equal(formatRepTarget('45', 'Plank'), '45"');
