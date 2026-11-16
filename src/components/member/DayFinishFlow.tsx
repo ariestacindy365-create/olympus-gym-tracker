@@ -9,7 +9,7 @@ import { PhotoStory } from "@/components/member/PhotoStory";
 import { formatKg, pickEquivalent, type LifterCharacter, type SkinTone } from "@/lib/volumeStory";
 import { MUSCLE_LABEL, focusTitle, type MuscleKey } from "@/lib/muscles";
 import type { DaySummary } from "@/lib/workoutSummary";
-import { DEFAULT_WORKOUT_MINUTES, WORKOUT_DURATION_OPTIONS } from "@/lib/workoutDuration";
+import { DEFAULT_WORKOUT_MINUTES } from "@/lib/workoutDuration";
 import { formatDuration } from "@/lib/duration";
 import { estimateCalories, foodEquivalent } from "@/lib/calories";
 import { CalorieShareModal } from "@/components/member/CalorieShareModal";
@@ -82,7 +82,10 @@ export function DayFinishFlow({
   date = null,
   onClose,
 }: DayFinishFlowProps) {
-  const [step, setStep] = useState<"summary" | "save" | "done">("summary");
+  const [step, setStep] = useState<"summary" | "done">("summary");
+  // "Yakin sudah selesai?" before saving; title, note and who sees it are optional extras there.
+  const [confirming, setConfirming] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [summary, setSummary] = useState<DaySummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState(defaultTitle);
@@ -96,7 +99,8 @@ export function DayFinishFlow({
   // "Bagikan latihan" opens by itself after Simpan; it can be closed and opened again.
   const [sharing, setSharing] = useState(true);
   const [bodyWeightKg, setBodyWeightKg] = useState<number | null>(null);
-  const [durationMin, setDurationMin] = useState(DEFAULT_WORKOUT_MINUTES);
+  // Every workout counts as one class: an hour (Activa #89), no question asked.
+  const durationMin = DEFAULT_WORKOUT_MINUTES;
 
   useEffect(() => {
     let cancelled = false;
@@ -114,7 +118,8 @@ export function DayFinishFlow({
     };
   }, [date]);
 
-  async function save() {
+  /** Saves the workout; true when it worked. */
+  async function save(): Promise<boolean> {
     setPending(true);
     setError(null);
     try {
@@ -135,15 +140,17 @@ export function DayFinishFlow({
       setSummary(data.summary);
       setTotals(data.totals);
       setStep("done");
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal menyimpan latihan.");
+      return false;
     } finally {
       setPending(false);
     }
   }
 
   const firstName = memberName.split(" ")[0];
-  // A gym session defaults to one hour; the member can choose another duration.
+  // Every workout is one class: an hour.
   const durationSec = summary ? (step === "done" ? summary.durationSec : durationMin * 60) : 0;
   const cal = summary ? estimateCalories(durationSec, bodyWeightKg) : null;
   const food = cal ? foodEquivalent(cal.kcal) : null;
@@ -162,16 +169,8 @@ export function DayFinishFlow({
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center" role="dialog" aria-modal="true" aria-label="Selesai latihan">
       <div className="flex max-h-[92dvh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-surface shadow-overlay sm:rounded-3xl">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          {step === "save" ? (
-            <button type="button" onClick={() => setStep("summary")} className="text-sm font-semibold text-accent">
-              ‹ Kembali
-            </button>
-          ) : (
-            <span className="w-14" />
-          )}
-          <p className="font-display text-base font-bold uppercase tracking-wide">
-            {step === "summary" ? "Latihan selesai" : step === "save" ? "Simpan latihan" : "Tersimpan ✓"}
-          </p>
+          <span className="w-14" />
+          <p className="font-display text-base font-bold uppercase tracking-wide">{step === "summary" ? "Latihan selesai" : "Tersimpan ✓"}</p>
           <button type="button" onClick={onClose} aria-label="Tutup" className="w-14 text-right text-xl text-muted hover:text-foreground">
             ×
           </button>
@@ -201,23 +200,6 @@ export function DayFinishFlow({
                 <Tile value={String(summary.lines.length)} label="Gerakan" />
                 <Tile value={String(summary.prCount)} label="🏆 PR" />
               </div>
-              <fieldset className="space-y-2">
-                <legend className="mb-2 text-sm font-semibold">Berapa lama latihannya?</legend>
-                <div className="flex flex-wrap gap-2">
-                  {WORKOUT_DURATION_OPTIONS.map((minutes) => (
-                    <button
-                      key={minutes}
-                      type="button"
-                      aria-pressed={durationMin === minutes}
-                      onClick={() => setDurationMin(minutes)}
-                      className={`min-h-11 rounded-full border px-3 py-2 text-sm font-semibold transition ${durationMin === minutes ? "border-accent bg-accent text-white" : "border-border bg-surface-2 text-foreground hover:border-accent"}`}
-                    >
-                      {formatDuration(minutes * 60)}{minutes === DEFAULT_WORKOUT_MINUTES ? " · default" : ""}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs text-muted">Otomatis 1 jam sesuai durasi sesi gym. Pilih durasi lain jika latihanmu lebih singkat atau lebih lama.</p>
-              </fieldset>
               {cal && (
                 <div className="flex items-center gap-3 rounded-2xl border border-[#f97316]/25 bg-[#f97316]/10 px-4 py-3">
                   <span className="text-3xl" aria-hidden>
@@ -270,53 +252,6 @@ export function DayFinishFlow({
                   </li>
                 ))}
               </ul>
-            </div>
-          )}
-
-          {summary && step === "save" && (
-            <div className="flex flex-col gap-4">
-              <label className="flex flex-col gap-1 text-sm font-semibold">
-                Judul latihan
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  maxLength={80}
-                  className="h-11 rounded-lg border border-border bg-surface px-3 text-base font-normal focus:border-accent focus:outline-none"
-                />
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                <Tile value={formatDuration(durationSec)} label="Durasi" />
-                <Tile value={`${formatKg(summary.totalVolume)}`} label="Volume (kg)" />
-                <Tile value={String(summary.totalSets)} label="Set" />
-              </div>
-              <label className="flex flex-col gap-1 text-sm font-semibold">
-                Catatan <span className="font-normal text-muted">(opsional)</span>
-                <textarea
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  maxLength={500}
-                  rows={3}
-                  placeholder="Gimana latihannya hari ini?"
-                  className="rounded-lg border border-border bg-surface px-3 py-2 text-base font-normal focus:border-accent focus:outline-none"
-                />
-              </label>
-              <fieldset className="flex flex-col gap-1.5">
-                <legend className="mb-1 text-sm font-semibold">Dilihat oleh</legend>
-                {VISIBILITY.map((v) => (
-                  <label
-                    key={v.value}
-                    className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 ${
-                      visibility === v.value ? "border-accent bg-accent/5" : "border-border"
-                    }`}
-                  >
-                    <input type="radio" name="visibility" checked={visibility === v.value} onChange={() => setVisibility(v.value)} className="accent-[var(--color-accent)]" />
-                    <span className="flex flex-col">
-                      <span className="text-sm font-semibold">{v.label}</span>
-                      <span className="text-xs text-muted">{v.hint}</span>
-                    </span>
-                  </label>
-                ))}
-              </fieldset>
             </div>
           )}
 
@@ -505,18 +440,8 @@ export function DayFinishFlow({
         {summary && (
           <div className="flex flex-col gap-2 border-t border-border px-4 py-3">
             {step === "summary" && (
-              <>
-                <button type="button" onClick={() => setStep("save")} className="h-12 rounded-xl bg-accent font-bold text-white hover:bg-accent-2">
-                  Simpan latihan
-                </button>
-                <button type="button" onClick={onClose} className="h-10 text-sm font-semibold text-muted hover:text-foreground">
-                  Lanjut latihan dulu
-                </button>
-              </>
-            )}
-            {step === "save" && (
-              <button type="button" onClick={save} disabled={pending} className="h-12 rounded-xl bg-accent font-bold text-white hover:bg-accent-2 disabled:opacity-60">
-                {pending ? "Menyimpan…" : "Simpan"}
+              <button type="button" onClick={() => setConfirming(true)} className="h-12 rounded-xl bg-accent font-bold text-white hover:bg-accent-2">
+                Simpan latihan
               </button>
             )}
             {step === "done" && (
@@ -528,6 +453,72 @@ export function DayFinishFlow({
         )}
       </div>
 
+      {confirming && summary && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" role="alertdialog" aria-modal="true" aria-labelledby="finish-confirm-title">
+          <div className="flex max-h-[85dvh] w-full max-w-sm flex-col gap-3 overflow-y-auto rounded-2xl bg-surface p-5 shadow-overlay">
+            <p id="finish-confirm-title" className="font-display text-xl font-bold">
+              Yakin sudah selesai?
+            </p>
+            <p className="text-sm text-muted">Setelah disimpan, kamu bisa langsung bagikan kartu atau video latihanmu.</p>
+            {!editing ? (
+              <button type="button" onClick={() => setEditing(true)} className="self-start text-sm font-semibold text-accent hover:underline">
+                Tambah catatan / ubah siapa yang lihat
+              </button>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <label className="flex flex-col gap-1 text-sm font-semibold">
+                  Judul latihan
+                  <input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    maxLength={80}
+                    className="h-11 rounded-lg border border-border bg-surface px-3 text-base font-normal focus:border-accent focus:outline-none"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm font-semibold">
+                  Catatan <span className="font-normal text-muted">(opsional, tampil di Feed)</span>
+                  <textarea
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    maxLength={500}
+                    rows={2}
+                    placeholder="Gimana latihannya hari ini?"
+                    className="rounded-lg border border-border bg-surface px-3 py-2 text-base font-normal focus:border-accent focus:outline-none"
+                  />
+                </label>
+                <fieldset className="flex flex-col gap-1.5">
+                  <legend className="mb-1 text-sm font-semibold">Dilihat oleh</legend>
+                  {VISIBILITY.map((v) => (
+                    <label key={v.value} className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 ${visibility === v.value ? "border-accent bg-accent/5" : "border-border"}`}>
+                      <input type="radio" name="visibility" checked={visibility === v.value} onChange={() => setVisibility(v.value)} className="accent-[var(--color-accent)]" />
+                      <span className="flex flex-col">
+                        <span className="text-sm font-semibold">{v.label}</span>
+                        <span className="text-xs text-muted">{v.hint}</span>
+                      </span>
+                    </label>
+                  ))}
+                </fieldset>
+              </div>
+            )}
+            {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+            <div className="mt-1 grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setConfirming(false)} disabled={pending} className="h-12 rounded-xl border border-border font-bold disabled:opacity-60">
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (await save()) setConfirming(false);
+                }}
+                disabled={pending}
+                className="h-12 rounded-xl bg-accent font-bold text-white hover:bg-accent-2 disabled:opacity-60"
+              >
+                {pending ? "Menyimpan…" : "Ya, simpan"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {calCard && cal && summary && (
         <CalorieShareModal
           cal={cal}
