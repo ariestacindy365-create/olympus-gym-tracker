@@ -46,7 +46,8 @@ export function amountFitsUnit(amount: number, unit: SetUnit) {
 export const setEntrySchema = z
   .object({
     exerciseId: z.string().min(1),
-    setNumber: z.number().int().positive().optional(),
+    // A day's set rows: the screens render one row per set number.
+    setNumber: z.number().int().positive().max(50).optional(),
     weight: liftWeight,
     reps: z.number().int().positive().max(20000),
     unit: z.enum(SET_UNITS).default("REPS"),
