@@ -47,7 +47,6 @@ const ICONS = {
   video: "M4 6h11v12H4zM15 10l5-3v10l-5-3",
   more: "M5 12h.01M12 12h.01M19 12h.01",
   photo: "M4 7h4l2-2h4l2 2h4v12H4zM12 10a3 3 0 100 6 3 3 0 000-6z",
-  whatsapp: "M4 20l1.3-4A8 8 0 1112 20a8 8 0 01-4-1.1L4 20zM9 9c0 3 3 6 6 6l1-1.5-2-1-1 1c-1-.5-2-1.5-2.5-2.5l1-1-1-2L9 9z",
 };
 
 function Icon({ name }: { name: keyof typeof ICONS }) {
@@ -66,10 +65,10 @@ function Action({ icon, label, onClick, disabled, expanded }: { icon: keyof type
       onClick={onClick}
       disabled={disabled}
       aria-expanded={expanded}
-      className="flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border border-border px-2 text-sm font-semibold disabled:opacity-50"
+      className="flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl border border-border px-1 py-1.5 text-xs font-semibold disabled:opacity-50"
     >
       <Icon name={icon} />
-      <span className="truncate">{label}</span>
+      <span className="w-full truncate text-center">{label}</span>
     </button>
   );
 }
@@ -102,7 +101,7 @@ export function ShareCards({
   shareText: string;
   fileSlug: string;
   onVideo: (kind: "volume" | "kalori") => void;
-  /** Opens "Story foto" (photos + the workout sticker). */
+  /** Opens "Foto + stiker" (photos + the workout sticker). */
   onPhotoStory?: () => void;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
@@ -111,7 +110,7 @@ export function ShareCards({
   const [index, setIndex] = useState(0);
   const [backdrop, setBackdrop] = useState<Backdrop>("biru");
   const [pending, setPending] = useState(false);
-  // WhatsApp and Salin teks stay under "Lainnya" so the screen shows few buttons.
+  // Video volume / kalori stay under "Lainnya" so the screen shows few buttons.
   const [moreOpen, setMoreOpen] = useState(false);
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const ink = inkFor(backdrop);
@@ -237,17 +236,28 @@ export function ShareCards({
     }
   }
 
-  async function copyText() {
+  // "Teks": the phone's share menu with just the text (WhatsApp, Line, …);
+  // where there is no share menu, the text is copied instead.
+  async function shareTextOnly() {
+    setNote(null);
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: shareText });
+        return;
+      } catch (e) {
+        if ((e as { name?: string }).name === "AbortError") return;
+      }
+    }
     try {
       await navigator.clipboard.writeText(shareText);
-      setNote({ tone: "ok", text: "Teks tersalin." });
+      setNote({ tone: "ok", text: "Teks tersalin. Tempel di WhatsApp atau caption." });
     } catch {
       setNote({ tone: "error", text: "Gagal menyalin teks." });
     }
   }
 
-  // WhatsApp gets the text (a picture goes through Bagikan ke Story).
-  const whatsapp = () => window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank", "noopener");
+  // Formats that open their own screen (Lainnya).
+  const videos = [...new Set(cards.flatMap((c) => (c.video ? [c.video] : [])))];
 
   return (
     <div className="flex flex-col gap-3">
@@ -314,14 +324,15 @@ export function ShareCards({
       )}
 
       <div className="flex gap-2">
-        {onPhotoStory && <Action icon="photo" label="Story foto" onClick={onPhotoStory} />}
+        {onPhotoStory && <Action icon="photo" label="Foto + stiker" onClick={onPhotoStory} />}
+        {videos.length > 0 && <Action icon="more" label="Lainnya" onClick={() => setMoreOpen((o) => !o)} expanded={moreOpen} />}
+        <Action icon="text" label="Teks" onClick={shareTextOnly} />
         <Action icon="download" label="Simpan" onClick={download} disabled={pending} />
-        <Action icon="more" label="Lainnya" onClick={() => setMoreOpen((o) => !o)} expanded={moreOpen} />
       </div>
-      {moreOpen && (
+      {moreOpen && videos.length > 0 && (
         <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
-          <MoreItem icon="whatsapp" label="Kirim teks ke WhatsApp" onClick={whatsapp} />
-          <MoreItem icon="text" label="Salin teks" onClick={copyText} />
+          {videos.includes("volume") && <MoreItem icon="video" label="Video volume" onClick={() => { setMoreOpen(false); onVideo("volume"); }} />}
+          {videos.includes("kalori") && <MoreItem icon="video" label="Video kalori" onClick={() => { setMoreOpen(false); onVideo("kalori"); }} />}
         </div>
       )}
 

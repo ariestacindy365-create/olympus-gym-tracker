@@ -85,7 +85,7 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 }
 
 /**
- * "Story foto": 1–4 photos from the gallery in an automatic collage, each
+ * "Foto + stiker": 1–4 photos from the gallery in an automatic collage, each
  * one moved with a finger and zoomed with two, and today's workout sticker
  * on top. Saved as a 1080×1920 JPEG for an Instagram Story.
  */
@@ -416,12 +416,12 @@ export function PhotoStory({
   const sel = selected !== null ? photos[selected] : null;
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Story foto" className="fixed inset-0 z-[70] flex flex-col bg-background">
+    <div role="dialog" aria-modal="true" aria-label="Foto + stiker" className="fixed inset-0 z-[70] flex flex-col bg-background">
       <div className="flex items-center justify-between border-b border-border px-4 py-2">
         <button type="button" onClick={onClose} className="min-h-11 text-sm font-semibold text-muted">
           ← Kembali
         </button>
-        <p className="font-display text-lg font-bold">Story foto</p>
+        <p className="font-display text-lg font-bold">Foto + stiker</p>
         <button type="button" onClick={() => choose(null)} className="min-h-11 text-sm font-semibold text-accent">
           Pilih foto
         </button>
