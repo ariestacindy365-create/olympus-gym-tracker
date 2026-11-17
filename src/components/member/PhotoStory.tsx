@@ -249,7 +249,10 @@ export function PhotoStory({
   function onPointerDown(e: React.PointerEvent) {
     // A new first finger: drop any touch left over from one that never lifted.
     if (e.isPrimary) pointers.current.clear();
-    (e.target as Element).setPointerCapture?.(e.pointerId);
+    // Capture can throw (the touch already ended or was cancelled); the gesture must still start.
+    try {
+      (e.target as Element).setPointerCapture?.(e.pointerId);
+    } catch {}
     const pt = toStory(e);
     pointers.current.set(e.pointerId, pt);
     if (pointers.current.size === 1) {
