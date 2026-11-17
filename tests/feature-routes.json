@@ -50,6 +50,7 @@
   "api/leads/period-stats/route.ts",
   "api/leads/route.ts",
   "api/member/achievements/mark-seen/route.ts",
+  "api/member/birth-date/route.ts",
   "api/member/body-metrics/[id]/route.ts",
   "api/member/body-metrics/route.ts",
   "api/member/coach-notes/read/route.ts",

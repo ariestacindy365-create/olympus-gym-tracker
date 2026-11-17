@@ -6,6 +6,7 @@ import { ChangePinForm } from "@/components/member/ChangePinForm";
 import { StoryCharacterSetting } from "@/components/member/StoryCharacterPicker";
 import { LeaderboardOptOutToggle } from "@/components/member/LeaderboardOptOutToggle";
 import { FeedVisibilitySetting } from "@/components/member/FeedVisibilitySetting";
+import { BirthDateSetting } from "@/components/member/BirthDateSetting";
 import { lifterFromStored, skinToneFromStored } from "@/lib/volumeStory";
 
 export default async function MemberAccountPage() {
@@ -18,6 +19,12 @@ export default async function MemberAccountPage() {
         <h1 className="font-display text-2xl font-bold">Akun Saya</h1>
         <p className="text-sm text-muted">{user.name}</p>
       </div>
+
+      <Card>
+        <h2 className="mb-1 font-display text-lg font-semibold">Tanggal Lahir</h2>
+        <p className="mb-2 text-xs text-muted">Tidak ditampilkan ke member lain.</p>
+        <BirthDateSetting value={user.birthDate ? user.birthDate.toISOString().slice(0, 10) : null} />
+      </Card>
 
       <Card>
         <h2 className="mb-1 font-display text-lg font-semibold">Ubah Email</h2>
