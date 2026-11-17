@@ -69,6 +69,9 @@ model User {
   notifyProgram     Boolean           @default(true)
   // Evening "jangan lupa catat" reminder when nothing was logged today.
   notifyReminder    Boolean           @default(true)
+  // Date of birth (date key, like SetEntry.workoutDate). Members fill it in
+  // on first login; imported from FitQuarter when it's there.
+  birthDate         DateTime?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 

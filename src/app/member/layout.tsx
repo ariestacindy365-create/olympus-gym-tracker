@@ -2,6 +2,7 @@ import { requireRole } from "@/lib/auth";
 import { NavBar } from "@/components/ui/NavBar";
 import { MemberBottomNav } from "@/components/member/MemberBottomNav";
 import { NotificationBell } from "@/components/member/NotificationBell";
+import { LoginPrompts } from "@/components/member/LoginPrompts";
 
 const LINKS = [
   { href: "/member/dashboard", label: "Dashboard" },
@@ -21,6 +22,7 @@ export default async function MemberLayout({ children }: { children: React.React
       {/* Bottom padding on phones keeps content clear of the tab bar. */}
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 pb-28 pt-6 sm:pb-6">{children}</main>
       <MemberBottomNav />
+      <LoginPrompts needBirthDate={!user.birthDate} />
     </div>
   );
 }

@@ -38,6 +38,9 @@ const FEATURES = [
   ['Tombol Teks membuka menu bagikan HP', 'src/components/member/ShareCards.tsx', 'navigator.share({ text: shareText })'],
   ['Pop-up Yakin sudah selesai? sebelum simpan latihan', 'src/components/member/DayFinishFlow.tsx', 'Yakin sudah selesai?'],
   ['Durasi latihan otomatis 1 jam', 'src/components/member/DayFinishFlow.tsx', 'const durationMin = DEFAULT_WORKOUT_MINUTES'],
+  ['Pop-up tanggal lahir wajib saat member login', 'src/app/member/layout.tsx', 'needBirthDate={!user.birthDate}'],
+  ['Pop-up hidupkan notifikasi', 'src/components/member/LoginPrompts.tsx', 'Hidupkan notifikasi'],
+  ['Ubah tanggal lahir di Akun', 'src/app/member/account/page.tsx', '<BirthDateSetting'],
   ['Tautan Versi video di bawah kartu Total angkatan / Kalori', 'src/components/member/ShareCards.tsx', 'onVideo(current.video!)'],
   ['Saran beban di tiap gerakan program', 'src/components/member/TodayWorkoutPlan.tsx', 'Saran beban'],
   ['Kartu share Fokus otot', 'src/components/member/DayFinishFlow.tsx', 'id: "fokus"'],
@@ -191,6 +194,15 @@ const { firstPerExercise } = await load('src/lib/records.ts');
 check('Kartu Rekor baru memakai set rekor terberat per gerakan', () => {
   const sets = [{ exerciseId: 'squat', weight: 151 }, { exerciseId: 'dl', weight: 180 }, { exerciseId: 'squat', weight: 140 }, { exerciseId: 'dl', weight: 170 }];
   assert.deepEqual(firstPerExercise(sets).map((s) => s.weight), [151, 180]);
+});
+
+const { parseBirthDate } = await load('src/lib/birthDate.ts');
+check('Tanggal lahir: tanggal tidak ada, masa depan, dan umur di luar 5–100 ditolak', () => {
+  assert.ok('date' in parseBirthDate('1995-05-12', '2026-11-17'));
+  assert.equal(parseBirthDate('1995-05-12', '2026-11-17').date.toISOString(), '1995-05-12T00:00:00.000Z');
+  for (const v of ['1995-02-30', '2027-01-01', '2024-01-01', '1900-01-01', '12-05-1995', '']) assert.ok('error' in parseBirthDate(v, '2026-11-17'), v);
+  assert.ok('date' in parseBirthDate('2021-11-17', '2026-11-17'));
+  assert.ok('error' in parseBirthDate('2021-11-18', '2026-11-17'));
 });
 
 const { formatRepTarget } = await load('src/lib/programSlide.ts');
