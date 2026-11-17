@@ -75,7 +75,13 @@ export function BookingBoard({ days, selected, classes, canBook, cancelHours }: 
       </nav>
 
       {!canBook && (
-        <p className="rounded-xl bg-[#f59e0b]/15 px-3 py-2 text-sm">Belum ada membership dengan sisa kredit untuk hari ini. Perpanjang di admin Olympus untuk bisa booking.</p>
+        <p className="rounded-xl bg-[#f59e0b]/15 px-3 py-2 text-sm">
+          Belum ada membership dengan sisa kredit untuk hari ini.{" "}
+          <Link href="/member/paket" className="font-semibold text-accent">
+            Beli paket
+          </Link>{" "}
+          untuk bisa booking.
+        </p>
       )}
       {message && (
         <p role="status" className={`rounded-xl px-3 py-2 text-sm ${message.tone === "ok" ? "bg-success/10" : "bg-danger/10 text-danger"}`}>

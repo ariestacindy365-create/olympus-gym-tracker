@@ -23,7 +23,14 @@ export function creditsText(m: { credits: number | null; creditsUsed: number }) 
 /** Akun: every membership that hasn't ended, with what's left and until when. */
 export function MembershipList({ items, today }: { items: MembershipView[]; today: string }) {
   if (items.length === 0) {
-    return <p className="text-sm text-muted">Belum ada membership aktif. Hubungi admin Olympus kalau kamu sudah membayar.</p>;
+    return (
+      <p className="text-sm text-muted">
+        Belum ada membership aktif.{" "}
+        <Link href="/member/paket" className="font-semibold text-accent">
+          Beli paket
+        </Link>
+      </p>
+    );
   }
   return (
     <ul className="flex flex-col gap-2">
@@ -50,7 +57,7 @@ export function MembershipList({ items, today }: { items: MembershipView[]; toda
 /** Dashboard: one line with the membership that books classes. */
 export function MembershipChip({ item }: { item: MembershipView | null }) {
   return (
-    <Link href="/member/account#membership" className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-border bg-surface px-3 py-2 text-sm shadow-card">
+    <Link href="/member/paket" className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-border bg-surface px-3 py-2 text-sm shadow-card">
       <span className="min-w-0 truncate">
         🎫 {item ? item.packageName.replace(/^[^:]+:\s*/, "") : "Belum ada membership aktif"}
       </span>

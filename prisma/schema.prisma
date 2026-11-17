@@ -98,6 +98,8 @@ model User {
   memberships          Membership[]
   importedMember       ImportedMember?
   classBookings        ClassBooking[]        @relation("MemberBookings")
+  membershipOrders     MembershipOrder[]     @relation("MemberOrders")
+  ordersReviewed       MembershipOrder[]     @relation("OrdersReviewed")
   bookingsAdded        ClassBooking[]        @relation("BookingsAddedBy")
   coachNotesWritten    CoachNote[]           @relation("CoachNotesWritten")
   workouts             Workout[]
@@ -509,6 +511,8 @@ model Lead {
   deletedBy          User?       @relation("DeletedLeads", fields: [deletedById], references: [id])
   capturedById       String
   capturedBy         User        @relation("CapturedLeads", fields: [capturedById], references: [id])
+  // The member's app account, once they buy from the app or the desk.
+  userId             String?
   capturedAt         DateTime    @default(now())
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
@@ -656,17 +660,29 @@ model Expense {
 // is a plain string snapshot (not a foreign key here) so editing or
 // deactivating a package never changes what a past receipt shows.
 model Package {
-  id           String   @id @default(cuid())
-  name         String
-  price        Int
+  id             String          @id @default(cuid())
+  name           String
+  price          Int
   // How long this package lasts once paid for — drives Payment.expiresAt and
   // the renewal-reminder follow-up. Optional: some packages (or ad-hoc ones
   // typed at payment time) may not have a fixed duration.
-  durationDays Int?
-  isActive     Boolean  @default(true)
-  sortOrder    Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  durationDays   Int?
+  // Calendar months (Bootcamp Unlimited 1/2/3 Bulan); durationDays is kept
+  // as the day count for payments and renewal reminders.
+  durationMonths Int?
+  // What a member gets when buying it in the app (null: desk-only package).
+  kind           MembershipKind?
+  // Sessions in the package; null = unlimited.
+  credits        Int?
+  // Sold in the member app.
+  showInApp      Boolean         @default(false)
+  // Heading it's listed under ("Bootcamp Class") and its fine print.
+  category       String?
+  fineprint      String?
+  isActive       Boolean         @default(true)
+  sortOrder      Int             @default(0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
   @@index([isActive])
 }
@@ -860,6 +876,7 @@ enum NotificationType {
   PROGRAM_TODAY
   ANNOUNCEMENT
   LOG_REMINDER
+  MEMBERSHIP
 }
 
 // One in-app notification for one user (also sent to their phone when they
@@ -951,19 +968,19 @@ enum MembershipKind {
 // A member as FitQuarter knows them, waiting to be linked to an app account
 // (same email) when they register or log in. Re-importing updates it.
 model ImportedMember {
-  id         String       @id @default(cuid())
-  source     String       @default("FITQUARTER")
-  externalId String       @unique
-  name       String
+  id          String       @id @default(cuid())
+  source      String       @default("FITQUARTER")
+  externalId  String       @unique
+  name        String
   // Lower-case, for matching an app account.
-  email      String
-  phone      String?
-  birthDate  DateTime?
-  joinedAt   DateTime?
-  userId     String?      @unique
-  user       User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
-  importedAt DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  email       String
+  phone       String?
+  birthDate   DateTime?
+  joinedAt    DateTime?
+  userId      String?      @unique
+  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  importedAt  DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   memberships Membership[]
 
   @@index([email])
@@ -972,25 +989,29 @@ model ImportedMember {
 // One package a member holds: dates, and class credits when it has a
 // quota (null credits = unlimited).
 model Membership {
-  id               String          @id @default(cuid())
+  id               String           @id @default(cuid())
   userId           String?
-  user             User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user             User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
   importedMemberId String?
-  importedMember   ImportedMember? @relation(fields: [importedMemberId], references: [id], onDelete: Cascade)
+  importedMember   ImportedMember?  @relation(fields: [importedMemberId], references: [id], onDelete: Cascade)
   packageName      String
   kind             MembershipKind
   // Bootcamp-type packages book classes; PT and Mandiri don't.
   canBook          Boolean
   credits          Int?
-  creditsUsed      Int             @default(0)
+  creditsUsed      Int              @default(0)
   // Date keys; valid through the end of expiresAt.
   startsAt         DateTime
   expiresAt        DateTime
   // FitQuarter Transaction ID, so a re-import updates instead of duplicating.
-  sourceRef        String?         @unique
+  sourceRef        String?          @unique
   bookings         ClassBooking[]
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  // Bought in the app (the order), or added at the desk (by whom).
+  orderId          String?          @unique
+  order            MembershipOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  createdById      String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
   @@index([userId, expiresAt])
   @@index([importedMemberId])
@@ -1046,4 +1067,66 @@ model BookingSettings {
   // How many days ahead (including today) members can book.
   daysAhead   Int      @default(7)
   updatedAt   DateTime @updatedAt
+}
+
+// --- Buying a package in the app ------------------------------------------
+
+enum MembershipOrderStatus {
+  // Picked, not paid yet (dropped after a day).
+  UNPAID
+  // Proof sent, waiting for an admin to see the money arrived.
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+// A member buys a package: they transfer price + uniqueCode and send the
+// proof; an admin checks the bank statement and approves (→ Membership +
+// Payment on their lead).
+model MembershipOrder {
+  id               String                @id @default(cuid())
+  userId           String
+  user             User                  @relation("MemberOrders", fields: [userId], references: [id], onDelete: Cascade)
+  packageId        String?
+  // Snapshot of the package when it was picked.
+  packageName      String
+  kind             MembershipKind
+  price            Int
+  credits          Int?
+  durationDays     Int?
+  durationMonths   Int?
+  // 1–499 added to the price so each transfer is easy to find in the
+  // statement; the member pays price + uniqueCode.
+  uniqueCode       Int                   @default(0)
+  paymentMethod    PaymentMethod?
+  waNumber         String?
+  // Name on the sending account, as it shows in the bank statement.
+  senderName       String?
+  // Drive file of the proof (same folder as Payment proofs); without Drive
+  // the compressed image is kept here instead.
+  proofImageFileId String?
+  proofImageData   String?
+  status           MembershipOrderStatus @default(UNPAID)
+  rejectReason     String?
+  reviewedById     String?
+  reviewedBy       User?                 @relation("OrdersReviewed", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt       DateTime?
+  paymentId        String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  membership       Membership?
+
+  @@index([status])
+  @@index([userId])
+}
+
+// Where members transfer to (one row, id 1), set by the owner.
+model GymPaymentInfo {
+  id            Int      @id @default(1)
+  bankName      String   @default("")
+  accountNumber String   @default("")
+  accountName   String   @default("")
+  qrisImage     String?
+  updatedAt     DateTime @updatedAt
 }
