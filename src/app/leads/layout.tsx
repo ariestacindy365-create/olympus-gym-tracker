@@ -11,6 +11,7 @@ const LEAD_SECTION_PATHS = [
   "expenses",
   "finance",
   "history",
+  "impor",
   "kasir",
   "owner",
   "packages",
@@ -31,6 +32,7 @@ const ADMIN_LINKS = [
 
 // Under "Lainnya ▾" on desktop, so the bar fits beside the name.
 const STAFF_MORE = [
+  { href: "/leads/impor", label: "Impor FitQuarter" },
   { href: "/leads/history", label: "Riwayat" },
   { href: "/leads/pengumuman", label: "Info" },
   { href: "/leads/account", label: "Akun" },
@@ -55,6 +57,7 @@ const ADMIN_TABS: BottomNavItem[] = [
 ];
 const ADMIN_TABS_MORE: BottomNavItem[] = [
   { href: "/leads/renewals", label: "Perpanjangan" },
+  { href: "/leads/impor", label: "Impor FitQuarter" },
   { href: "/leads/expenses", label: "Biaya" },
   { href: "/leads/history", label: "Riwayat" },
   { href: "/leads/pengumuman", label: "Info" },
@@ -68,6 +71,7 @@ const OWNER_TABS: BottomNavItem[] = [
 ];
 const OWNER_TABS_MORE: BottomNavItem[] = [
   { href: "/leads/renewals", label: "Perpanjangan" },
+  { href: "/leads/impor", label: "Impor FitQuarter" },
   { href: "/leads/kasir", label: "Kasir" },
   { href: "/leads/history", label: "Riwayat" },
   { href: "/leads/pengumuman", label: "Info" },
