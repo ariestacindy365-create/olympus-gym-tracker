@@ -17,7 +17,10 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/member
   const member = await getCurrentUser();
   if (!member || member.role !== Role.MEMBER) return NextResponse.json({ error: "Not authorized." }, { status: 401 });
   const { orderId } = await ctx.params;
-  const parsed = submitMembershipPaymentSchema.safeParse(await request.json().catch(() => null));
+  const body = await request.json().catch(() => null);
+  // Missing or broken JSON: say so in Indonesian, not zod's English.
+  if (!body || typeof body !== "object") return NextResponse.json({ error: "Data tidak valid." }, { status: 400 });
+  const parsed = submitMembershipPaymentSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Data tidak valid." }, { status: 400 });
   const order = await prisma.membershipOrder.findFirst({ where: { id: orderId, userId: member.id, status: "UNPAID" } });
   if (!order) return NextResponse.json({ error: "Pembelian ini sudah dikirim atau dibatalkan." }, { status: 409 });
