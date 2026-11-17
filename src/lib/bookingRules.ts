@@ -52,13 +52,15 @@ const dayOf = (v: Date | string) => (typeof v === "string" ? v : v.toISOString()
 /**
  * Which membership pays for a class on `day`: one that books classes, has
  * started and hasn't ended by then, and has a credit left (or is
- * unlimited). The one ending soonest goes first, so credits that expire
- * get used before others.
+ * unlimited, once a day). The one ending soonest goes first, so credits
+ * that expire get used before others.
  */
-export function pickMembership<T extends CreditSource>(memberships: T[], day: string): T | null {
+export function pickMembership<T extends CreditSource>(memberships: T[], day: string, opts: { unlimitedUsedToday?: boolean } = {}): T | null {
   return (
     memberships
       .filter((m) => m.canBook && dayOf(m.startsAt) <= day && dayOf(m.expiresAt) >= day && (m.credits == null || m.creditsUsed < m.credits))
+      // Unlimited is one class a day: a second class that day needs a sessions package.
+      .filter((m) => !(m.credits == null && opts.unlimitedUsedToday))
       .sort((a, b) => dayOf(a.expiresAt).localeCompare(dayOf(b.expiresAt)))[0] ?? null
   );
 }

@@ -53,9 +53,18 @@ async function placesTaken(tx: Tx, day: string, sessionId: string) {
   return tx.classBooking.count({ where: { classDate: dateKey(day), sessionId, status: { in: [...TAKES_PLACE] } } });
 }
 
-async function takeCredit(tx: Tx, userId: string, day: string) {
+/** Whether the member already has a class that day paid by an unlimited package (1 class a day). */
+async function unlimitedUsedOn(tx: Tx, userId: string, day: string) {
+  return (await tx.classBooking.count({ where: { userId, classDate: dateKey(day), status: { in: [...TAKES_PLACE] }, membership: { credits: null } } })) > 0;
+}
+
+async function creditSource(tx: Tx, userId: string, day: string) {
   const memberships = await tx.membership.findMany({ where: { userId, canBook: true, expiresAt: { gte: dateKey(day) } } });
-  const m = pickMembership(memberships, day);
+  return pickMembership(memberships, day, { unlimitedUsedToday: await unlimitedUsedOn(tx, userId, day) });
+}
+
+async function takeCredit(tx: Tx, userId: string, day: string) {
+  const m = await creditSource(tx, userId, day);
   if (!m) return null;
   await tx.membership.update({ where: { id: m.id }, data: { creditsUsed: { increment: 1 } } });
   return m.id;
@@ -113,13 +122,16 @@ export async function bookClass(opts: { userId: string; day: unknown; sessionId:
     const full = (await placesTaken(tx, day, session.id)) >= settings.quota;
     let status: BookingStatus;
     let membershipId: string | null = null;
+    const noCredit = async () =>
+      new BookingError(
+        (await unlimitedUsedOn(tx, userId, day)) ? "Paket unlimited hanya untuk 1 kelas per hari." : "Belum ada membership dengan sisa kredit untuk kelas ini."
+      );
     if (full && !addedById) {
-      const memberships = await tx.membership.findMany({ where: { userId, canBook: true, expiresAt: { gte: dateKey(day) } } });
-      if (!pickMembership(memberships, day)) throw new BookingError("Belum ada membership dengan sisa kredit untuk kelas ini.");
+      if (!(await creditSource(tx, userId, day))) throw await noCredit();
       status = "WAITLIST";
     } else {
       membershipId = await takeCredit(tx, userId, day);
-      if (!membershipId && !addedById) throw new BookingError("Belum ada membership dengan sisa kredit untuk kelas ini.");
+      if (!membershipId && !addedById) throw await noCredit();
       status = addedById && now >= classStart(day, session) ? "ATTENDED" : "BOOKED";
     }
     const data = { status, membershipId, addedById: addedById ?? null, checkedInAt: status === "ATTENDED" ? now : null, createdAt: now };

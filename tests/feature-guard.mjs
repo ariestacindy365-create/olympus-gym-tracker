@@ -256,6 +256,9 @@ check('Booking: jam kelas WIB, batal 2 jam sebelum, tanpa Minggu, kredit yang ha
   assert.equal(br.pickMembership(ms, '2026-11-18').id, 'soon');
   assert.equal(br.pickMembership(ms, '2026-12-05').id, 'late');
   assert.equal(br.pickMembership(ms.slice(2), '2026-11-18'), null);
+  // Unlimited: 1 class a day; a second class that day falls back to a sessions package.
+  assert.equal(br.pickMembership(ms, '2026-11-18', { unlimitedUsedToday: true }).id, 'late');
+  assert.equal(br.pickMembership([ms[1]], '2026-11-18', { unlimitedUsedToday: true }), null);
   assert.ok(br.MEMBER_CODE.test('OLY-004512') && !br.MEMBER_CODE.test('8991234567890'));
 });
 
