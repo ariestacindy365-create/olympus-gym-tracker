@@ -90,7 +90,11 @@ export async function importFitQuarter(file: FqFile): Promise<ImportPreview> {
       startsAt: s.startsAt,
       expiresAt: s.expiresAt,
     };
-    await prisma.membership.upsert({ where: { sourceRef: s.sourceRef }, create: { sourceRef: s.sourceRef, ...data }, update: data });
+    const existing = await prisma.membership.findUnique({ where: { sourceRef: s.sourceRef }, select: { creditsUsed: true } });
+    // Credits booked in the app since the last import stay used: a newer
+    // FitQuarter file never gives them back.
+    if (existing) await prisma.membership.update({ where: { sourceRef: s.sourceRef }, data: { ...data, creditsUsed: Math.max(existing.creditsUsed, s.creditsUsed) } });
+    else await prisma.membership.create({ data: { sourceRef: s.sourceRef, ...data } });
   }
   return preview;
 }

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { formatRupiah, PAYMENT_METHOD_LABEL } from "@/lib/packages";
 import { scanSuccessFeedback, scanErrorFeedback } from "@/lib/scanFeedback";
+import { MEMBER_CODE, sessionById } from "@/lib/bookingRules";
 import type { SaleRow } from "@/components/leads/KasirScan";
 
 // Fired after each unit is recorded so an open Kasir page can add it to its
@@ -49,6 +50,19 @@ export function QuickSaleScanner() {
   const pendingRef = useRef(false);
 
   const addScan = useCallback(async (barcode: string) => {
+    // A member's check-in card, not a product: check them in to their class.
+    if (MEMBER_CODE.test(barcode.trim().toUpperCase())) {
+      const res = await fetch("/api/bookings/checkin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: barcode }) }).catch(() => null);
+      const data = await res?.json().catch(() => ({}));
+      if (res?.ok && data.sessionId) {
+        scanSuccessFeedback();
+        setToast(`${data.already ? "Sudah check-in" : "✓ Hadir"}: ${data.member.name} · kelas ${sessionById(data.sessionId)?.name ?? ""}`);
+      } else {
+        scanErrorFeedback();
+        setToast(res?.ok ? `${data.member.name} belum booking kelas hari ini. Buka menu Kelas untuk menambahkan.` : (data?.error ?? "Gagal check-in."));
+      }
+      return;
+    }
     setOpen(true);
     setError(null);
     try {

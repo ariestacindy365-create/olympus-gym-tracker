@@ -3,12 +3,13 @@ import { BottomNav, type BottomNavItem } from "@/components/ui/BottomNav";
 const ITEMS: BottomNavItem[] = [
   { href: "/member/dashboard", label: "Latihan", icon: "latihan" },
   { href: "/member/feed", label: "Feed", icon: "feed" },
+  { href: "/member/booking", label: "Booking", icon: "booking" },
   { href: "/member/body", label: "Body", icon: "body" },
-  { href: "/member/achievements", label: "Emblem", icon: "emblem" },
 ];
 
 // Pages that had no way in from the tab bar before.
 const MORE: BottomNavItem[] = [
+  { href: "/member/achievements", label: "Emblem" },
   { href: "/member/program", label: "Program minggu ini" },
   { href: "/member/leaderboard", label: "Peringkat" },
   { href: "/member/notifikasi", label: "Notifikasi" },

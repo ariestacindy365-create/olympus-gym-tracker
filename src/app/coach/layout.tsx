@@ -28,6 +28,7 @@ const TABS: BottomNavItem[] = [
 const TABS_MORE: BottomNavItem[] = [
   { href: "/coach/feed", label: "Feed" },
   { href: "/coach/latihan", label: "Latihan Saya" },
+  { href: "/coach/kelas", label: "Peserta kelas" },
   { href: "/coach/jadwal", label: "Jadwal kelas" },
   { href: "/coach/timer", label: "Timer" },
   { href: "/coach/pengumuman", label: "Info" },

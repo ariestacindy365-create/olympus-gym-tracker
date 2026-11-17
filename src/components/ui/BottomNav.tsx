@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export type BottomNavIcon = "latihan" | "feed" | "body" | "emblem" | "akun" | "home" | "members" | "program" | "pt" | "lead" | "bayar" | "kasir" | "harga";
+export type BottomNavIcon = "latihan" | "feed" | "body" | "emblem" | "booking" | "akun" | "home" | "members" | "program" | "pt" | "lead" | "bayar" | "kasir" | "harga";
 
 const ICONS: Record<BottomNavIcon | "more", string> = {
   latihan: "M4 10h2m12 0h2M6 7v6m12-6v6M8 10h8M9 5v10m6-10v10",
   feed: "M4 5h16v10H8l-4 4V5zM8 9h8M8 12h5",
   body: "M12 4a2 2 0 110 4 2 2 0 010-4zM7 10h10l-1.5 4H14v6h-4v-6H8.5L7 10z",
   emblem: "M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9L12 3z",
+  booking: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4M8 14l2.5 2.5L16 12",
   akun: "M12 12a4 4 0 100-8 4 4 0 000 8zm-7 8a7 7 0 0114 0",
   home: "M4 11l8-7 8 7M6 10v9h4v-5h4v5h4v-9",
   members: "M9 11a3 3 0 100-6 3 3 0 000 6zm-6 8a6 6 0 0112 0M16 5.5a3 3 0 010 5.5M21 19a6 6 0 00-4-5.6",

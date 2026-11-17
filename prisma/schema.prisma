@@ -72,6 +72,8 @@ model User {
   // Date of birth (date key, like SetEntry.workoutDate). Members fill it in
   // on first login; imported from FitQuarter when it's there.
   birthDate         DateTime?
+  // Check-in code on the member's card ("OLY-123456"), made on first use.
+  memberCode        String?           @unique
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
@@ -95,6 +97,8 @@ model User {
   coachNotesReceived   CoachNote[]           @relation("MemberCoachNotes")
   memberships          Membership[]
   importedMember       ImportedMember?
+  classBookings        ClassBooking[]        @relation("MemberBookings")
+  bookingsAdded        ClassBooking[]        @relation("BookingsAddedBy")
   coachNotesWritten    CoachNote[]           @relation("CoachNotesWritten")
   workouts             Workout[]
   workoutKudos         WorkoutKudo[]
@@ -984,9 +988,62 @@ model Membership {
   expiresAt        DateTime
   // FitQuarter Transaction ID, so a re-import updates instead of duplicating.
   sourceRef        String?         @unique
+  bookings         ClassBooking[]
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
   @@index([userId, expiresAt])
   @@index([importedMemberId])
+}
+
+// --- Class booking --------------------------------------------------------
+
+enum BookingStatus {
+  // Has a place; a credit is taken.
+  BOOKED
+  // Class full; moves up to BOOKED when a place frees.
+  WAITLIST
+  // Checked in at the front desk.
+  ATTENDED
+  // Didn't come; the credit stays used.
+  NO_SHOW
+  // Cancelled by the member (in time) or removed by admin; credit returned.
+  CANCELLED
+}
+
+// One member in one class (date + class time). Coach and program come from
+// the timetable (ClassSlot) for that weekday.
+model ClassBooking {
+  id           String        @id @default(cuid())
+  userId       String
+  user         User          @relation("MemberBookings", fields: [userId], references: [id], onDelete: Cascade)
+  // Date key of the class day, and its CLASS_SESSIONS id.
+  classDate    DateTime
+  sessionId    String
+  status       BookingStatus
+  // The membership the credit came from (null while waiting).
+  membershipId String?
+  membership   Membership?   @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+  checkedInAt  DateTime?
+  // Admin who added them from the desk (null when the member booked).
+  addedById    String?
+  addedBy      User?         @relation("BookingsAddedBy", fields: [addedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([userId, classDate, sessionId])
+  @@index([classDate, sessionId, status])
+  @@index([userId, classDate])
+}
+
+// Booking rules the owner sets (one row, id "default").
+model BookingSettings {
+  id          String   @id @default("default")
+  // Places per class.
+  quota       Int      @default(12)
+  // Members can cancel until this many hours before class.
+  cancelHours Int      @default(2)
+  // How many days ahead (including today) members can book.
+  daysAhead   Int      @default(7)
+  updatedAt   DateTime @updatedAt
 }
