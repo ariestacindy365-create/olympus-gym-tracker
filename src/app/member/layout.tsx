@@ -8,6 +8,7 @@ const LINKS = [
   { href: "/member/dashboard", label: "Dashboard" },
   { href: "/member/feed", label: "Feed" },
   { href: "/member/booking", label: "Booking" },
+  { href: "/member/paket", label: "Paket" },
   { href: "/member/program", label: "Program" },
   { href: "/member/body", label: "Body Metrics" },
   { href: "/member/achievements", label: "Achievement" },

@@ -13,6 +13,7 @@ const LEAD_SECTION_PATHS = [
   "history",
   "impor",
   "kelas",
+  "paket",
   "kasir",
   "owner",
   "packages",
@@ -34,6 +35,7 @@ const ADMIN_LINKS = [
 
 // Under "Lainnya ▾" on desktop, so the bar fits beside the name.
 const STAFF_MORE = [
+  { href: "/leads/paket", label: "Paket member" },
   { href: "/leads/impor", label: "Impor FitQuarter" },
   { href: "/leads/history", label: "Riwayat" },
   { href: "/leads/pengumuman", label: "Info" },
@@ -59,6 +61,7 @@ const ADMIN_TABS: BottomNavItem[] = [
   { href: "/leads/kasir", label: "Kasir", icon: "kasir" },
 ];
 const ADMIN_TABS_MORE: BottomNavItem[] = [
+  { href: "/leads/paket", label: "Paket member" },
   { href: "/leads/payments", label: "Bayar" },
   { href: "/leads/renewals", label: "Perpanjangan" },
   { href: "/leads/impor", label: "Impor FitQuarter" },
@@ -74,6 +77,7 @@ const OWNER_TABS: BottomNavItem[] = [
   { href: "/leads/packages", label: "Harga", icon: "harga" },
 ];
 const OWNER_TABS_MORE: BottomNavItem[] = [
+  { href: "/leads/paket", label: "Paket member" },
   { href: "/leads/kelas", label: "Kelas & check-in" },
   { href: "/leads/renewals", label: "Perpanjangan" },
   { href: "/leads/impor", label: "Impor FitQuarter" },

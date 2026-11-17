@@ -270,3 +270,44 @@ export const createMovementSchema = z.object({
   repRangeHint: z.string().trim().max(40).optional(),
   setRangeHint: z.string().trim().max(20).optional(),
 });
+
+// --- Buying a package in the app ---
+
+const waNumberSchema = z
+  .string()
+  .trim()
+  .regex(/^\+?[0-9\s-]{9,20}$/, { error: "Nomor WhatsApp tidak valid." });
+
+// A member picks a package; they get the exact amount to pay (with a unique code).
+export const createMembershipOrderSchema = z.object({
+  packageId: z.string().min(1),
+});
+
+// Then they send the proof of the transfer.
+export const submitMembershipPaymentSchema = z.object({
+  waNumber: waNumberSchema,
+  senderName: z.string().trim().min(2, { error: "Isi nama pemilik rekening pengirim." }).max(80),
+  proofImage: z
+    .string()
+    .startsWith("data:image/", { error: "Upload bukti transfer dulu." })
+    .max(3_000_000, { error: "Ukuran bukti terlalu besar." }),
+});
+
+export const reviewMembershipOrderSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("approve"), verified: z.literal(true, { error: "Centang dulu bahwa uangnya sudah masuk." }) }),
+  z.object({ action: z.literal("reject"), reason: z.string().trim().min(1, { error: "Tulis alasannya." }).max(200) }),
+]);
+
+// A member pays at the front desk: cash, debit / credit card, QRIS or transfer.
+export const deskSaleSchema = z.object({
+  userId: z.string().min(1),
+  packageId: z.string().min(1),
+  paymentMethod: z.enum(["TUNAI", "DEBIT", "KARTU_KREDIT", "QRIS", "TRANSFER"], { error: "Pilih cara bayar." }),
+  waNumber: waNumberSchema.optional().or(z.literal("")),
+});
+
+export const paymentInfoSchema = z.object({
+  bankName: z.string().trim().min(2, { error: "Isi nama bank." }).max(60),
+  accountNumber: z.string().trim().min(5, { error: "Isi nomor rekening." }).max(40),
+  accountName: z.string().trim().min(2, { error: "Isi nama pemilik rekening." }).max(80),
+});

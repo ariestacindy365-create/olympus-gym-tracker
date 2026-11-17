@@ -9,6 +9,7 @@ const ITEMS: BottomNavItem[] = [
 
 // Pages that had no way in from the tab bar before.
 const MORE: BottomNavItem[] = [
+  { href: "/member/paket", label: "Beli paket" },
   { href: "/member/achievements", label: "Emblem" },
   { href: "/member/program", label: "Program minggu ini" },
   { href: "/member/leaderboard", label: "Peringkat" },

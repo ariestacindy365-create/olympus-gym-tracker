@@ -51,6 +51,11 @@ const FEATURES = [
   ['Owner atur kuota per kelas', 'src/app/leads/kelas/page.tsx', '<QuotaSetting'],
   ['Coach lihat peserta kelas', 'src/app/coach/kelas/page.tsx', 'Peserta kelas'],
   ['Program hari ini mengikuti kelas yang dibooking', 'src/lib/memberClass.ts', 'booking.sessionId'],
+  ['Member beli paket lewat transfer + bukti', 'src/components/member/PackageShop.tsx', 'Kirim bukti transfer'],
+  ['Admin verifikasi transfer (checklist)', 'src/components/leads/PackageDesk.tsx', 'Cek di mutasi rekening'],
+  ['Jual paket di meja: tunai / debit / kartu kredit / QRIS / transfer', 'src/components/leads/PackageDesk.tsx', 'KARTU_KREDIT'],
+  ['Owner atur rekening tujuan transfer', 'src/app/leads/paket/page.tsx', '<BankInfoForm'],
+  ['Pricelist 2026 di aplikasi', 'prisma/migrations/20261117072958_add_membership_orders/migration.sql', 'Bootcamp Unlimited 1 Bulan'],
   ['Tautan Versi video di bawah kartu Total angkatan / Kalori', 'src/components/member/ShareCards.tsx', 'onVideo(current.video!)'],
   ['Saran beban di tiap gerakan program', 'src/components/member/TodayWorkoutPlan.tsx', 'Saran beban'],
   ['Kartu share Fokus otot', 'src/components/member/DayFinishFlow.tsx', 'id: "fokus"'],
@@ -260,6 +265,19 @@ check('Booking: jam kelas WIB, batal 2 jam sebelum, tanpa Minggu, kredit yang ha
   assert.equal(br.pickMembership(ms, '2026-11-18', { unlimitedUsedToday: true }).id, 'late');
   assert.equal(br.pickMembership([ms[1]], '2026-11-18', { unlimitedUsedToday: true }), null);
   assert.ok(br.MEMBER_CODE.test('OLY-004512') && !br.MEMBER_CODE.test('8991234567890'));
+});
+
+const pr = await load('src/lib/packageRules.ts');
+check('Paket: masa berlaku bulan/minggu/tidak hangus, Unlimited baru menunggu yang lama habis', () => {
+  assert.equal(pr.packageEnd({ durationMonths: 1, durationDays: 30 }, '2026-11-17'), '2026-12-17');
+  assert.equal(pr.packageEnd({ durationMonths: 1, durationDays: 30 }, '2027-01-31'), '2027-02-28');
+  assert.equal(pr.packageEnd({ durationMonths: null, durationDays: 28 }, '2026-11-17'), '2026-12-15');
+  assert.equal(pr.packageEnd({ durationMonths: null, durationDays: null }, '2026-11-17'), '2099-12-31');
+  assert.equal(pr.packageStart('BOOTCAMP_UNLIMITED', '2026-11-17', '2026-11-30'), '2026-12-01');
+  assert.equal(pr.packageStart('BOOTCAMP_UNLIMITED', '2026-11-17', null), '2026-11-17');
+  assert.equal(pr.packageStart('NO_EXPIRY', '2026-11-17', '2026-11-30'), '2026-11-17');
+  assert.equal(pr.packageDetail({ credits: 8, durationDays: 28, durationMonths: null }), '8 sesi · berlaku 4 minggu');
+  assert.equal(pr.packageDetail({ credits: 4, durationDays: null, durationMonths: null }), '4 sesi · tidak hangus');
 });
 
 const { formatRepTarget } = await load('src/lib/programSlide.ts');
