@@ -11,7 +11,10 @@ import { Role } from "@/generated/prisma/client";
 export async function POST(request: NextRequest) {
   const staff = await getCurrentUser();
   if (!staff || (staff.role !== Role.ADMIN && staff.role !== Role.OWNER)) return NextResponse.json({ error: "Not authorized." }, { status: 401 });
-  const parsed = deskSaleSchema.safeParse(await request.json().catch(() => null));
+  const body = await request.json().catch(() => null);
+  // Missing or broken JSON: say so in Indonesian, not zod's English.
+  if (!body || typeof body !== "object") return NextResponse.json({ error: "Data tidak valid." }, { status: 400 });
+  const parsed = deskSaleSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Data tidak valid." }, { status: 400 });
   try {
     const { membership, payment } = await sellAtDesk({ ...parsed.data, waNumber: parsed.data.waNumber || null, staffId: staff.id });

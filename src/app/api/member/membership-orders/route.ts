@@ -12,7 +12,10 @@ import { Role } from "@/generated/prisma/client";
 export async function POST(request: NextRequest) {
   const member = await getCurrentUser();
   if (!member || member.role !== Role.MEMBER) return NextResponse.json({ error: "Not authorized." }, { status: 401 });
-  const parsed = createMembershipOrderSchema.safeParse(await request.json().catch(() => null));
+  const body = await request.json().catch(() => null);
+  // Missing or broken JSON: say so in Indonesian, not zod's English.
+  if (!body || typeof body !== "object") return NextResponse.json({ error: "Data tidak valid." }, { status: 400 });
+  const parsed = createMembershipOrderSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Data tidak valid." }, { status: 400 });
 
   const pkg = await prisma.package.findUnique({ where: { id: parsed.data.packageId } });
