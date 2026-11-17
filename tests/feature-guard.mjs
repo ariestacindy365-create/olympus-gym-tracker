@@ -41,6 +41,9 @@ const FEATURES = [
   ['Pop-up tanggal lahir wajib saat member login', 'src/app/member/layout.tsx', 'needBirthDate={!user.birthDate}'],
   ['Pop-up hidupkan notifikasi', 'src/components/member/LoginPrompts.tsx', 'Hidupkan notifikasi'],
   ['Ubah tanggal lahir di Akun', 'src/app/member/account/page.tsx', '<BirthDateSetting'],
+  ['Impor member & membership dari FitQuarter', 'src/app/leads/impor/page.tsx', '<FitQuarterImport'],
+  ['Membership tertaut otomatis saat login / daftar', 'src/app/api/auth/login/route.ts', 'claimImportedMember'],
+  ['Membership di halaman Akun member', 'src/app/member/account/page.tsx', '<MembershipList'],
   ['Tautan Versi video di bawah kartu Total angkatan / Kalori', 'src/components/member/ShareCards.tsx', 'onVideo(current.video!)'],
   ['Saran beban di tiap gerakan program', 'src/components/member/TodayWorkoutPlan.tsx', 'Saran beban'],
   ['Kartu share Fokus otot', 'src/components/member/DayFinishFlow.tsx', 'id: "fokus"'],
@@ -203,6 +206,30 @@ check('Tanggal lahir: tanggal tidak ada, masa depan, dan umur di luar 5–100 di
   for (const v of ['1995-02-30', '2027-01-01', '2024-01-01', '1900-01-01', '12-05-1995', '']) assert.ok('error' in parseBirthDate(v, '2026-11-17'), v);
   assert.ok('date' in parseBirthDate('2021-11-17', '2026-11-17'));
   assert.ok('error' in parseBirthDate('2021-11-18', '2026-11-17'));
+});
+
+const fq = await load('src/lib/fitquarter.ts');
+check('FitQuarter: jenis paket, kuota, dan membership yang sudah berakhir', () => {
+  assert.equal(fq.membershipKind('Bootcamp Class Visit: 10x Bootcamp'), 'BOOTCAMP_VISIT');
+  assert.equal(fq.membershipKind('Bootcamp Class: 1 Bulan Unlimited'), 'BOOTCAMP_UNLIMITED');
+  assert.equal(fq.membershipKind('Paket no Expiry: 8x no Expiry'), 'NO_EXPIRY');
+  assert.equal(fq.membershipKind('Private Couple | Ari: PTC 8x'), 'PT');
+  assert.equal(fq.membershipKind('Trial PT Cindy: 2x Trial PT'), 'PT');
+  assert.equal(fq.membershipKind('Mandiri: 1Bulan'), 'MANDIRI');
+  assert.deepEqual(fq.parseCsv('a,"b, c","d ""e"""\r\n1,2,3\n'), [['a', 'b, c', 'd "e"'], ['1', '2', '3']]);
+  const head = 'Member ID,Name,Email,Phone,Status,Date of Birth,ID Number,Joined Date,Sales Representative,Transaction ID,Membership,Membership Status,Start Date,End Date,Quota Used,Quota Left';
+  const csv = [head,
+    'M1,A,A@X.test,1,Active,1990-01-02,,2025-01-01,,T1,Paket no Expiry: 8x no Expiry,Active,2026-10-01,2028-10-01,3,5',
+    'M1,A,A@X.test,1,Active,1990-01-02,,2025-01-01,,T0,Bootcamp Class: 1 Bulan Unlimited,Inactive,2026-08-01,2026-08-31,Unlimited,Unlimited',
+    'M2,B,b@x.test,2,Active,N/A,,2025-01-01,,T2,Private Training | Ari: PT 8x,Active,2026-11-01,2027-01-01,2,-4',
+    'M3,C,c@x.test,3,Inactive,N/A,,2025-01-01,,N/A,N/A,N/A,N/A,N/A,N/A,N/A'].join('\n');
+  const r = fq.readMemberList(csv, '2026-11-17');
+  assert.equal(r.members.length, 3);
+  assert.equal(r.members[0].email, 'a@x.test');
+  assert.equal(r.members[0].birthDate.toISOString(), '1990-01-02T00:00:00.000Z');
+  assert.deepEqual(r.memberships.map((m) => [m.sourceRef, m.credits, m.creditsUsed, m.canBook]), [['T1', 8, 3, true], ['T2', 2, 2, false]]);
+  assert.deepEqual(r.skipped, { noPackage: 1, ended: 1, badDates: 0 });
+  assert.ok('error' in fq.readMemberList('nama,email\nx,y', '2026-11-17'));
 });
 
 const { formatRepTarget } = await load('src/lib/programSlide.ts');

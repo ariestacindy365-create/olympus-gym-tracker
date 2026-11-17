@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { claimImportedMember } from "@/lib/membership";
 import { hashPin, createSessionCookie } from "@/lib/auth";
 import { registerSchema } from "@/lib/validation";
 import { Role } from "@/generated/prisma/client";
@@ -26,6 +27,8 @@ export async function POST(request: NextRequest) {
     data: { name, email, pinHash, role: Role.MEMBER },
   });
 
+  // A FitQuarter member with this email gets their memberships.
+  await claimImportedMember(user);
   await createSessionCookie(user);
   return NextResponse.json({ role: user.role });
 }

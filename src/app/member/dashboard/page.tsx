@@ -1,4 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
+import { claimImportedMember, membershipViews } from "@/lib/membership";
+import { MembershipChip } from "@/components/member/MembershipList";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { backfillDays, getTodayDailyWorkout, loggableDateKey, todayDateKey } from "@/lib/workout";
@@ -30,6 +32,8 @@ import type { SetUnit } from "@/lib/setUnits";
 export default async function MemberDashboardPage(props: PageProps<"/member/dashboard">) {
   const user = await getCurrentUser();
   if (!user) return null;
+  // Members who logged in before their FitQuarter data was imported.
+  await claimImportedMember(user);
 
   // ?tgl=YYYY-MM-DD: filling in a workout from one of the last few days.
   const sp = await props.searchParams;
@@ -89,6 +93,7 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
   const programToday = pastDay ? null : (weekProgram.days.find((d) => d.isToday) ?? null);
   // The day being logged: today, or the past day being filled in.
   const todayTs = (pastDay ?? todayDateKey()).getTime();
+  const memberships = pastDay ? [] : await membershipViews(user.id, todayDateKey());
   const backfill = backfillDays().map((date) => ({
     date,
     sets: allSets.filter((s) => s.workoutDate.toISOString().startsWith(date)).length,
@@ -233,6 +238,11 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
       ) : (
         <>
           <PageHeader eyebrow={todayLabel()} title={`Halo, ${user.name}`} subtitle="Berikut latihan hari ini." />
+          {(() => {
+            // The membership that books classes (else any), when there is one.
+            const pick = memberships.find((m) => m.canBook && (m.credits == null || m.credits > m.creditsUsed)) ?? memberships.find((m) => m.canBook) ?? memberships[0];
+            return pick ? <MembershipChip item={pick} /> : null;
+          })()}
           <CoachNotesCard notes={coachNotes} />
           {ptPackage && (
             <PtClientCard

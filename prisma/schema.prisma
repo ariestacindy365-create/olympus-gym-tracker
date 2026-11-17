@@ -93,6 +93,8 @@ model User {
   ptMemberships        PtMember[]
   achievementUnlocks   AchievementUnlock[]
   coachNotesReceived   CoachNote[]           @relation("MemberCoachNotes")
+  memberships          Membership[]
+  importedMember       ImportedMember?
   coachNotesWritten    CoachNote[]           @relation("CoachNotesWritten")
   workouts             Workout[]
   workoutKudos         WorkoutKudo[]
@@ -926,4 +928,65 @@ model CoachPersonalProgram {
   coach     User     @relation(fields: [coachId], references: [id], onDelete: Cascade)
   days      Json
   updatedAt DateTime @updatedAt
+}
+
+// --- Memberships (imported from FitQuarter; later sold in the app) --------
+
+// What a package is, which decides whether it books bootcamp classes.
+enum MembershipKind {
+  BOOTCAMP_UNLIMITED
+  BOOTCAMP_VISIT
+  NO_EXPIRY
+  TRIAL_CLASS
+  FOUNDER
+  PT
+  MANDIRI
+  OTHER
+}
+
+// A member as FitQuarter knows them, waiting to be linked to an app account
+// (same email) when they register or log in. Re-importing updates it.
+model ImportedMember {
+  id         String       @id @default(cuid())
+  source     String       @default("FITQUARTER")
+  externalId String       @unique
+  name       String
+  // Lower-case, for matching an app account.
+  email      String
+  phone      String?
+  birthDate  DateTime?
+  joinedAt   DateTime?
+  userId     String?      @unique
+  user       User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  importedAt DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  memberships Membership[]
+
+  @@index([email])
+}
+
+// One package a member holds: dates, and class credits when it has a
+// quota (null credits = unlimited).
+model Membership {
+  id               String          @id @default(cuid())
+  userId           String?
+  user             User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  importedMemberId String?
+  importedMember   ImportedMember? @relation(fields: [importedMemberId], references: [id], onDelete: Cascade)
+  packageName      String
+  kind             MembershipKind
+  // Bootcamp-type packages book classes; PT and Mandiri don't.
+  canBook          Boolean
+  credits          Int?
+  creditsUsed      Int             @default(0)
+  // Date keys; valid through the end of expiresAt.
+  startsAt         DateTime
+  expiresAt        DateTime
+  // FitQuarter Transaction ID, so a re-import updates instead of duplicating.
+  sourceRef        String?         @unique
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([userId, expiresAt])
+  @@index([importedMemberId])
 }

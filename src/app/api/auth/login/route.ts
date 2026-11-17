@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { claimImportedMember } from "@/lib/membership";
 import { verifyPin, createSessionCookie } from "@/lib/auth";
 import { loginSchema } from "@/lib/validation";
 import { effectiveRole } from "@/lib/staffAccess";
@@ -20,6 +21,7 @@ export async function POST(request: NextRequest) {
 
   // Staff roles only count for allowlisted emails; everyone else is a member.
   const role = effectiveRole(user);
+  await claimImportedMember({ ...user, role });
   await createSessionCookie({ ...user, role });
   return NextResponse.json({ role });
 }
