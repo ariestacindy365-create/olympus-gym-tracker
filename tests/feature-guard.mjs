@@ -44,6 +44,13 @@ const FEATURES = [
   ['Impor member & membership dari FitQuarter', 'src/app/leads/impor/page.tsx', '<FitQuarterImport'],
   ['Membership tertaut otomatis saat login / daftar', 'src/app/api/auth/login/route.ts', 'claimImportedMember'],
   ['Membership di halaman Akun member', 'src/app/member/account/page.tsx', '<MembershipList'],
+  ['Booking kelas member (7 hari, daftar tunggu, batal)', 'src/components/member/BookingBoard.tsx', 'Daftar tunggu'],
+  ['Kartu check-in member (QR)', 'src/app/member/booking/page.tsx', '<CheckInCard'],
+  ['Meja admin: check-in & daftar peserta kelas', 'src/app/leads/kelas/page.tsx', '<ClassRoster'],
+  ['Scan kartu member di mana saja = check-in', 'src/components/leads/QuickSaleScanner.tsx', 'MEMBER_CODE.test'],
+  ['Owner atur kuota per kelas', 'src/app/leads/kelas/page.tsx', '<QuotaSetting'],
+  ['Coach lihat peserta kelas', 'src/app/coach/kelas/page.tsx', 'Peserta kelas'],
+  ['Program hari ini mengikuti kelas yang dibooking', 'src/lib/memberClass.ts', 'booking.sessionId'],
   ['Tautan Versi video di bawah kartu Total angkatan / Kalori', 'src/components/member/ShareCards.tsx', 'onVideo(current.video!)'],
   ['Saran beban di tiap gerakan program', 'src/components/member/TodayWorkoutPlan.tsx', 'Saran beban'],
   ['Kartu share Fokus otot', 'src/components/member/DayFinishFlow.tsx', 'id: "fokus"'],
@@ -230,6 +237,26 @@ check('FitQuarter: jenis paket, kuota, dan membership yang sudah berakhir', () =
   assert.deepEqual(r.memberships.map((m) => [m.sourceRef, m.credits, m.creditsUsed, m.canBook]), [['T1', 8, 3, true], ['T2', 2, 2, false]]);
   assert.deepEqual(r.skipped, { noPackage: 1, ended: 1, badDates: 0 });
   assert.ok('error' in fq.readMemberList('nama,email\nx,y', '2026-11-17'));
+});
+
+const br = await load('src/lib/bookingRules.ts');
+check('Booking: jam kelas WIB, batal 2 jam sebelum, tanpa Minggu, kredit yang habis duluan dipakai dulu', () => {
+  const s4 = br.sessionById('class-4');
+  assert.equal(br.classStart('2026-11-18', s4).toISOString(), '2026-11-18T09:00:00.000Z');
+  const start = br.classStart('2026-11-18', s4);
+  assert.ok(br.canCancelAt(new Date('2026-11-18T07:00:00Z'), start, 2));
+  assert.ok(!br.canCancelAt(new Date('2026-11-18T07:00:01Z'), start, 2));
+  assert.deepEqual(br.bookableDays('2026-11-17', 7), ['2026-11-17', '2026-11-18', '2026-11-19', '2026-11-20', '2026-11-21', '2026-11-23']);
+  const ms = [
+    { id: 'late', canBook: true, credits: 8, creditsUsed: 2, startsAt: '2026-10-01', expiresAt: '2028-10-01' },
+    { id: 'soon', canBook: true, credits: null, creditsUsed: 0, startsAt: '2026-11-01', expiresAt: '2026-12-01' },
+    { id: 'empty', canBook: true, credits: 4, creditsUsed: 4, startsAt: '2026-11-01', expiresAt: '2026-11-20' },
+    { id: 'pt', canBook: false, credits: 8, creditsUsed: 0, startsAt: '2026-11-01', expiresAt: '2026-11-19' },
+  ];
+  assert.equal(br.pickMembership(ms, '2026-11-18').id, 'soon');
+  assert.equal(br.pickMembership(ms, '2026-12-05').id, 'late');
+  assert.equal(br.pickMembership(ms.slice(2), '2026-11-18'), null);
+  assert.ok(br.MEMBER_CODE.test('OLY-004512') && !br.MEMBER_CODE.test('8991234567890'));
 });
 
 const { formatRepTarget } = await load('src/lib/programSlide.ts');

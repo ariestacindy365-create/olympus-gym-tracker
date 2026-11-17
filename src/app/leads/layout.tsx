@@ -12,6 +12,7 @@ const LEAD_SECTION_PATHS = [
   "finance",
   "history",
   "impor",
+  "kelas",
   "kasir",
   "owner",
   "packages",
@@ -23,6 +24,7 @@ const LEAD_SECTION_PATHS = [
 
 const ADMIN_LINKS = [
   { href: "/leads/dashboard", label: "Dashboard" },
+  { href: "/leads/kelas", label: "Kelas" },
   { href: "/leads", label: "Lead", exclude: LEAD_SECTION_PATHS },
   { href: "/leads/renewals", label: "Perpanjangan" },
   { href: "/leads/payments", label: "Bayar" },
@@ -40,6 +42,7 @@ const STAFF_MORE = [
 
 const OWNER_LINKS = [
   { href: "/leads/owner", label: "Overview" },
+  { href: "/leads/kelas", label: "Kelas" },
   { href: "/leads", label: "Lead", exclude: LEAD_SECTION_PATHS },
   { href: "/leads/renewals", label: "Perpanjangan" },
   { href: "/leads/payments", label: "Bayar" },
@@ -51,11 +54,12 @@ const OWNER_LINKS = [
 const LEAD_TAB: BottomNavItem = { href: "/leads", label: "Lead", icon: "lead", exclude: LEAD_SECTION_PATHS };
 const ADMIN_TABS: BottomNavItem[] = [
   { href: "/leads/dashboard", label: "Dashboard", icon: "home" },
+  { href: "/leads/kelas", label: "Kelas", icon: "booking" },
   LEAD_TAB,
-  { href: "/leads/payments", label: "Bayar", icon: "bayar" },
   { href: "/leads/kasir", label: "Kasir", icon: "kasir" },
 ];
 const ADMIN_TABS_MORE: BottomNavItem[] = [
+  { href: "/leads/payments", label: "Bayar" },
   { href: "/leads/renewals", label: "Perpanjangan" },
   { href: "/leads/impor", label: "Impor FitQuarter" },
   { href: "/leads/expenses", label: "Biaya" },
@@ -70,6 +74,7 @@ const OWNER_TABS: BottomNavItem[] = [
   { href: "/leads/packages", label: "Harga", icon: "harga" },
 ];
 const OWNER_TABS_MORE: BottomNavItem[] = [
+  { href: "/leads/kelas", label: "Kelas & check-in" },
   { href: "/leads/renewals", label: "Perpanjangan" },
   { href: "/leads/impor", label: "Impor FitQuarter" },
   { href: "/leads/kasir", label: "Kasir" },
