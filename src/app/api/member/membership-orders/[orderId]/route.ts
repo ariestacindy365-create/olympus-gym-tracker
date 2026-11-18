@@ -26,7 +26,8 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/member
   if (!order) return NextResponse.json({ error: "Pembelian ini sudah dikirim atau dibatalkan." }, { status: 409 });
 
   // Proofs go to the same Drive folder as front-desk payments; without Drive
-  // the compressed image is kept on the order until it's approved.
+  // (or when the upload fails) the compressed image is kept on the order
+  // until it's approved.
   let proofImageFileId: string | null = null;
   let proofImageData: string | null = null;
   const folderId = process.env.GOOGLE_DRIVE_PAYMENTS_FOLDER_ID;
@@ -34,7 +35,10 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/member
     try {
       proofImageFileId = await uploadProofImage({ dataUrl: parsed.data.proofImage, filename: `app-${member.id}-${Date.now()}.jpg`, folderId });
     } catch (error) {
-      return NextResponse.json({ error: error instanceof Error ? error.message : "Gagal mengunggah bukti transfer." }, { status: 500 });
+      // Drive down or its sign-in expired: keep the proof on the order so
+      // the member isn't stuck and the admin can still see it.
+      console.error("Proof upload to Drive failed, keeping it on the order", error);
+      proofImageData = parsed.data.proofImage;
     }
   } else proofImageData = parsed.data.proofImage;
 
