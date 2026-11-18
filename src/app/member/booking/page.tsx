@@ -7,7 +7,7 @@ import { BookingBoard, type BoardClass, type BoardDay } from "@/components/membe
 import { CheckInCard } from "@/components/member/CheckInCard";
 import { MembershipChip } from "@/components/member/MembershipList";
 import { classesOn, ensureMemberCode, getBookingSettings } from "@/lib/booking";
-import { bookableDays, canCancelAt, classStart, pickMembership, sessionById } from "@/lib/bookingRules";
+import { BOOKING_OPEN, bookableDays, canCancelAt, classStart, pickMembership, sessionById } from "@/lib/bookingRules";
 import { claimImportedMember, membershipViews } from "@/lib/membership";
 import { jakartaToday } from "@/lib/birthDate";
 
@@ -18,6 +18,14 @@ export default async function MemberBookingPage(props: PageProps<"/member/bookin
   const user = await getCurrentUser();
   if (!user) return null;
   await claimImportedMember(user);
+  if (!BOOKING_OPEN) {
+    return (
+      <div className="flex flex-col gap-4">
+        <PageHeader eyebrow="Kelas bootcamp" title="Booking kelas" />
+        <p className="rounded-2xl border border-border bg-surface p-4 text-sm shadow-card">Booking kelas lewat aplikasi segera dibuka. Untuk sekarang, booking seperti biasa lewat admin Olympus ya.</p>
+      </div>
+    );
+  }
   const sp = await props.searchParams;
   const today = jakartaToday();
   const settings = await getBookingSettings();
