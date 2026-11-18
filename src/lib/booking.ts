@@ -76,8 +76,11 @@ async function returnCredit(tx: Tx, membershipId: string | null) {
 }
 
 /** Moves members up from the waiting list while there are places, oldest first. Returns who moved up. */
-async function promoteWaitlist(tx: Tx, day: string, sessionId: string, quota: number): Promise<string[]> {
+async function promoteWaitlist(tx: Tx, day: string, sessionId: string, quota: number, now: Date): Promise<string[]> {
   const moved: string[] = [];
+  // A class that's over has no place to move up to: nobody gets charged for it.
+  const session = sessionById(sessionId);
+  if (!session || now >= classEnd(day, session)) return moved;
   const waiting = await tx.classBooking.findMany({ where: { classDate: dateKey(day), sessionId, status: "WAITLIST" }, orderBy: { createdAt: "asc" } });
   let taken = await placesTaken(tx, day, sessionId);
   for (const w of waiting) {
@@ -156,7 +159,7 @@ export async function cancelBooking(opts: { userId: string; bookingId: string; n
     }
     await tx.classBooking.update({ where: { id: b.id }, data: { status: "CANCELLED", membershipId: null } });
     await returnCredit(tx, b.membershipId);
-    return { day, sessionId: b.sessionId, moved: b.status === "BOOKED" ? await promoteWaitlist(tx, day, b.sessionId, settings.quota) : [] };
+    return { day, sessionId: b.sessionId, moved: b.status === "BOOKED" ? await promoteWaitlist(tx, day, b.sessionId, settings.quota, now) : [] };
   });
   await notifyPromoted(result.moved, result.day, result.sessionId);
 }
@@ -165,6 +168,30 @@ export async function cancelBooking(opts: { userId: string; bookingId: string; n
  * Admin at the desk: Hadir, Tidak hadir (credit stays used), or Hapus
  * (removed, credit back, next on the waiting list moves up).
  */
+/**
+ * Owner changes the places per class. A bigger class moves people up from
+ * the waiting lists of classes that haven't ended yet.
+ */
+export async function setQuota(quota: number, now = new Date()) {
+  const today = jakartaToday();
+  const moved = await prisma.$transaction(async (tx) => {
+    await lockForWrite(tx);
+    await tx.bookingSettings.upsert({ where: { id: "default" }, create: { id: "default", quota }, update: { quota } });
+    const waiting = await tx.classBooking.findMany({
+      where: { status: "WAITLIST", classDate: { gte: dateKey(today) } },
+      distinct: ["classDate", "sessionId"],
+      select: { classDate: true, sessionId: true },
+    });
+    const out: { day: string; sessionId: string; userIds: string[] }[] = [];
+    for (const w of waiting) {
+      const day = w.classDate.toISOString().slice(0, 10);
+      out.push({ day, sessionId: w.sessionId, userIds: await promoteWaitlist(tx, day, w.sessionId, quota, now) });
+    }
+    return out;
+  });
+  for (const m of moved) await notifyPromoted(m.userIds, m.day, m.sessionId);
+}
+
 export async function setBookingStatus(opts: { bookingId: string; action: "ATTENDED" | "NO_SHOW" | "REMOVE"; now?: Date }) {
   const now = opts.now ?? new Date();
   const settings = await getBookingSettings();
@@ -176,7 +203,7 @@ export async function setBookingStatus(opts: { bookingId: string; action: "ATTEN
     if (opts.action === "REMOVE") {
       await tx.classBooking.update({ where: { id: b.id }, data: { status: "CANCELLED", membershipId: null, checkedInAt: null } });
       await returnCredit(tx, b.membershipId);
-      return { day, sessionId: b.sessionId, moved: b.status === "WAITLIST" ? [] : await promoteWaitlist(tx, day, b.sessionId, settings.quota) };
+      return { day, sessionId: b.sessionId, moved: b.status === "WAITLIST" ? [] : await promoteWaitlist(tx, day, b.sessionId, settings.quota, now) };
     }
     // From the waiting list straight to present / absent: they take a credit now.
     const membershipId = b.status === "WAITLIST" ? await takeCredit(tx, b.userId, day) : b.membershipId;
