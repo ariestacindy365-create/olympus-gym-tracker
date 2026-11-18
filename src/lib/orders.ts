@@ -112,6 +112,7 @@ async function grant(tx: Tx, s: Sold, now: Date) {
       expiresAt: key(end),
       orderId: s.orderId ?? null,
       createdById: s.staffId,
+      paymentId: payment.id,
     },
   });
   return { lead, payment, membership, newlyMember, expiresAt };

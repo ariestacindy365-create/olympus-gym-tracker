@@ -1010,6 +1010,9 @@ model Membership {
   orderId          String?          @unique
   order            MembershipOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
   createdById      String?
+  // The Payment it was sold with (desk or app), so deleting that payment
+  // takes back an unused package.
+  paymentId        String?          @unique
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
