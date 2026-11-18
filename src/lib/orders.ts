@@ -5,6 +5,7 @@ import { scheduleMemberFollowUps, scheduleRenewalReminder } from "@/lib/leads";
 import { BOOKABLE, type MembershipKind } from "@/lib/fitquarter";
 import { NO_EXPIRY_END, packageEnd, packageStart } from "@/lib/packageRules";
 import { jakartaToday } from "@/lib/birthDate";
+import { uploadProofImage } from "@/lib/googleDrive";
 import type { PaymentMethod, Prisma } from "@/generated/prisma/client";
 
 type Tx = Prisma.TransactionClient;
@@ -126,6 +127,18 @@ export async function approveOrder(orderId: string, reviewerId: string, now = ne
   const order = await prisma.membershipOrder.findUnique({ where: { id: orderId }, include: { user: { select: { name: true } } } });
   if (!order) throw new OrderError("Pesanan tidak ditemukan.", 404);
   if (order.status !== "PENDING") throw new OrderError("Pesanan ini belum dikirim atau sudah diproses.", 409);
+  // A proof kept on the order (no Drive, or Drive failed when it was sent)
+  // moves to Drive now if it can; otherwise it stays on the order, so the
+  // payment still has its proof after approval.
+  let proofImageFileId = order.proofImageFileId;
+  const folderId = process.env.GOOGLE_DRIVE_PAYMENTS_FOLDER_ID;
+  if (!proofImageFileId && order.proofImageData && folderId) {
+    try {
+      proofImageFileId = await uploadProofImage({ dataUrl: order.proofImageData, filename: `app-${order.userId}-${now.getTime()}.jpg`, folderId });
+    } catch (error) {
+      console.error("Proof upload to Drive failed on approval, keeping it on the order", error);
+    }
+  }
   const result = await prisma.$transaction(async (tx) => {
     // Claim the order first so two admins tapping at once can't both confirm it.
     const claimed = await tx.membershipOrder.updateMany({ where: { id: orderId, status: "PENDING" }, data: { status: "APPROVED", reviewedById: reviewerId, reviewedAt: now } });
@@ -144,14 +157,14 @@ export async function approveOrder(orderId: string, reviewerId: string, now = ne
         amount: order.price + order.uniqueCode,
         paymentMethod: order.paymentMethod ?? "TRANSFER",
         waNumber: order.waNumber,
-        proofImageFileId: order.proofImageFileId,
+        proofImageFileId,
         note: [ORDER_NOTE, order.uniqueCode ? `kode unik ${order.uniqueCode}` : null, order.senderName ? `pengirim ${order.senderName}` : null].filter(Boolean).join(" · "),
         staffId: reviewerId,
         orderId: order.id,
       },
       now
     );
-    await tx.membershipOrder.update({ where: { id: orderId }, data: { paymentId: r.payment.id, proofImageData: null } });
+    await tx.membershipOrder.update({ where: { id: orderId }, data: { paymentId: r.payment.id, ...(proofImageFileId ? { proofImageFileId, proofImageData: null } : {}) } });
     return r;
   });
   await afterGrant(result, now);
@@ -192,4 +205,11 @@ export async function sellAtDesk(opts: { userId: string; packageId: string; paym
   );
   await afterGrant(result, now);
   return result;
+}
+
+/** Of these payments, the ones from an app order whose transfer proof is kept on the order (not in Drive). */
+export async function paymentsWithOrderProof(paymentIds: string[]): Promise<Set<string>> {
+  if (paymentIds.length === 0) return new Set();
+  const rows = await prisma.membershipOrder.findMany({ where: { paymentId: { in: paymentIds }, proofImageData: { not: null } }, select: { paymentId: true } });
+  return new Set(rows.map((r) => r.paymentId!));
 }
