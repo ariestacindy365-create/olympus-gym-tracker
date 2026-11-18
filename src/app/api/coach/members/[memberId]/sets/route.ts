@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { resolvePerSide } from "@/lib/perSide";
 import { estimate1RMFor } from "@/lib/oneRepMax";
 import { checkAndRecordPR } from "@/lib/pr";
 import { todayDateKey } from "@/lib/workout";
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/coach/m
   if (!parsed.success) {
     return NextResponse.json({ error: "Pilih gerakan dan isi beban & reps yang valid." }, { status: 400 });
   }
-  const { exerciseId, weight, reps, unit, perSide, note } = parsed.data;
+  const { exerciseId, weight, reps, unit, note } = parsed.data;
 
   const exercise = await prisma.exercise.findUnique({ where: { id: exerciseId } });
   if (!exercise) {
@@ -36,6 +37,7 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/coach/m
 
   const estimated1RM = estimate1RMFor(weight, reps, unit);
   const workoutDate = todayDateKey();
+  const perSide = parsed.data.perSide ?? (await resolvePerSide({ memberId, exerciseId, exerciseName: exercise.name, workoutDate }));
 
   const setEntry = await prisma.$transaction(async (tx) => {
     let setNumber = parsed.data.setNumber;

@@ -18,6 +18,7 @@ interface ExistingSet {
   reps: number;
   note: string | null;
   isPR: boolean;
+  perSide?: boolean;
 }
 
 interface LastSet {

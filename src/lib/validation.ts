@@ -51,7 +51,8 @@ export const setEntrySchema = z
     weight: liftWeight,
     reps: z.number().int().positive().max(20000),
     unit: z.enum(SET_UNITS).default("REPS"),
-    perSide: z.boolean().default(false),
+    // Left out (the free set form): the server works it out (resolvePerSide).
+    perSide: z.boolean().optional(),
     note: z.string().trim().max(280).optional(),
     // "YYYY-MM-DD" when filling in a past day; the route checks the range.
     date: z.string().max(10).optional(),

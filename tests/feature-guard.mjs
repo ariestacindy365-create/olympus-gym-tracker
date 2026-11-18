@@ -101,6 +101,10 @@ const FEATURES = [
   ['Ubah tanggal Dilatih (set ikut pindah) / Tandai belum dilatih', 'src/app/api/coach/pt/[packageId]/sessions/[number]/route.ts', 'export async function PATCH'],
   ['Selebrasi PR penuh 1 layar, timer tetap jalan di pojok', 'src/components/shared/PRCelebration.tsx', 'Timer tetap jalan'],
   ['Slide program penuh di samping timer', 'src/components/shared/SlideShow.tsx', '<ProgramSlide fill'],
+  ['Latihan terkunci sampai booking kelas hari itu', 'src/app/member/dashboard/page.tsx', 'BookingRequired'],
+  ['Simpan set ditolak tanpa booking kelas', 'src/app/api/member/sets/route.ts', 'trainingGate'],
+  ['Set tanpa tanda /sisi mengikuti program coach', 'src/app/api/member/sets/route.ts', 'resolvePerSide'],
+  ['Set tanpa tanda /sisi mengikuti program coach (coach)', 'src/app/api/coach/members/[memberId]/sets/route.ts', 'resolvePerSide'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
@@ -265,6 +269,17 @@ check('Booking: jam kelas WIB, batal 2 jam sebelum, tanpa Minggu, kredit yang ha
   assert.equal(br.pickMembership(ms, '2026-11-18', { unlimitedUsedToday: true }).id, 'late');
   assert.equal(br.pickMembership([ms[1]], '2026-11-18', { unlimitedUsedToday: true }), null);
   assert.ok(br.MEMBER_CODE.test('OLY-004512') && !br.MEMBER_CODE.test('8991234567890'));
+});
+
+check('Latihan perlu booking kelas, kecuali PT, Mandiri, hari tanpa kelas, atau sudah mulai mencatat', () => {
+  const base = { day: '2026-11-18', booked: false, ptClient: false, ownTraining: false, classesThatDay: true, loggedThatDay: false };
+  assert.equal(br.needsBooking(base), true);
+  assert.equal(br.needsBooking({ ...base, booked: true }), false);
+  assert.equal(br.needsBooking({ ...base, ptClient: true }), false);
+  assert.equal(br.needsBooking({ ...base, ownTraining: true }), false);
+  assert.equal(br.needsBooking({ ...base, classesThatDay: false }), false);
+  assert.equal(br.needsBooking({ ...base, loggedThatDay: true }), false);
+  assert.equal(br.needsBooking({ ...base, day: '2026-11-17' }), false);
 });
 
 const pr = await load('src/lib/packageRules.ts');
