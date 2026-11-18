@@ -41,10 +41,10 @@ state.prisma = {
 };
 tx.coachPersonalProgram = state.prisma.coachPersonalProgram;
 const plugin = {name:'isolated-dependencies', setup(b) {
-  b.onResolve({filter:/^@\/lib\/(auth|prisma|workout|priorBests)$/}, args => ({path:args.path,namespace:'stub'}));
+  b.onResolve({filter:/^@\/lib\/(auth|prisma|workout|priorBests|perSide)$/}, args => ({path:args.path,namespace:'stub'}));
   b.onResolve({filter:/^@\/generated\/prisma\/client$/}, args => ({path:args.path,namespace:'stub'}));
   b.onResolve({filter:/^(server-only|next\/server)$/}, args => ({path:args.path,namespace:'stub'}));
-  b.onLoad({filter:/.*/,namespace:'stub'}, args => ({loader:'js', contents: args.path === '@/lib/auth' ? 'export async function getCurrentUser(){return globalThis.__coachCheck.user;}' : args.path === '@/lib/priorBests' ? 'export function invalidatePriorBests(){}' : args.path === '@/lib/prisma' ? 'export const prisma = globalThis.__coachCheck.prisma;' : args.path === '@/lib/workout' ? 'export const todayDateKey = () => new Date("2026-10-27T00:00:00Z");' : args.path === '@/generated/prisma/client' ? 'export const Role={COACH:"COACH",MEMBER:"MEMBER"}; export const SetUnit={REPS:"REPS",SECONDS:"SECONDS"};export const PRType={MAX_WEIGHT:"MAX_WEIGHT",MAX_1RM:"MAX_1RM",MAX_AMOUNT:"MAX_AMOUNT"};' : args.path === 'next/server' ? 'export const NextResponse = {json:(body, options)=>Response.json(body,options)};' : ''}));
+  b.onLoad({filter:/.*/,namespace:'stub'}, args => ({loader:'js', contents: args.path === '@/lib/auth' ? 'export async function getCurrentUser(){return globalThis.__coachCheck.user;}' : args.path === '@/lib/priorBests' ? 'export function invalidatePriorBests(){}' : args.path === '@/lib/perSide' ? 'export async function resolvePerSide(){return false;}' : args.path === '@/lib/prisma' ? 'export const prisma = globalThis.__coachCheck.prisma;' : args.path === '@/lib/workout' ? 'export const todayDateKey = () => new Date("2026-10-27T00:00:00Z");' : args.path === '@/generated/prisma/client' ? 'export const Role={COACH:"COACH",MEMBER:"MEMBER"}; export const SetUnit={REPS:"REPS",SECONDS:"SECONDS"};export const PRType={MAX_WEIGHT:"MAX_WEIGHT",MAX_1RM:"MAX_1RM",MAX_AMOUNT:"MAX_AMOUNT"};' : args.path === 'next/server' ? 'export const NextResponse = {json:(body, options)=>Response.json(body,options)};' : ''}));
 }};
 async function route(file) {
  const result = await build({entryPoints:[`${root}/${file}`],absWorkingDir:root,bundle:true,platform:'node',format:'esm',write:false,plugins:[plugin]});

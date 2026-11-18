@@ -27,6 +27,8 @@ import { TodayWorkoutPlan, type LoggedSet, type OtherSet } from "@/components/me
 import { getActivePtPackage, getPtTodayPlan, sessionFor } from "@/lib/pt";
 import { scheduleLabel, upcomingSchedule } from "@/lib/ptSession";
 import { PtClientCard } from "@/components/member/PtClientCard";
+import { BookingRequired } from "@/components/member/BookingRequired";
+import { trainingGate } from "@/lib/trainingGate";
 import type { SetUnit } from "@/lib/setUnits";
 
 export default async function MemberDashboardPage(props: PageProps<"/member/dashboard">) {
@@ -42,6 +44,19 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
   const pastDay = tglKey && tglKey < todayDateKey() ? tglKey : null;
   if (tgl && !pastDay) redirect("/member/dashboard");
   const pickedClass = typeof sp.kelas === "string" ? sp.kelas : null;
+
+  // No class booked that day: book one first (PT clients and members who
+  // train on their own are not asked).
+  const ptPackage = await getActivePtPackage(user.id);
+  const gate = await trainingGate(user.id, pastDay ?? todayDateKey(), { ptClient: !!ptPackage });
+  if (gate.closed) {
+    return (
+      <div className="flex flex-col gap-4">
+        <PageHeader eyebrow={todayLabel()} title={`Halo, ${user.name}`} />
+        <BookingRequired waitlist={gate.waitlist} canBook={gate.canBook} pastDay={pastDay ? pastDay.toISOString().slice(0, 10) : null} />
+      </div>
+    );
+  }
 
   // Membership-duration achievements unlock purely by time passing, not by
   // any set/body-metric action — sync here (unseen, so the celebration
@@ -68,10 +83,7 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
 
   // One query for every set the member has logged; today's sets and each
   // exercise's previous session are derived from it below.
-  const [todayClass, ptPackage] = await Promise.all([
-    pastDay ? getMemberClassOn(user.id, pastDay, pickedClass) : getMemberTodayClass(user.id),
-    getActivePtPackage(user.id),
-  ]);
+  const todayClass = pastDay ? await getMemberClassOn(user.id, pastDay, pickedClass) : await getMemberTodayClass(user.id);
   const [dailyWorkout, personalRecords, allSets, coachNotes, weekProgram, todayPlan] = await Promise.all([
     getTodayDailyWorkout(),
     prisma.personalRecord.findMany({ where: { memberId: user.id } }),
@@ -103,7 +115,7 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
 
   const todaysSetsMap: Record<
     string,
-    { id: string; setNumber: number; weight: number; reps: number; note: string | null; isPR: boolean }[]
+    { id: string; setNumber: number; weight: number; reps: number; note: string | null; isPR: boolean; perSide: boolean }[]
   > = {};
   for (const s of todaysSets) {
     (todaysSetsMap[s.exerciseId] ??= []).push({
@@ -113,6 +125,7 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
       reps: s.reps,
       note: s.note,
       isPR: s.isPR,
+      perSide: s.perSide,
     });
   }
 

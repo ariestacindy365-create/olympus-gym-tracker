@@ -2,13 +2,15 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { resolvePerSide } from "@/lib/perSide";
 import { estimate1RMFor } from "@/lib/oneRepMax";
 import { checkAndRecordPR } from "@/lib/pr";
 import { BACKFILL_DAYS, loggableDateKey } from "@/lib/workout";
 import { setEntrySchema } from "@/lib/validation";
 import { syncMemberAchievements } from "@/lib/achievements";
 import { Role } from "@/generated/prisma/client";
-import { markPtSessionHeld } from "@/lib/pt";
+import { getActivePtPackage, markPtSessionHeld } from "@/lib/pt";
+import { trainingGate } from "@/lib/trainingGate";
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
@@ -21,7 +23,7 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Pilih gerakan dan isi beban & reps yang valid." }, { status: 400 });
   }
-  const { exerciseId, weight, reps, unit, perSide, note } = parsed.data;
+  const { exerciseId, weight, reps, unit, note } = parsed.data;
 
   const exercise = await prisma.exercise.findUnique({ where: { id: exerciseId } });
   if (!exercise) {
@@ -32,6 +34,11 @@ export async function POST(request: NextRequest) {
   if (!workoutDate) {
     return NextResponse.json({ error: `Latihan hanya bisa diisi sampai ${BACKFILL_DAYS} hari ke belakang.` }, { status: 400 });
   }
+  const gate = await trainingGate(user.id, workoutDate, { ptClient: !!(await getActivePtPackage(user.id)) });
+  if (gate.closed) {
+    return NextResponse.json({ error: "Booking kelas dulu untuk mencatat latihan hari itu." }, { status: 403 });
+  }
+  const perSide = parsed.data.perSide ?? (await resolvePerSide({ memberId: user.id, exerciseId, exerciseName: exercise.name, workoutDate }));
   const estimated1RM = estimate1RMFor(weight, reps, unit);
   // A set sent late (no signal at the gym) keeps the time ✓ was tapped, so
   // the workout's duration and class come out right. Ignored if the phone's

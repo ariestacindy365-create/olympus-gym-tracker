@@ -78,3 +78,26 @@ export const TAKES_PLACE = ["BOOKED", "ATTENDED", "NO_SHOW"] as const;
 
 /** "OLY-123456": the code on a member's check-in card. */
 export const MEMBER_CODE = /^OLY-\d{6}$/;
+
+/** The day members first need a booked class to open the Latihan page. */
+export const BOOKING_REQUIRED_FROM = "2026-11-18";
+
+export interface TrainingAccess {
+  /** "YYYY-MM-DD" being logged. */
+  day: string;
+  /** A class that day, booked or checked in (not waitlist, not no-show). */
+  booked: boolean;
+  /** An active PT package: the coach schedules their sessions. */
+  ptClient: boolean;
+  /** A membership that day that doesn't book classes (Private Training, Mandiri). */
+  ownTraining: boolean;
+  /** The timetable has classes that weekday. */
+  classesThatDay: boolean;
+  /** Sets already logged that day (before this rule, or a workout in progress). */
+  loggedThatDay: boolean;
+}
+
+/** Whether the Latihan page stays closed until the member books a class that day. */
+export function needsBooking(a: TrainingAccess): boolean {
+  return a.day >= BOOKING_REQUIRED_FROM && a.classesThatDay && !a.booked && !a.ptClient && !a.ownTraining && !a.loggedThatDay;
+}

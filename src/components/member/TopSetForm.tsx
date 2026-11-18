@@ -38,6 +38,8 @@ interface ExistingSet {
   reps: number;
   note: string | null;
   isPR: boolean;
+  /** Per side: volume counts both sides. */
+  perSide?: boolean;
 }
 
 interface LastSet {
@@ -144,6 +146,7 @@ export function TopSetForm({
         reps: repsNum,
         note: note || null,
         isPR: data.setEntry.isPR,
+        perSide: data.setEntry.perSide,
       };
       setSaved((prev) => ({
         ...prev,
@@ -208,6 +211,7 @@ export function TopSetForm({
           reps: s.reps,
           note: s.note,
           isPR: s.isPR,
+          perSide: s.perSide,
         })),
       }));
       setEditingSetId(null);
@@ -238,6 +242,7 @@ export function TopSetForm({
           reps: s.reps,
           note: s.note,
           isPR: s.isPR,
+          perSide: s.perSide,
         })),
       }));
     } catch {
@@ -364,6 +369,7 @@ export function TopSetForm({
                     <span className="w-11 shrink-0 text-xs font-semibold text-muted">SET {s.setNumber}</span>
                     <span className="tabular min-w-0 flex-1 whitespace-nowrap font-semibold">
                       {formatKg(s.weight)} kg × {s.reps}
+                      {s.perSide ? "/sisi" : ""}
                     </span>
                     {s.isPR && (
                       <button
