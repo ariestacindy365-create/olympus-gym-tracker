@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TrialNotice } from "@/components/member/TrialNotice";
 
 const BTN = "inline-flex min-h-12 items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition";
 
@@ -38,6 +39,7 @@ export function BookingRequired({ waitlist, canBook, pastDay }: { waitlist: bool
           </Link>
         </div>
       )}
+      <TrialNotice what="Wajib booking sebelum mencatat latihan" />
       <p className="text-xs text-muted">Sudah di gym tapi belum booking? Minta admin menambahkanmu ke kelas, lalu muat ulang halaman ini.</p>
     </div>
   );

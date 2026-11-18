@@ -1,4 +1,5 @@
 import QRCode from "qrcode";
+import { TrialNotice } from "@/components/member/TrialNotice";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -64,6 +65,7 @@ export default async function MemberBookingPage(props: PageProps<"/member/bookin
   return (
     <div className="flex flex-col gap-4">
       <PageHeader eyebrow="Kelas bootcamp" title="Booking kelas" subtitle={`Booking sampai ${settings.daysAhead} hari ke depan. Batal paling lambat ${settings.cancelHours} jam sebelum kelas, kreditnya kembali.`} />
+      <TrialNotice what="Booking kelas lewat aplikasi" />
       <MembershipChip item={chip} />
       {todays.length > 0 && (
         <CheckInCard
