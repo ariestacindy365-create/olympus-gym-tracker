@@ -111,6 +111,7 @@ const FEATURES = [
   ['Tanda uji coba di Beli paket', 'src/app/member/paket/page.tsx', 'TrialNotice'],
   ['Booking hari ini tidak bisa dibatalkan setelah mencatat latihan', 'src/lib/booking.ts', 'Kamu sudah mencatat latihan hari ini'],
   ['Bukti transfer tetap terkirim kalau Drive gagal', 'src/app/api/member/membership-orders/[orderId]/route.ts', 'keeping it on the order'],
+  ['Bukti transfer aplikasi tetap ada setelah disetujui', 'src/app/api/payments/[paymentId]/proof/route.ts', 'proofImageData'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);

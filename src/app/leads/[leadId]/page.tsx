@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAnyRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { paymentsWithOrderProof } from "@/lib/orders";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -46,6 +47,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
   });
 
   if (!lead) notFound();
+  const orderProof = await paymentsWithOrderProof(lead.payments.map((p) => p.id));
   const isDeleted = lead.deletedAt !== null;
   const isPayingMember = lead.status === "MEMBER" || lead.status === "RETENSI";
 
@@ -157,7 +159,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {payment.proofImageFileId && (
+                    {(payment.proofImageFileId || orderProof.has(payment.id)) && (
                       <a href={`/api/payments/${payment.id}/proof`} target="_blank" rel="noreferrer">
                         <Button variant="secondary" className="px-3 py-1.5 text-xs">
                           Lihat Bukti

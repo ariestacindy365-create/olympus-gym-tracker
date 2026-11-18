@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser, requireAnyRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { paymentsWithOrderProof } from "@/lib/orders";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -33,6 +34,7 @@ export default async function PaymentsPage({
       include: { lead: { select: { name: true, waNumber: true } }, createdBy: { select: { name: true } } },
     }),
   ]);
+  const orderProof = await paymentsWithOrderProof(recentPayments.map((p) => p.id));
 
   return (
     <div className="flex flex-col gap-6">
@@ -73,7 +75,7 @@ export default async function PaymentsPage({
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {payment.proofImageFileId && (
+                  {(payment.proofImageFileId || orderProof.has(payment.id)) && (
                     <a href={`/api/payments/${payment.id}/proof`} target="_blank" rel="noreferrer">
                       <Button variant="secondary" className="px-3 py-1.5 text-xs">
                         Lihat Bukti

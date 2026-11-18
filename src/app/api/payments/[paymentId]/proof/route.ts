@@ -21,6 +21,10 @@ export async function GET(_request: NextRequest, ctx: RouteContext<"/api/payment
     select: { proofImageFileId: true },
   });
   if (!payment?.proofImageFileId) {
+    // An app purchase whose proof stayed on the order (Drive wasn't available).
+    const order = await prisma.membershipOrder.findFirst({ where: { paymentId, proofImageData: { not: null } }, select: { proofImageData: true } });
+    const m = order?.proofImageData ? /^data:([^;]+);base64,(.*)$/.exec(order.proofImageData) : null;
+    if (m) return new NextResponse(new Uint8Array(Buffer.from(m[2], "base64")), { headers: { "Content-Type": m[1], "Cache-Control": "private, max-age=3600" } });
     return NextResponse.json({ error: "Tidak ada bukti pembayaran." }, { status: 404 });
   }
 
