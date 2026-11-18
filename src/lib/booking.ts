@@ -157,6 +157,16 @@ export async function cancelBooking(opts: { userId: string; bookingId: string; n
     if (b.status === "BOOKED" && !canCancelAt(now, classStart(day, session), settings.cancelHours)) {
       throw new BookingError(`Pembatalan hanya sampai ${settings.cancelHours} jam sebelum kelas. Hubungi admin.`);
     }
+    // Booked, trained, then cancelled would give the credit back for a
+    // workout that happened: today's only class can't be cancelled once
+    // sets are logged.
+    if (b.status === "BOOKED" && day === jakartaToday()) {
+      const [otherClasses, logged] = await Promise.all([
+        tx.classBooking.count({ where: { userId: b.userId, classDate: b.classDate, id: { not: b.id }, status: { in: ["BOOKED", "ATTENDED"] } } }),
+        tx.setEntry.count({ where: { memberId: b.userId, workoutDate: b.classDate } }),
+      ]);
+      if (logged > 0 && otherClasses === 0) throw new BookingError("Kamu sudah mencatat latihan hari ini, jadi booking ini tidak bisa dibatalkan. Hubungi admin kalau perlu.");
+    }
     await tx.classBooking.update({ where: { id: b.id }, data: { status: "CANCELLED", membershipId: null } });
     await returnCredit(tx, b.membershipId);
     return { day, sessionId: b.sessionId, moved: b.status === "BOOKED" ? await promoteWaitlist(tx, day, b.sessionId, settings.quota, now) : [] };

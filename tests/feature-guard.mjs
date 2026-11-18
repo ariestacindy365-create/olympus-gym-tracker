@@ -109,6 +109,7 @@ const FEATURES = [
   ['Daftar tunggu tidak naik ke kelas yang sudah selesai', 'src/lib/booking.ts', 'now >= classEnd(day, session)'],
   ['Tanda uji coba di Booking', 'src/app/member/booking/page.tsx', 'TrialNotice'],
   ['Tanda uji coba di Beli paket', 'src/app/member/paket/page.tsx', 'TrialNotice'],
+  ['Booking hari ini tidak bisa dibatalkan setelah mencatat latihan', 'src/lib/booking.ts', 'Kamu sudah mencatat latihan hari ini'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
