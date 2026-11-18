@@ -6,6 +6,14 @@ import { CLASS_SESSIONS, type ClassSession } from "@/lib/classSessions";
 
 const JAKARTA_OFFSET_MIN = 7 * 60;
 
+/**
+ * Whether members book classes in the app. Off (held) until the gym
+ * announces the move from FitQuarter: no Booking tab, members can't book,
+ * and Latihan doesn't ask for a booking. The admin's Kelas tab and the
+ * bookings already made stay as they are. Set to true to open.
+ */
+export const BOOKING_OPEN = false;
+
 export const sessionById = (id: string): ClassSession | null => CLASS_SESSIONS.find((s) => s.id === id) ?? null;
 
 /** When a class starts, as a real instant. */

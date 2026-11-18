@@ -3,11 +3,12 @@ import { NavBar } from "@/components/ui/NavBar";
 import { MemberBottomNav } from "@/components/member/MemberBottomNav";
 import { NotificationBell } from "@/components/member/NotificationBell";
 import { LoginPrompts } from "@/components/member/LoginPrompts";
+import { BOOKING_OPEN } from "@/lib/bookingRules";
 
 const LINKS = [
   { href: "/member/dashboard", label: "Dashboard" },
   { href: "/member/feed", label: "Feed" },
-  { href: "/member/booking", label: "Booking" },
+  ...(BOOKING_OPEN ? [{ href: "/member/booking", label: "Booking" }] : []),
   { href: "/member/paket", label: "Paket" },
   { href: "/member/program", label: "Program" },
   { href: "/member/body", label: "Body Metrics" },

@@ -1,16 +1,25 @@
 import { BottomNav, type BottomNavItem } from "@/components/ui/BottomNav";
+import { BOOKING_OPEN } from "@/lib/bookingRules";
 
-const ITEMS: BottomNavItem[] = [
-  { href: "/member/dashboard", label: "Latihan", icon: "latihan" },
-  { href: "/member/feed", label: "Feed", icon: "feed" },
-  { href: "/member/booking", label: "Booking", icon: "booking" },
-  { href: "/member/body", label: "Body", icon: "body" },
-];
+// Booking takes Emblem's tab once booking in the app is open.
+const ITEMS: BottomNavItem[] = BOOKING_OPEN
+  ? [
+      { href: "/member/dashboard", label: "Latihan", icon: "latihan" },
+      { href: "/member/feed", label: "Feed", icon: "feed" },
+      { href: "/member/booking", label: "Booking", icon: "booking" },
+      { href: "/member/body", label: "Body", icon: "body" },
+    ]
+  : [
+      { href: "/member/dashboard", label: "Latihan", icon: "latihan" },
+      { href: "/member/feed", label: "Feed", icon: "feed" },
+      { href: "/member/body", label: "Body", icon: "body" },
+      { href: "/member/achievements", label: "Emblem", icon: "emblem" },
+    ];
 
 // Pages that had no way in from the tab bar before.
 const MORE: BottomNavItem[] = [
   { href: "/member/paket", label: "Beli paket" },
-  { href: "/member/achievements", label: "Emblem" },
+  ...(BOOKING_OPEN ? [{ href: "/member/achievements", label: "Emblem" }] : []),
   { href: "/member/program", label: "Program minggu ini" },
   { href: "/member/leaderboard", label: "Peringkat" },
   { href: "/member/notifikasi", label: "Notifikasi" },

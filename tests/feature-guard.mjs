@@ -113,6 +113,8 @@ const FEATURES = [
   ['Bukti transfer tetap terkirim kalau Drive gagal', 'src/app/api/member/membership-orders/[orderId]/route.ts', 'keeping it on the order'],
   ['Bukti transfer aplikasi tetap ada setelah disetujui', 'src/app/api/payments/[paymentId]/proof/route.ts', 'proofImageData'],
   ['Hapus pembayaran ikut menarik paket yang belum dipakai', 'src/app/api/payments/[paymentId]/route.ts', 'membership.delete'],
+  ['Saklar buka/tahan booking member', 'src/lib/trainingGate.ts', 'BOOKING_OPEN'],
+  ['Saklar buka/tahan booking member (API)', 'src/app/api/bookings/route.ts', 'BOOKING_OPEN'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
