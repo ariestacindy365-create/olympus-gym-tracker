@@ -107,6 +107,8 @@ const FEATURES = [
   ['Set tanpa tanda /sisi mengikuti program coach (coach)', 'src/app/api/coach/members/[memberId]/sets/route.ts', 'resolvePerSide'],
   ['Kuota dinaikkan: daftar tunggu ikut naik', 'src/app/api/bookings/settings/route.ts', 'setQuota'],
   ['Daftar tunggu tidak naik ke kelas yang sudah selesai', 'src/lib/booking.ts', 'now >= classEnd(day, session)'],
+  ['Tanda uji coba di Booking', 'src/app/member/booking/page.tsx', 'TrialNotice'],
+  ['Tanda uji coba di Beli paket', 'src/app/member/paket/page.tsx', 'TrialNotice'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);

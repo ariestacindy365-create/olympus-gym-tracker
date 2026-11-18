@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { TrialNotice } from "@/components/member/TrialNotice";
 import { MembershipList } from "@/components/member/MembershipList";
 import { CancelOrderButton, PackageShop } from "@/components/member/PackageShop";
 import { claimImportedMember, membershipViews } from "@/lib/membership";
@@ -32,6 +33,7 @@ export default async function MemberPackagesPage() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader eyebrow="Membership" title="Paket" subtitle="Paket yang kamu punya, dan beli paket baru dengan transfer bank." />
+      <TrialNotice what="Beli paket lewat aplikasi" />
       <section className="rounded-2xl border border-border bg-surface p-4 shadow-card">
         <h2 className="mb-3 font-display text-lg font-bold">Paket kamu</h2>
         <MembershipList items={memberships} today={today} />
