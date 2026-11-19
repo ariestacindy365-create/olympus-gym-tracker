@@ -37,6 +37,7 @@ const ADMIN_LINKS = [
 const STAFF_MORE = [
   { href: "/leads/paket", label: "Paket member" },
   { href: "/leads/impor", label: "Impor FitQuarter" },
+  { href: "/leads/ekspor", label: "Ekspor data" },
   { href: "/leads/history", label: "Riwayat" },
   { href: "/leads/pengumuman", label: "Info" },
   { href: "/leads/account", label: "Akun" },
@@ -65,6 +66,7 @@ const ADMIN_TABS_MORE: BottomNavItem[] = [
   { href: "/leads/payments", label: "Bayar" },
   { href: "/leads/renewals", label: "Perpanjangan" },
   { href: "/leads/impor", label: "Impor FitQuarter" },
+  { href: "/leads/ekspor", label: "Ekspor data" },
   { href: "/leads/expenses", label: "Biaya" },
   { href: "/leads/history", label: "Riwayat" },
   { href: "/leads/pengumuman", label: "Info" },
@@ -81,6 +83,7 @@ const OWNER_TABS_MORE: BottomNavItem[] = [
   { href: "/leads/kelas", label: "Kelas & check-in" },
   { href: "/leads/renewals", label: "Perpanjangan" },
   { href: "/leads/impor", label: "Impor FitQuarter" },
+  { href: "/leads/ekspor", label: "Ekspor data" },
   { href: "/leads/kasir", label: "Kasir" },
   { href: "/leads/history", label: "Riwayat" },
   { href: "/leads/pengumuman", label: "Info" },
