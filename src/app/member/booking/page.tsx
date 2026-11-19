@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { BookingBoard, type BoardClass, type BoardDay } from "@/components/member/BookingBoard";
 import { CheckInCard } from "@/components/member/CheckInCard";
-import { MembershipChip } from "@/components/member/MembershipList";
+import { MembershipChip, chipMembership } from "@/components/member/MembershipList";
 import { classesOn, ensureMemberCode, getBookingSettings } from "@/lib/booking";
 import { BOOKING_OPEN, bookableDays, canCancelAt, classStart, pickMembership, sessionById } from "@/lib/bookingRules";
 import { claimImportedMember, membershipViews } from "@/lib/membership";
@@ -68,13 +68,13 @@ export default async function MemberBookingPage(props: PageProps<"/member/bookin
   );
   const canBook = selected ? !!pickMembership(memberships, selected) : false;
   const todays = mine.filter((b) => b.classDate.toISOString().slice(0, 10) === today && (b.status === "BOOKED" || b.status === "ATTENDED" || b.status === "WAITLIST"));
-  const chip = memberships.find((m) => m.canBook && (m.credits == null || m.credits > m.creditsUsed)) ?? memberships.find((m) => m.canBook) ?? memberships[0] ?? null;
+  const chip = chipMembership(memberships, today);
 
   return (
     <div className="flex flex-col gap-4">
       <PageHeader eyebrow="Kelas bootcamp" title="Booking kelas" subtitle={`Booking sampai ${settings.daysAhead} hari ke depan. Batal paling lambat ${settings.cancelHours} jam sebelum kelas, kreditnya kembali.`} />
       <TrialNotice what="Booking kelas lewat aplikasi" />
-      <MembershipChip item={chip} />
+      <MembershipChip item={chip} today={today} />
       {todays.length > 0 && (
         <CheckInCard
           code={code}

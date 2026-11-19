@@ -120,6 +120,7 @@ const FEATURES = [
   ['Pembelian yang dibatalkan otomatis diberi tahu ke member', 'src/app/member/paket/page.tsx', 'AUTO_CLOSED'],
   ['Ekspor data ke Excel (owner & admin)', 'src/lib/dataExport.ts', 'buildExport'],
   ['Menu Ekspor data', 'src/app/leads/layout.tsx', '/leads/ekspor'],
+  ['Kartu paket: paket yang belum mulai ditandai Mulai …', 'src/components/member/MembershipList.tsx', 'chipMembership'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
