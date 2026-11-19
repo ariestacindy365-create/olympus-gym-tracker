@@ -2,6 +2,8 @@ import { after, NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { syncVa } from "@/lib/orders";
+import { cancelVa } from "@/lib/midtrans";
 import { submitMembershipPaymentSchema } from "@/lib/validation";
 import { uploadProofImage } from "@/lib/googleDrive";
 import { sendTelegramMessage } from "@/lib/telegram";
@@ -76,6 +78,12 @@ export async function DELETE(_request: NextRequest, ctx: RouteContext<"/api/memb
   const member = await getCurrentUser();
   if (!member || member.role !== Role.MEMBER) return NextResponse.json({ error: "Not authorized." }, { status: 401 });
   const { orderId } = await ctx.params;
+  // A VA that was already paid isn't cancelled; an unpaid one is closed at Midtrans too.
+  const va = await prisma.membershipOrder.findFirst({ where: { id: orderId, userId: member.id, status: "UNPAID", gatewayOrderId: { not: null } }, select: { gatewayOrderId: true } });
+  if (va?.gatewayOrderId) {
+    if ((await syncVa(va.gatewayOrderId).catch(() => "pending")) === "paid") return NextResponse.json({ error: "Pembayaran sudah masuk, paketmu sudah aktif." }, { status: 409 });
+    await cancelVa(va.gatewayOrderId);
+  }
   const done = await prisma.membershipOrder.updateMany({
     where: { id: orderId, userId: member.id, status: { in: ["UNPAID", "PENDING"] } },
     data: { status: "CANCELLED", proofImageData: null },

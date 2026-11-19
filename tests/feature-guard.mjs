@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 // Anti-rollback guard: fails when a feature that is live goes missing, e.g.
 // a change made from an older copy of the code that quietly drops work.
 //
@@ -121,6 +122,9 @@ const FEATURES = [
   ['Ekspor data ke Excel (owner & admin)', 'src/lib/dataExport.ts', 'buildExport'],
   ['Menu Ekspor data', 'src/app/leads/layout.tsx', '/leads/ekspor'],
   ['Kartu paket: paket yang belum mulai ditandai Mulai …', 'src/components/member/MembershipList.tsx', 'chipMembership'],
+  ['Bayar paket lewat Virtual Account Midtrans', 'src/components/member/PackageShop.tsx', 'VaStep'],
+  ['Webhook Midtrans diverifikasi tanda tangan', 'src/app/api/midtrans/notification/route.ts', 'signatureOk'],
+  ['VA lunas → paket aktif otomatis', 'src/lib/orders.ts', 'settleVa'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
@@ -313,6 +317,29 @@ check('Ekspor data: pilihan bagian & periode divalidasi, jam Jakarta', () => {
   assert.ok('error' in ex.parseExportRequest('member', '2026-02-30x', '2026-11-19'));
   assert.equal(ex.periodBounds('2026-11-19', '2026-11-19').start.toISOString(), '2026-11-18T17:00:00.000Z');
   assert.equal(ex.jakartaStamp(new Date('2026-11-18T17:30:00Z')), '2026-11-19 00:30');
+});
+
+const mt = await load('src/lib/midtransRules.ts');
+check('Midtrans VA: nomor VA dibaca, tanda tangan dicek, status lunas/kedaluwarsa', () => {
+  const bca = mt.parseCharge({ status_code: '201', va_numbers: [{ bank: 'bca', va_number: '12345678901' }], expiry_time: '2026-11-20 16:00:00' });
+  assert.equal(bca.vaNumber, '12345678901');
+  assert.equal(bca.expiresAt.toISOString(), '2026-11-20T09:00:00.000Z');
+  const mandiri = mt.parseCharge({ status_code: '201', bill_key: '990011', biller_code: '70012' });
+  assert.deepEqual([mandiri.vaNumber, mandiri.billerCode], ['990011', '70012']);
+  assert.equal(mt.parseCharge({ status_code: '400', status_message: 'bad' }), null);
+  const n = { order_id: 'ord-1', status_code: '200', gross_amount: '349000.00' };
+  
+  const sig = createHash('sha512').update('ord-1200349000.00SB-key').digest('hex');
+  assert.ok(mt.signatureOk({ ...n, signature_key: sig }, 'SB-key'));
+  assert.ok(!mt.signatureOk({ ...n, signature_key: sig }, 'other-key'));
+  assert.ok(!mt.signatureOk({ ...n, signature_key: sig }, ''));
+  assert.equal(mt.vaOutcome({ transaction_status: 'settlement', gross_amount: '349000.00' }, 349000), 'paid');
+  assert.equal(mt.vaOutcome({ transaction_status: 'settlement', gross_amount: '1000.00' }, 349000), 'mismatch');
+  assert.equal(mt.vaOutcome({ transaction_status: 'pending', gross_amount: '349000.00' }, 349000), 'pending');
+  assert.equal(mt.vaOutcome({ transaction_status: 'expire' }, 349000), 'dead');
+  const body = mt.chargeBody({ gatewayOrderId: 'g1', amount: 349000, bank: 'mandiri', item: { id: 'p', name: 'Paket' }, customer: { name: 'A', email: 'a@x.id' } });
+  assert.equal(body.payment_type, 'echannel');
+  assert.equal(mt.chargeBody({ gatewayOrderId: 'g1', amount: 1, bank: 'bni', item: { id: 'p', name: 'P' }, customer: { name: 'A', email: 'a@x.id' } }).bank_transfer.bank, 'bni');
 });
 
 const pr = await load('src/lib/packageRules.ts');

@@ -584,6 +584,7 @@ enum PaymentMethod {
   DEBIT
   FITQUARTER
   TUNAI
+  VIRTUAL_ACCOUNT
 }
 
 // A payment an admin records for a member — initial or renewal — printable
@@ -1116,6 +1117,14 @@ model MembershipOrder {
   reviewedBy       User?                 @relation("OrdersReviewed", fields: [reviewedById], references: [id], onDelete: SetNull)
   reviewedAt       DateTime?
   paymentId        String?
+  // Virtual account from Midtrans (paid automatically, no unique code):
+  // the bank, the number to pay to (Mandiri: bill key + biller code), the
+  // Midtrans order_id of this attempt, and when the number expires.
+  vaBank           String?
+  vaNumber         String?
+  vaBillerCode     String?
+  gatewayOrderId   String?               @unique
+  vaExpiresAt      DateTime?
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
   membership       Membership?

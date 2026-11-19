@@ -6,7 +6,8 @@ import { TrialNotice } from "@/components/member/TrialNotice";
 import { MembershipList } from "@/components/member/MembershipList";
 import { CancelOrderButton, PackageShop } from "@/components/member/PackageShop";
 import { claimImportedMember, membershipViews } from "@/lib/membership";
-import { AUTO_CLOSED, closeStaleUnpaid } from "@/lib/orders";
+import { AUTO_CLOSED, closeStaleUnpaid, syncOpenVas } from "@/lib/orders";
+import { midtransEnabled } from "@/lib/midtrans";
 import { formatRupiah } from "@/lib/packages";
 import { jakartaToday } from "@/lib/birthDate";
 
@@ -15,6 +16,9 @@ export default async function MemberPackagesPage() {
   const user = await getCurrentUser();
   if (!user) return null;
   await claimImportedMember(user);
+  // A VA paid while the webhook was missed shows up as soon as they look.
+  const vaEnabled = midtransEnabled();
+  if (vaEnabled) await syncOpenVas(user.id);
   await closeStaleUnpaid(user.id);
   const today = jakartaToday();
   const [memberships, packages, bank, orders, imported] = await Promise.all([
@@ -71,7 +75,21 @@ export default async function MemberPackagesPage() {
         // FitQuarter's Phone is sometimes an email or a stray digit: only a real number prefills.
         lastWa={last?.waNumber || (looksLikeWaNumber(imported?.phone) ? imported!.phone! : "")}
         lastSender={last?.senderName ?? ""}
-        openOrder={unpaid ? { id: unpaid.id, packageName: unpaid.packageName, price: unpaid.price, uniqueCode: unpaid.uniqueCode, credits: unpaid.credits, durationDays: unpaid.durationDays, durationMonths: unpaid.durationMonths } : null}
+        vaEnabled={vaEnabled}
+        openOrder={
+          unpaid
+            ? {
+                id: unpaid.id,
+                packageName: unpaid.packageName,
+                price: unpaid.price,
+                uniqueCode: unpaid.uniqueCode,
+                credits: unpaid.credits,
+                durationDays: unpaid.durationDays,
+                durationMonths: unpaid.durationMonths,
+                va: unpaid.vaNumber && unpaid.vaBank ? { bank: unpaid.vaBank, number: unpaid.vaNumber, billerCode: unpaid.vaBillerCode, expiresAt: unpaid.vaExpiresAt?.toISOString() ?? null } : null,
+              }
+            : null
+        }
         blocked={!!waiting}
       />
     </div>
