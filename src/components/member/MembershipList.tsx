@@ -54,14 +54,26 @@ export function MembershipList({ items, today }: { items: MembershipView[]; toda
   );
 }
 
+/**
+ * The membership to show in one line: one that has started, books classes
+ * and has credit left first. One that only starts later (an Unlimited
+ * bought before the current one ends) shows only when it's all there is.
+ */
+export function chipMembership<T extends MembershipView>(items: T[], today: string): T | null {
+  const started = items.filter((m) => m.startsAt.slice(0, 10) <= today);
+  const pool = started.length > 0 ? started : items;
+  return pool.find((m) => m.canBook && (m.credits == null || m.credits > m.creditsUsed)) ?? pool.find((m) => m.canBook) ?? pool[0] ?? null;
+}
+
 /** Dashboard: one line with the membership that books classes. */
-export function MembershipChip({ item }: { item: MembershipView | null }) {
+export function MembershipChip({ item, today }: { item: MembershipView | null; today: string }) {
+  const upcoming = item && item.startsAt.slice(0, 10) > today;
   return (
     <Link href="/member/paket" className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-border bg-surface px-3 py-2 text-sm shadow-card">
       <span className="min-w-0 truncate">
         🎫 {item ? item.packageName.replace(/^[^:]+:\s*/, "") : "Belum ada membership aktif"}
       </span>
-      {item && <span className="shrink-0 font-semibold text-accent">{creditsText(item)}</span>}
+      {item && <span className="shrink-0 font-semibold text-accent">{upcoming ? `Mulai ${fmt(item.startsAt).replace(/ \d{4}$/, "")}` : creditsText(item)}</span>}
     </Link>
   );
 }

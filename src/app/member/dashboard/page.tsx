@@ -1,6 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
 import { claimImportedMember, membershipViews } from "@/lib/membership";
-import { MembershipChip } from "@/components/member/MembershipList";
+import { MembershipChip, chipMembership } from "@/components/member/MembershipList";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { backfillDays, getTodayDailyWorkout, loggableDateKey, todayDateKey } from "@/lib/workout";
@@ -252,9 +252,9 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
         <>
           <PageHeader eyebrow={todayLabel()} title={`Halo, ${user.name}`} subtitle="Berikut latihan hari ini." />
           {(() => {
-            // The membership that books classes (else any), when there is one.
-            const pick = memberships.find((m) => m.canBook && (m.credits == null || m.credits > m.creditsUsed)) ?? memberships.find((m) => m.canBook) ?? memberships[0];
-            return pick ? <MembershipChip item={pick} /> : null;
+            const today = todayDateKey().toISOString().slice(0, 10);
+            const pick = chipMembership(memberships, today);
+            return pick ? <MembershipChip item={pick} today={today} /> : null;
           })()}
           <CoachNotesCard notes={coachNotes} />
           {ptPackage && (
