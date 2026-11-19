@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { looksLikeWaNumber } from "@/lib/whatsapp";
 import { UNIT_MAX, type SetUnit } from "@/lib/setUnits";
 
 // Some phones (notably Indonesian keyboard layouts) type "," instead of "."
@@ -277,7 +278,8 @@ export const createMovementSchema = z.object({
 const waNumberSchema = z
   .string()
   .trim()
-  .regex(/^\+?[0-9\s-]{9,20}$/, { error: "Nomor WhatsApp tidak valid." });
+  .min(1, { error: "Isi nomor WhatsApp kamu." })
+  .refine(looksLikeWaNumber, { error: "Nomor WhatsApp tidak valid. Contoh: 081234567890." });
 
 // A member picks a package; they get the exact amount to pay (with a unique code).
 export const createMembershipOrderSchema = z.object({

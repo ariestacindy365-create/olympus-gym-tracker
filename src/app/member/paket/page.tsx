@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/auth";
+import { looksLikeWaNumber } from "@/lib/whatsapp";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { TrialNotice } from "@/components/member/TrialNotice";
@@ -59,7 +60,8 @@ export default async function MemberPackagesPage() {
       <PackageShop
         packages={packages.map((p) => ({ id: p.id, name: p.name, price: p.price, credits: p.credits, durationDays: p.durationDays, durationMonths: p.durationMonths, category: p.category ?? "Paket", fineprint: p.fineprint }))}
         bank={{ bankName: bank?.bankName ?? "", accountNumber: bank?.accountNumber ?? "", accountName: bank?.accountName ?? "" }}
-        lastWa={last?.waNumber ?? imported?.phone ?? ""}
+        // FitQuarter's Phone is sometimes an email or a stray digit: only a real number prefills.
+        lastWa={last?.waNumber || (looksLikeWaNumber(imported?.phone) ? imported!.phone! : "")}
         lastSender={last?.senderName ?? ""}
         openOrder={unpaid ? { id: unpaid.id, packageName: unpaid.packageName, price: unpaid.price, uniqueCode: unpaid.uniqueCode, credits: unpaid.credits, durationDays: unpaid.durationDays, durationMonths: unpaid.durationMonths } : null}
         blocked={!!waiting}

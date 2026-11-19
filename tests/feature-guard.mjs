@@ -293,6 +293,12 @@ check('Latihan perlu booking kelas, kecuali PT, Mandiri, hari tanpa kelas, atau 
   assert.equal(br.needsBooking({ ...base, day: '2026-11-17' }), false);
 });
 
+const wa = await load('src/lib/whatsapp.ts');
+check('Nomor WhatsApp: format umum diterima, email dan angka tunggal ditolak', () => {
+  for (const ok of ['081234567890', '0812-3456-7890', '+62 812 3456 7890', '(0812) 3456.7890', '6281234567890']) assert.ok(wa.looksLikeWaNumber(ok), ok);
+  for (const bad of ['', '0', 'N/A', 'nama@gmail.com', '12345', '0812345678901234567']) assert.ok(!wa.looksLikeWaNumber(bad), bad);
+});
+
 const pr = await load('src/lib/packageRules.ts');
 check('Paket: masa berlaku bulan/minggu/tidak hangus, Unlimited baru menunggu yang lama habis', () => {
   assert.equal(pr.packageEnd({ durationMonths: 1, durationDays: 30 }, '2026-11-17'), '2026-12-17');
