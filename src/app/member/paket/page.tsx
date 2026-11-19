@@ -60,7 +60,15 @@ export default async function MemberPackagesPage() {
       )}
       {autoClosed && (
         <p role="status" className="rounded-xl border border-[#f59e0b]/40 bg-[#f59e0b]/10 px-3 py-2 text-sm">
-          Pembelian {autoClosed.packageName} ({formatRupiah(autoClosed.price + autoClosed.uniqueCode)}) dibatalkan otomatis karena bukti transfer belum dikirim. <b>Kalau kamu sudah transfer, jangan transfer lagi</b>, hubungi admin Olympus dengan bukti transfernya.
+          {autoClosed.gatewayOrderId ? (
+            <>
+              Pembelian {autoClosed.packageName} ({formatRupiah(autoClosed.price)}) dibatalkan otomatis karena belum dibayar. Kalau kamu sudah bayar lewat virtual account, paket tetap aktif otomatis. <b>Jangan bayar lagi</b>; hubungi admin Olympus kalau paketnya belum muncul.
+            </>
+          ) : (
+            <>
+              Pembelian {autoClosed.packageName} ({formatRupiah(autoClosed.price + autoClosed.uniqueCode)}) dibatalkan otomatis karena bukti transfer belum dikirim. <b>Kalau kamu sudah transfer, jangan transfer lagi</b>, hubungi admin Olympus dengan bukti transfernya.
+            </>
+          )}
         </p>
       )}
       {rejected && !waiting && !unpaid && (
