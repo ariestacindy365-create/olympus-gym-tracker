@@ -17,13 +17,14 @@ export async function GET(request: NextRequest) {
   }
   // Housekeeping, once a day: notifications would otherwise pile up forever
   // (this reminder alone adds one row per member per day). Reminders are
-  // stale after a few days; everything else goes after 90.
+  // stale after a few days; everything else is kept 6 months.
   const DAY_MS = 86_400_000;
+  const KEEP_DAYS = 183;
   await prisma.notification.deleteMany({
     where: {
       OR: [
         { type: { in: ["PROGRAM_TODAY", "LOG_REMINDER"] }, createdAt: { lt: new Date(Date.now() - 3 * DAY_MS) } },
-        { createdAt: { lt: new Date(Date.now() - 90 * DAY_MS) } },
+        { createdAt: { lt: new Date(Date.now() - KEEP_DAYS * DAY_MS) } },
       ],
     },
   });
