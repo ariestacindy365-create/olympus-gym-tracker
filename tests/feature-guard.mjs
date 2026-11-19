@@ -117,6 +117,7 @@ const FEATURES = [
   ['Saklar buka/tahan booking member (API)', 'src/app/api/bookings/route.ts', 'BOOKING_OPEN'],
   ['Impor FitQuarter: member dengan email sama tidak bikin gagal', 'src/lib/membership.ts', 'Members sharing an'],
   ['Notifikasi disimpan 6 bulan', 'src/app/api/cron/program-today/route.ts', 'KEEP_DAYS = 183'],
+  ['Pembelian yang dibatalkan otomatis diberi tahu ke member', 'src/app/member/paket/page.tsx', 'AUTO_CLOSED'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);

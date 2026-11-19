@@ -32,11 +32,18 @@ export async function pickUniqueCode(price: number): Promise<number> {
   return free[Math.floor(Math.random() * free.length)] ?? 1 + Math.floor(Math.random() * 499);
 }
 
-/** Unpaid picks older than a day are dropped, so the member can start over. */
+/** Why an order was closed when the member never sent the proof (shown to them, in case they did transfer). */
+export const AUTO_CLOSED = "Bukti transfer tidak dikirim dalam 3 hari";
+
+/**
+ * Unpaid picks older than 3 days are dropped, so the member can start
+ * over. Marked AUTO_CLOSED: the member sees it was closed and, if they
+ * already transferred, to contact the desk instead of paying again.
+ */
 export async function closeStaleUnpaid(userId: string, now = new Date()) {
   await prisma.membershipOrder.updateMany({
-    where: { userId, status: "UNPAID", createdAt: { lt: new Date(now.getTime() - 86_400_000) } },
-    data: { status: "CANCELLED" },
+    where: { userId, status: "UNPAID", createdAt: { lt: new Date(now.getTime() - 3 * 86_400_000) } },
+    data: { status: "CANCELLED", rejectReason: AUTO_CLOSED },
   });
 }
 

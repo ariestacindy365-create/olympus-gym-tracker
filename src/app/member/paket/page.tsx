@@ -6,7 +6,7 @@ import { TrialNotice } from "@/components/member/TrialNotice";
 import { MembershipList } from "@/components/member/MembershipList";
 import { CancelOrderButton, PackageShop } from "@/components/member/PackageShop";
 import { claimImportedMember, membershipViews } from "@/lib/membership";
-import { closeStaleUnpaid } from "@/lib/orders";
+import { AUTO_CLOSED, closeStaleUnpaid } from "@/lib/orders";
 import { formatRupiah } from "@/lib/packages";
 import { jakartaToday } from "@/lib/birthDate";
 
@@ -21,7 +21,8 @@ export default async function MemberPackagesPage() {
     membershipViews(user.id, new Date(`${today}T00:00:00Z`)),
     prisma.package.findMany({ where: { isActive: true, showInApp: true, kind: { not: null } }, orderBy: [{ sortOrder: "asc" }, { price: "asc" }] }),
     prisma.gymPaymentInfo.findUnique({ where: { id: 1 } }),
-    prisma.membershipOrder.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 5 }),
+    // Latest change first, so an order just closed for want of a proof comes on top.
+    prisma.membershipOrder.findMany({ where: { userId: user.id }, orderBy: { updatedAt: "desc" }, take: 5 }),
     prisma.importedMember.findUnique({ where: { userId: user.id }, select: { phone: true } }),
   ]);
   // Rejections from the last week stay visible.
@@ -30,6 +31,8 @@ export default async function MemberPackagesPage() {
   const waiting = orders.find((o) => o.status === "PENDING") ?? null;
   const rejected = orders.find((o) => o.status === "REJECTED" && o.reviewedAt && o.reviewedAt.getTime() > weekAgo) ?? null;
   const last = orders.find((o) => o.waNumber || o.senderName);
+  // The latest order was closed for want of a proof: they may have paid already.
+  const autoClosed = orders[0]?.status === "CANCELLED" && orders[0].rejectReason === AUTO_CLOSED && orders[0].updatedAt.getTime() > weekAgo ? orders[0] : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -50,6 +53,11 @@ export default async function MemberPackagesPage() {
           </div>
           <CancelOrderButton orderId={waiting.id} />
         </section>
+      )}
+      {autoClosed && (
+        <p role="status" className="rounded-xl border border-[#f59e0b]/40 bg-[#f59e0b]/10 px-3 py-2 text-sm">
+          Pembelian {autoClosed.packageName} ({formatRupiah(autoClosed.price + autoClosed.uniqueCode)}) dibatalkan otomatis karena bukti transfer belum dikirim. <b>Kalau kamu sudah transfer, jangan transfer lagi</b>, hubungi admin Olympus dengan bukti transfernya.
+        </p>
       )}
       {rejected && !waiting && !unpaid && (
         <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">
