@@ -118,6 +118,8 @@ const FEATURES = [
   ['Impor FitQuarter: member dengan email sama tidak bikin gagal', 'src/lib/membership.ts', 'Members sharing an'],
   ['Notifikasi disimpan 6 bulan', 'src/app/api/cron/program-today/route.ts', 'KEEP_DAYS = 183'],
   ['Pembelian yang dibatalkan otomatis diberi tahu ke member', 'src/app/member/paket/page.tsx', 'AUTO_CLOSED'],
+  ['Ekspor data ke Excel (owner & admin)', 'src/lib/dataExport.ts', 'buildExport'],
+  ['Menu Ekspor data', 'src/app/leads/layout.tsx', '/leads/ekspor'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
@@ -299,6 +301,17 @@ const wa = await load('src/lib/whatsapp.ts');
 check('Nomor WhatsApp: format umum diterima, email dan angka tunggal ditolak', () => {
   for (const ok of ['081234567890', '0812-3456-7890', '+62 812 3456 7890', '(0812) 3456.7890', '6281234567890']) assert.ok(wa.looksLikeWaNumber(ok), ok);
   for (const bad of ['', '0', 'N/A', 'nama@gmail.com', '12345', '0812345678901234567']) assert.ok(!wa.looksLikeWaNumber(bad), bad);
+});
+
+const ex = await load('src/lib/exportRules.ts');
+check('Ekspor data: pilihan bagian & periode divalidasi, jam Jakarta', () => {
+  assert.deepEqual(ex.parseExportRequest('lead,member,x', '2026-11-01', '2026-11-19'), { sections: ['member', 'lead'], from: '2026-11-01', to: '2026-11-19' });
+  assert.ok('error' in ex.parseExportRequest('', '2026-11-01', '2026-11-19'));
+  assert.ok('error' in ex.parseExportRequest('member', '2026-11-19', '2026-11-01'));
+  assert.ok('error' in ex.parseExportRequest('member', '2025-01-01', '2026-11-19'));
+  assert.ok('error' in ex.parseExportRequest('member', '2026-02-30x', '2026-11-19'));
+  assert.equal(ex.periodBounds('2026-11-19', '2026-11-19').start.toISOString(), '2026-11-18T17:00:00.000Z');
+  assert.equal(ex.jakartaStamp(new Date('2026-11-18T17:30:00Z')), '2026-11-19 00:30');
 });
 
 const pr = await load('src/lib/packageRules.ts');
