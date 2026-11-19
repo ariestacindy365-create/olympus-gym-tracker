@@ -115,6 +115,7 @@ const FEATURES = [
   ['Hapus pembayaran ikut menarik paket yang belum dipakai', 'src/app/api/payments/[paymentId]/route.ts', 'membership.delete'],
   ['Saklar buka/tahan booking member', 'src/lib/trainingGate.ts', 'BOOKING_OPEN'],
   ['Saklar buka/tahan booking member (API)', 'src/app/api/bookings/route.ts', 'BOOKING_OPEN'],
+  ['Impor FitQuarter: member dengan email sama tidak bikin gagal', 'src/lib/membership.ts', 'Members sharing an'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);

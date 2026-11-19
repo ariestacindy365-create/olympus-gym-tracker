@@ -58,15 +58,18 @@ export async function previewImport(file: FqFile): Promise<ImportPreview> {
 export async function importFitQuarter(file: FqFile): Promise<ImportPreview> {
   const preview = await previewImport(file);
   const accounts = await usersByEmail(file.members.map((m) => m.email));
-  const takenUsers = new Set(
-    (await prisma.importedMember.findMany({ where: { userId: { not: null } }, select: { userId: true, externalId: true } }))
-      .filter((r) => !file.members.some((m) => m.externalId === r.externalId))
-      .map((r) => r.userId!)
+  // One app account links to one FitQuarter member. Members sharing an
+  // email (a family on one address): the one already linked keeps it, else
+  // the first in the file; the others are imported unlinked.
+  const linkedTo = new Map(
+    (await prisma.importedMember.findMany({ where: { userId: { not: null } }, select: { userId: true, externalId: true } })).map((r) => [r.userId!, r.externalId])
   );
   const idOf = new Map<string, { id: string; userId: string | null }>();
   for (const m of file.members) {
     const found = accounts.get(m.email);
-    const userId = found && !takenUsers.has(found) ? found : null;
+    const holder = found ? linkedTo.get(found) : undefined;
+    const userId = found && (holder === undefined || holder === m.externalId) ? found : null;
+    if (userId) linkedTo.set(userId, m.externalId);
     const row = await prisma.importedMember.upsert({
       where: { externalId: m.externalId },
       create: { externalId: m.externalId, name: m.name, email: m.email, phone: m.phone, birthDate: m.birthDate, joinedAt: m.joinedAt, userId },
