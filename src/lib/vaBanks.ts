@@ -13,17 +13,16 @@ export const VA_BANK_LABEL: Record<VaBank, string> = {
 };
 
 /**
- * Shown to members unless MIDTRANS_VA_BANKS says otherwise: the banks in
- * Midtrans' Starter Pack. A BCA VA needs its own activation at Midtrans;
- * BCA customers pay a BNI/Permata VA by interbank transfer meanwhile.
+ * Virtual accounts are off unless MIDTRANS_VA_BANKS lists banks: the owner
+ * takes QRIS only for now. Midtrans' Starter Pack has
+ * "bni,bri,mandiri,permata"; a BCA VA needs its own activation.
  */
-export const DEFAULT_VA_BANKS: VaBank[] = ["bni", "bri", "mandiri", "permata"];
+export const STARTER_PACK_VA_BANKS: VaBank[] = ["bni", "bri", "mandiri", "permata"];
 
-/** "bni,permata,bca" → the known banks in it, in VA_BANKS order; empty/unknown → the default. */
+/** "bni,permata,bca" → the known banks in it, in VA_BANKS order; empty → none (VA off). */
 export function parseVaBanks(v: string | null | undefined): VaBank[] {
   const picked = (v ?? "").toLowerCase().split(/[\s,]+/);
-  const banks = VA_BANKS.filter((b) => picked.includes(b));
-  return banks.length > 0 ? banks : DEFAULT_VA_BANKS;
+  return VA_BANKS.filter((b) => picked.includes(b));
 }
 
 export const isVaBank = (v: unknown): v is VaBank => typeof v === "string" && (VA_BANKS as readonly string[]).includes(v);

@@ -249,20 +249,19 @@ export function CancelOrderButton({ orderId }: { orderId: string }) {
   );
 }
 
-/** With virtual accounts on: pay by VA (activates by itself) or by manual transfer + proof. */
+/** With Midtrans on: QRIS (and VA when banks are set) activate by themselves; manual transfer + proof stays. */
 function PayChoice({ order, bank, lastWa, lastSender, vaBanks }: { order: OpenOrder; bank: BankInfo; lastWa: string; lastSender: string; vaBanks: VaBank[] }) {
-  const [method, setMethod] = useState<"va" | "qris" | "manual">(order.va?.bank === "qris" ? "qris" : "va");
+  const tabs = [
+    ["qris", "QRIS", "Aktif otomatis"],
+    ...(vaBanks.length > 0 ? [["va", "Virtual Account", "Aktif otomatis"]] : []),
+    ...(bank.accountNumber ? [["manual", "Transfer manual", "Dicek admin"]] : []),
+  ] as ["qris" | "va" | "manual", string, string][];
+  const [method, setMethod] = useState<"va" | "qris" | "manual">(order.va && order.va.bank !== "qris" && vaBanks.length > 0 ? "va" : "qris");
   return (
     <div className="flex flex-col gap-3">
-      {bank.accountNumber && (
-        <div role="radiogroup" aria-label="Cara bayar" className="grid grid-cols-3 gap-2">
-          {(
-            [
-              ["va", "Virtual Account", "Aktif otomatis"],
-              ["qris", "QRIS", "Aktif otomatis"],
-              ["manual", "Transfer manual", "Dicek admin"],
-            ] as const
-          ).map(([id, title, sub]) => (
+      {tabs.length > 1 && (
+        <div role="radiogroup" aria-label="Cara bayar" className={`grid gap-2 ${tabs.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
+          {tabs.map(([id, title, sub]) => (
             <button
               key={id}
               type="button"

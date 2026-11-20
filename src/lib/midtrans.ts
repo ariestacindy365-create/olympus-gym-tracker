@@ -9,7 +9,7 @@ import { chargeBody } from "@/lib/midtransRules";
 
 export const midtransEnabled = () => !!process.env.MIDTRANS_SERVER_KEY;
 export const midtransServerKey = () => process.env.MIDTRANS_SERVER_KEY ?? "";
-/** The VA banks members can pick (MIDTRANS_VA_BANKS, e.g. "bni,bri,mandiri,permata,bca"). */
+/** The VA banks members can pick (MIDTRANS_VA_BANKS, e.g. "bni,bri,mandiri,permata"); none set → VA off, QRIS only. */
 export const enabledVaBanks = () => parseVaBanks(process.env.MIDTRANS_VA_BANKS);
 /** Sandbox: no real money; the payment screen shows test helpers. */
 export const midtransSandbox = () => process.env.MIDTRANS_IS_PRODUCTION !== "true";
