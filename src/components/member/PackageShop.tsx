@@ -9,7 +9,7 @@ import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { ProofImageUpload } from "@/components/leads/ProofImageUpload";
 import { formatRupiah } from "@/lib/packages";
 import { packageDetail } from "@/lib/packageRules";
-import { VA_BANKS, VA_BANK_LABEL, VA_HOW_TO, isVaBank, type VaBank } from "@/lib/vaBanks";
+import { QRIS_HOW_TO, VA_BANKS, VA_BANK_LABEL, VA_HOW_TO, isVaBank, type GatewayMethod, type VaBank } from "@/lib/vaBanks";
 
 export interface ShopPackage {
   id: string;
@@ -37,7 +37,7 @@ export interface OpenOrder {
   durationDays: number | null;
   durationMonths: number | null;
   /** The Midtrans virtual account made for it, if any. */
-  va?: { bank: string; number: string; billerCode: string | null; expiresAt: string | null } | null;
+  va?: { bank: string; number: string; billerCode: string | null; expiresAt: string | null; qr?: string | null } | null;
 }
 
 /** Step 1: pick a package. Step 2 (an unpaid order): transfer the exact amount and send the proof. */
@@ -251,15 +251,16 @@ export function CancelOrderButton({ orderId }: { orderId: string }) {
 
 /** With virtual accounts on: pay by VA (activates by itself) or by manual transfer + proof. */
 function PayChoice({ order, bank, lastWa, lastSender }: { order: OpenOrder; bank: BankInfo; lastWa: string; lastSender: string }) {
-  const [method, setMethod] = useState<"va" | "manual">("va");
+  const [method, setMethod] = useState<"va" | "qris" | "manual">(order.va?.bank === "qris" ? "qris" : "va");
   return (
     <div className="flex flex-col gap-3">
       {bank.accountNumber && (
-        <div role="radiogroup" aria-label="Cara bayar" className="grid grid-cols-2 gap-2">
+        <div role="radiogroup" aria-label="Cara bayar" className="grid grid-cols-3 gap-2">
           {(
             [
               ["va", "Virtual Account", "Aktif otomatis"],
-              ["manual", "Transfer manual", "Kirim bukti, dicek admin"],
+              ["qris", "QRIS", "Aktif otomatis"],
+              ["manual", "Transfer manual", "Dicek admin"],
             ] as const
           ).map(([id, title, sub]) => (
             <button
@@ -276,7 +277,7 @@ function PayChoice({ order, bank, lastWa, lastSender }: { order: OpenOrder; bank
           ))}
         </div>
       )}
-      {method === "va" ? <VaStep order={order} /> : <PayStep order={order} bank={bank} lastWa={lastWa} lastSender={lastSender} />}
+      {method === "manual" ? <PayStep order={order} bank={bank} lastWa={lastWa} lastSender={lastSender} /> : <VaStep key={method} order={order} mode={method} />}
     </div>
   );
 }
@@ -284,22 +285,24 @@ function PayChoice({ order, bank, lastWa, lastSender }: { order: OpenOrder; bank
 const fmtExpiry = (iso: string) =>
   new Date(iso).toLocaleString("id-ID", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
 
-function VaStep({ order }: { order: OpenOrder }) {
+function VaStep({ order, mode }: { order: OpenOrder; mode: "va" | "qris" }) {
   const router = useRouter();
   const toast = useToast();
   const confirmDialog = useConfirm();
-  const [picking, setPicking] = useState(!order.va);
+  const qris = mode === "qris";
+  // The number/code on the order, if it's of this tab's kind.
+  const va = order.va && (qris ? order.va.bank === "qris" : isVaBank(order.va.bank)) ? { ...order.va, bank: order.va.bank as VaBank } : null;
+  const [picking, setPicking] = useState(!va);
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const va = order.va && isVaBank(order.va.bank) ? { ...order.va, bank: order.va.bank as VaBank } : null;
 
-  async function make(b: VaBank) {
+  async function make(b: GatewayMethod) {
     setError(null);
     setPending(b);
     try {
       const res = await fetch(`/api/member/membership-orders/${order.id}/va`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bank: b }) });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) return setError(data.error ?? "Gagal membuat nomor VA. Coba lagi.");
+      if (!res.ok) return setError(data.error ?? (qris ? "Gagal membuat kode QRIS. Coba lagi." : "Gagal membuat nomor VA. Coba lagi."));
       setPicking(false);
       router.refresh();
     } catch {
@@ -318,7 +321,7 @@ function VaStep({ order }: { order: OpenOrder }) {
         toast.success("Pembayaran diterima, paket aktif ✅");
         router.refresh();
       } else if (data.status === "dead") {
-        if (!quiet) toast.error("Nomor VA sudah kedaluwarsa. Buat nomor baru ya.");
+        if (!quiet) toast.error(qris ? "Kode QRIS sudah kedaluwarsa. Buat kode baru ya." : "Nomor VA sudah kedaluwarsa. Buat nomor baru ya.");
         router.refresh();
       } else if (!quiet) toast.error("Belum ada pembayaran masuk. Kalau sudah bayar, tunggu sebentar lalu cek lagi.");
     } catch {
@@ -353,7 +356,7 @@ function VaStep({ order }: { order: OpenOrder }) {
   }
 
   async function cancel() {
-    if (!(await confirmDialog({ title: "Batalkan pembelian?", description: "Nomor VA ikut dibatalkan dan tidak bisa dibayar lagi.", confirmLabel: "Batalkan", danger: true }))) return;
+    if (!(await confirmDialog({ title: "Batalkan pembelian?", description: qris ? "Kode QRIS ikut dibatalkan dan tidak bisa dibayar lagi." : "Nomor VA ikut dibatalkan dan tidak bisa dibayar lagi.", confirmLabel: "Batalkan", danger: true }))) return;
     const res = await fetch(`/api/member/membership-orders/${order.id}`, { method: "DELETE" }).catch(() => null);
     if (!res?.ok) {
       const data = await res?.json().catch(() => ({}));
@@ -365,7 +368,7 @@ function VaStep({ order }: { order: OpenOrder }) {
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4 shadow-card">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">Pembayaran · Virtual Account</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">Pembayaran · {qris ? "QRIS" : "Virtual Account"}</p>
         <p className="font-display text-xl font-bold">{order.packageName}</p>
         <p className="text-xs text-muted">{packageDetail(order)}</p>
       </div>
@@ -376,7 +379,34 @@ function VaStep({ order }: { order: OpenOrder }) {
         <p className="mt-1 text-xs text-muted">Tanpa kode unik. Paket aktif otomatis begitu pembayaran masuk.</p>
       </div>
 
-      {picking || !va ? (
+      {qris && (picking || !va) ? (
+        <div className="flex flex-col gap-2">
+          <Button type="button" disabled={!!pending} onClick={() => make("qris")} className="h-12">
+            {pending === "qris" ? "Membuat…" : va ? "Buat kode QRIS baru" : "Tampilkan kode QRIS"}
+          </Button>
+          <p className="text-xs text-muted">Bisa dibayar dengan GoPay, OVO, DANA, ShopeePay, LinkAja, atau m-banking. Kode berlaku 30 menit.</p>
+        </div>
+      ) : qris && va ? (
+        <div className="flex flex-col items-center gap-2 rounded-xl bg-white px-4 py-4 text-sm text-slate-900">
+          {/* eslint-disable-next-line @next/next/no-img-element -- generated data URL */}
+          {va.qr && <img src={va.qr} alt="Kode QRIS pembayaran" className="h-64 w-64" />}
+          <p className="font-semibold">Olympus · {formatRupiah(order.price)}</p>
+          {va.expiresAt && <p className="text-xs text-slate-500">Berlaku sampai {fmtExpiry(va.expiresAt)} WIB.</p>}
+          {va.qr && (
+            <a href={va.qr} download="QRIS-Olympus.png" className="inline-flex min-h-10 items-center rounded-lg border border-slate-300 px-4 text-sm font-semibold">
+              ⬇️ Simpan gambar QR
+            </a>
+          )}
+          <ol className="list-decimal self-stretch pl-4 text-xs text-slate-500">
+            {QRIS_HOW_TO.map((l) => (
+              <li key={l}>{l}</li>
+            ))}
+          </ol>
+          <button type="button" className="self-start text-xs font-semibold text-accent" onClick={() => setPicking(true)}>
+            Kode kedaluwarsa? Buat kode baru
+          </button>
+        </div>
+      ) : picking || !va ? (
         <div className="flex flex-col gap-2">
           <p className="text-sm font-semibold">Pilih bank untuk virtual account</p>
           <div className="grid grid-cols-2 gap-2">

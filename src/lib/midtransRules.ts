@@ -2,7 +2,7 @@
 // guard can check them. Server-side only: uses node:crypto.
 
 import { createHash } from "node:crypto";
-import type { VaBank } from "@/lib/vaBanks";
+import { QRIS_MINUTES, type GatewayMethod } from "@/lib/vaBanks";
 
 /** Midtrans order_id for one VA attempt on an order (≤ 50 chars, unique per attempt). */
 export const gatewayOrderIdFor = (orderId: string, now: Date) => `${orderId}-${now.getTime().toString(36)}`;
@@ -11,7 +11,7 @@ export const gatewayOrderIdFor = (orderId: string, now: Date) => `${orderId}-${n
 export function chargeBody(opts: {
   gatewayOrderId: string;
   amount: number;
-  bank: VaBank;
+  bank: GatewayMethod;
   item: { id: string; name: string };
   customer: { name: string; email: string; phone?: string | null };
   expiryHours?: number;
@@ -22,6 +22,7 @@ export function chargeBody(opts: {
     customer_details: { first_name: opts.customer.name.slice(0, 255), email: opts.customer.email, ...(opts.customer.phone ? { phone: opts.customer.phone } : {}) },
     custom_expiry: { expiry_duration: opts.expiryHours ?? 24, unit: "hour" },
   };
+  if (opts.bank === "qris") return { ...base, custom_expiry: { expiry_duration: QRIS_MINUTES, unit: "minute" }, payment_type: "qris", qris: { acquirer: "gopay" } };
   return opts.bank === "mandiri"
     ? { ...base, payment_type: "echannel", echannel: { bill_info1: "Pembayaran:", bill_info2: "Paket Olympus" } }
     : { ...base, payment_type: "bank_transfer", bank_transfer: { bank: opts.bank } };
@@ -33,10 +34,11 @@ export function midtransTime(v: unknown): Date | null {
   return new Date(`${v.replace(" ", "T")}+07:00`);
 }
 
-/** The number to pay to, from a charge (or status) response; null when Midtrans refused. */
+/** The number to pay to (QRIS: the QR payload), from a charge response; null when Midtrans refused. */
 export function parseCharge(res: Record<string, unknown>): { vaNumber: string; billerCode: string | null; expiresAt: Date | null } | null {
   if (!["200", "201"].includes(String(res.status_code ?? ""))) return null;
   const expiresAt = midtransTime(res.expiry_time);
+  if (typeof res.qr_string === "string" && res.qr_string) return { vaNumber: res.qr_string, billerCode: null, expiresAt };
   if (typeof res.bill_key === "string" && res.bill_key) return { vaNumber: res.bill_key, billerCode: typeof res.biller_code === "string" ? res.biller_code : null, expiresAt };
   if (typeof res.permata_va_number === "string" && res.permata_va_number) return { vaNumber: res.permata_va_number, billerCode: null, expiresAt };
   const va = Array.isArray(res.va_numbers) ? (res.va_numbers[0] as { va_number?: unknown } | undefined) : undefined;

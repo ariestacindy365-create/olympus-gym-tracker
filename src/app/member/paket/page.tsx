@@ -1,3 +1,4 @@
+import QRCode from "qrcode";
 import { getCurrentUser } from "@/lib/auth";
 import { looksLikeWaNumber } from "@/lib/whatsapp";
 import { prisma } from "@/lib/prisma";
@@ -94,7 +95,17 @@ export default async function MemberPackagesPage() {
                 credits: unpaid.credits,
                 durationDays: unpaid.durationDays,
                 durationMonths: unpaid.durationMonths,
-                va: unpaid.vaNumber && unpaid.vaBank ? { bank: unpaid.vaBank, number: unpaid.vaNumber, billerCode: unpaid.vaBillerCode, expiresAt: unpaid.vaExpiresAt?.toISOString() ?? null } : null,
+                va:
+                  unpaid.vaNumber && unpaid.vaBank
+                    ? {
+                        bank: unpaid.vaBank,
+                        number: unpaid.vaNumber,
+                        billerCode: unpaid.vaBillerCode,
+                        expiresAt: unpaid.vaExpiresAt?.toISOString() ?? null,
+                        // QRIS: the code as an image to scan (or save and scan from the gallery).
+                        qr: unpaid.vaBank === "qris" ? await QRCode.toDataURL(unpaid.vaNumber, { margin: 2, width: 520, errorCorrectionLevel: "M" }) : null,
+                      }
+                    : null,
               }
             : null
         }

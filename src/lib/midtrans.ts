@@ -1,5 +1,5 @@
 import "server-only";
-import type { VaBank } from "@/lib/vaBanks";
+import type { GatewayMethod } from "@/lib/vaBanks";
 import { chargeBody } from "@/lib/midtransRules";
 
 // Midtrans Core API over HTTPS. Keys live in the environment (Vercel):
@@ -30,7 +30,7 @@ async function call(method: "GET" | "POST", path: string, body?: unknown): Promi
 }
 
 /** Creates the VA (POST /v2/charge). Returns Midtrans' raw answer. */
-export function chargeVa(opts: Parameters<typeof chargeBody>[0] & { bank: VaBank }) {
+export function chargeVa(opts: Parameters<typeof chargeBody>[0] & { bank: GatewayMethod }) {
   return call("POST", "/v2/charge", chargeBody(opts));
 }
 

@@ -61,8 +61,8 @@ export default async function PackageDeskPage() {
                   {o.status === "APPROVED" ? "✓" : "✕"} {o.user.name} · {o.packageName}
                 </span>
                 <span className="shrink-0 text-xs text-muted">
-                  {/* A VA is paid at the package price, without the unique code. */}
-                  {formatRupiah(o.paymentMethod === "VIRTUAL_ACCOUNT" ? o.price : o.price + o.uniqueCode)} · {PAYMENT_METHOD_LABEL[o.paymentMethod ?? "TRANSFER"]} · {o.reviewedBy?.name ?? ""}
+                  {/* A VA or QRIS is paid at the package price, without the unique code. */}
+                  {formatRupiah(o.gatewayOrderId && (o.paymentMethod === "VIRTUAL_ACCOUNT" || o.paymentMethod === "QRIS") ? o.price : o.price + o.uniqueCode)} · {PAYMENT_METHOD_LABEL[o.paymentMethod ?? "TRANSFER"]} · {o.reviewedBy?.name ?? ""}
                 </span>
               </li>
             ))}

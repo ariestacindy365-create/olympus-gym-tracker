@@ -125,6 +125,7 @@ const FEATURES = [
   ['Bayar paket lewat Virtual Account Midtrans', 'src/components/member/PackageShop.tsx', 'VaStep'],
   ['Webhook Midtrans diverifikasi tanda tangan', 'src/app/api/midtrans/notification/route.ts', 'signatureOk'],
   ['VA lunas → paket aktif otomatis', 'src/lib/orders.ts', 'settleVa'],
+  ['Bayar paket lewat QRIS Midtrans', 'src/components/member/PackageShop.tsx', 'Tampilkan kode QRIS'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
@@ -340,6 +341,9 @@ check('Midtrans VA: nomor VA dibaca, tanda tangan dicek, status lunas/kedaluwars
   const body = mt.chargeBody({ gatewayOrderId: 'g1', amount: 349000, bank: 'mandiri', item: { id: 'p', name: 'Paket' }, customer: { name: 'A', email: 'a@x.id' } });
   assert.equal(body.payment_type, 'echannel');
   assert.equal(mt.chargeBody({ gatewayOrderId: 'g1', amount: 1, bank: 'bni', item: { id: 'p', name: 'P' }, customer: { name: 'A', email: 'a@x.id' } }).bank_transfer.bank, 'bni');
+  const q = mt.chargeBody({ gatewayOrderId: 'g2', amount: 349000, bank: 'qris', item: { id: 'p', name: 'P' }, customer: { name: 'A', email: 'a@x.id' } });
+  assert.deepEqual([q.payment_type, q.custom_expiry.unit], ['qris', 'minute']);
+  assert.equal(mt.parseCharge({ status_code: '201', qr_string: '00020101021226...', expiry_time: '2026-11-20 16:30:00' }).vaNumber, '00020101021226...');
 });
 
 const pr = await load('src/lib/packageRules.ts');

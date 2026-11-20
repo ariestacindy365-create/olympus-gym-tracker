@@ -10,7 +10,7 @@ import { lockForWrite } from "@/lib/writeLock";
 import { notifyUsers } from "@/lib/notify";
 import { cancelVa, chargeVa, vaStatus } from "@/lib/midtrans";
 import { gatewayOrderIdFor, parseCharge, vaOutcome } from "@/lib/midtransRules";
-import { VA_BANK_LABEL, type VaBank } from "@/lib/vaBanks";
+import { GATEWAY_LABEL, QRIS_MINUTES, type GatewayMethod } from "@/lib/vaBanks";
 import type { PaymentMethod, Prisma } from "@/generated/prisma/client";
 
 type Tx = Prisma.TransactionClient;
@@ -243,7 +243,7 @@ async function systemStaffId(): Promise<string> {
  * no unique code (the number identifies the payment). Another bank, or an
  * expired number, makes a new one and cancels the old.
  */
-export async function startVa(opts: { orderId: string; userId: string; bank: VaBank; now?: Date }) {
+export async function startVa(opts: { orderId: string; userId: string; bank: GatewayMethod; now?: Date }) {
   const now = opts.now ?? new Date();
   const order = await prisma.membershipOrder.findFirst({ where: { id: opts.orderId, userId: opts.userId, status: "UNPAID" }, include: { user: { select: { name: true, email: true } } } });
   if (!order) throw new OrderError("Pembelian ini sudah dikirim atau dibatalkan.", 409);
@@ -261,11 +261,11 @@ export async function startVa(opts: { orderId: string; userId: string; bank: VaB
   const va = parseCharge(res);
   if (!va) {
     console.error("Midtrans charge refused", gatewayOrderId, res.status_code, res.status_message);
-    throw new OrderError("Nomor virtual account belum bisa dibuat. Coba lagi sebentar, atau pakai transfer manual.", 502);
+    throw new OrderError(opts.bank === "qris" ? "Kode QRIS belum bisa dibuat. Coba lagi sebentar, atau pakai cara bayar lain." : "Nomor virtual account belum bisa dibuat. Coba lagi sebentar, atau pakai transfer manual.", 502);
   }
   return prisma.membershipOrder.update({
     where: { id: order.id },
-    data: { vaBank: opts.bank, vaNumber: va.vaNumber, vaBillerCode: va.billerCode, gatewayOrderId, vaExpiresAt: va.expiresAt ?? new Date(now.getTime() + 24 * 3_600_000) },
+    data: { vaBank: opts.bank, vaNumber: va.vaNumber, vaBillerCode: va.billerCode, gatewayOrderId, vaExpiresAt: va.expiresAt ?? new Date(now.getTime() + (opts.bank === "qris" ? QRIS_MINUTES * 60_000 : 24 * 3_600_000)) },
   });
 }
 
@@ -277,8 +277,10 @@ async function settleVa(orderId: string, now: Date) {
     const order = await tx.membershipOrder.findUnique({ where: { id: orderId }, include: { user: { select: { name: true } } } });
     // Paid even if the member cancelled or it timed out: the money came in.
     if (!order || !["UNPAID", "CANCELLED"].includes(order.status)) return null;
-    await tx.membershipOrder.update({ where: { id: orderId }, data: { status: "APPROVED", paymentMethod: "VIRTUAL_ACCOUNT", rejectReason: null, reviewedById: reviewerId, reviewedAt: now } });
-    const bank = order.vaBank ? (VA_BANK_LABEL[order.vaBank as VaBank] ?? order.vaBank) : "";
+    const qris = order.vaBank === "qris";
+    const method = qris ? "QRIS" : "VIRTUAL_ACCOUNT";
+    await tx.membershipOrder.update({ where: { id: orderId }, data: { status: "APPROVED", paymentMethod: method, rejectReason: null, reviewedById: reviewerId, reviewedAt: now } });
+    const bank = order.vaBank ? (GATEWAY_LABEL[order.vaBank as GatewayMethod] ?? order.vaBank) : "";
     const r = await grant(
       tx,
       {
@@ -290,9 +292,9 @@ async function settleVa(orderId: string, now: Date) {
         durationDays: order.durationDays,
         durationMonths: order.durationMonths,
         amount: order.price,
-        paymentMethod: "VIRTUAL_ACCOUNT",
+        paymentMethod: method,
         waNumber: order.waNumber,
-        note: [ORDER_NOTE, `VA ${bank} ${order.vaNumber ?? ""}`.trim(), `Midtrans ${order.gatewayOrderId}`].join(" · "),
+        note: [ORDER_NOTE, qris ? "QRIS" : `VA ${bank} ${order.vaNumber ?? ""}`.trim(), `Midtrans ${order.gatewayOrderId}`].join(" · "),
         staffId: reviewerId,
         orderId: order.id,
       },
@@ -314,7 +316,7 @@ async function settleVa(orderId: string, now: Date) {
     }),
     notifyUsers(
       staff.map((s) => s.id),
-      { type: "MEMBERSHIP", title: "Pembayaran VA masuk", body: `${result.order.user.name}: ${result.order.packageName} · Rp ${result.order.price.toLocaleString("id-ID")} (otomatis)`, url: "/leads/paket" }
+      { type: "MEMBERSHIP", title: result.order.vaBank === "qris" ? "Pembayaran QRIS masuk" : "Pembayaran VA masuk", body: `${result.order.user.name}: ${result.order.packageName} · Rp ${result.order.price.toLocaleString("id-ID")} (otomatis)`, url: "/leads/paket" }
     ),
   ]).catch(() => {});
   return result;
