@@ -126,6 +126,7 @@ const FEATURES = [
   ['Webhook Midtrans diverifikasi tanda tangan', 'src/app/api/midtrans/notification/route.ts', 'signatureOk'],
   ['VA lunas → paket aktif otomatis', 'src/lib/orders.ts', 'settleVa'],
   ['Bayar paket lewat QRIS Midtrans', 'src/components/member/PackageShop.tsx', 'Tampilkan kode QRIS'],
+  ['Bank VA diatur lewat MIDTRANS_VA_BANKS (kosong = QRIS saja)', 'src/lib/midtrans.ts', 'enabledVaBanks'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
@@ -345,6 +346,16 @@ check('Midtrans VA: nomor VA dibaca, tanda tangan dicek, status lunas/kedaluwars
   assert.deepEqual([q.payment_type, q.custom_expiry.unit], ['qris', 'minute']);
   assert.equal(mt.parseCharge({ status_code: '201', qr_string: '00020101021226...', expiry_time: '2026-11-20 16:30:00' }).vaNumber, '00020101021226...');
   assert.equal(mt.parseCharge({ status_code: '201', qr_string: 'x', actions: [{ name: 'generate-qr-code', url: 'https://api.sandbox.midtrans.com/v2/qris/t1/qr-code' }] }).billerCode, 'https://api.sandbox.midtrans.com/v2/qris/t1/qr-code');
+});
+
+const vb = await load('src/lib/vaBanks.ts');
+check('Midtrans: QRIS saja kecuali bank VA diisi di MIDTRANS_VA_BANKS', () => {
+  assert.deepEqual(vb.parseVaBanks(undefined), []);
+  assert.deepEqual(vb.parseVaBanks(''), []);
+  assert.deepEqual(vb.parseVaBanks('bca, bni ,x'), ['bni', 'bca']);
+  assert.deepEqual(vb.parseVaBanks(vb.STARTER_PACK_VA_BANKS.join(',')), ['bni', 'bri', 'mandiri', 'permata']);
+  assert.equal(mt.chargeBody({ gatewayOrderId: 'g', amount: 1, bank: 'permata', item: { id: 'p', name: 'P' }, customer: { name: 'A', email: 'a@x.id' } }).bank_transfer.bank, 'permata');
+  assert.equal(mt.parseCharge({ status_code: '201', permata_va_number: '8562000123' }).vaNumber, '8562000123');
 });
 
 const pr = await load('src/lib/packageRules.ts');
