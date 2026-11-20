@@ -37,7 +37,7 @@ export interface OpenOrder {
   durationDays: number | null;
   durationMonths: number | null;
   /** The Midtrans virtual account made for it, if any. */
-  va?: { bank: string; number: string; billerCode: string | null; expiresAt: string | null; qr?: string | null } | null;
+  va?: { bank: string; number: string; billerCode: string | null; expiresAt: string | null; qr?: string | null; testQrUrl?: string | null } | null;
 }
 
 /** Step 1: pick a package. Step 2 (an unpaid order): transfer the exact amount and send the proof. */
@@ -405,6 +405,17 @@ function VaStep({ order, mode }: { order: OpenOrder; mode: "va" | "qris" }) {
           <button type="button" className="self-start text-xs font-semibold text-accent" onClick={() => setPicking(true)}>
             Kode kedaluwarsa? Buat kode baru
           </button>
+          {va.testQrUrl && (
+            <div className="self-stretch rounded-lg border border-dashed border-amber-400 bg-amber-50 p-2 text-xs">
+              <p className="font-semibold">Mode uji (sandbox): link gambar QR untuk simulator Midtrans</p>
+              <div className="mt-1 flex items-center gap-2">
+                <span className="min-w-0 flex-1 truncate font-mono">{va.testQrUrl}</span>
+                <Button type="button" variant="secondary" className="px-3 py-1.5 text-xs" onClick={() => copy(va.testQrUrl!, "Link QR")}>
+                  Salin
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       ) : picking || !va ? (
         <div className="flex flex-col gap-2">

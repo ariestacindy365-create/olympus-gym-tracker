@@ -8,7 +8,7 @@ import { MembershipList } from "@/components/member/MembershipList";
 import { CancelOrderButton, PackageShop } from "@/components/member/PackageShop";
 import { claimImportedMember, membershipViews } from "@/lib/membership";
 import { AUTO_CLOSED, closeStaleUnpaid, syncOpenVas } from "@/lib/orders";
-import { midtransEnabled } from "@/lib/midtrans";
+import { midtransEnabled, midtransSandbox } from "@/lib/midtrans";
 import { formatRupiah } from "@/lib/packages";
 import { jakartaToday } from "@/lib/birthDate";
 
@@ -104,6 +104,8 @@ export default async function MemberPackagesPage() {
                         expiresAt: unpaid.vaExpiresAt?.toISOString() ?? null,
                         // QRIS: the code as an image to scan (or save and scan from the gallery).
                         qr: unpaid.vaBank === "qris" ? await QRCode.toDataURL(unpaid.vaNumber, { margin: 2, width: 520, errorCorrectionLevel: "M" }) : null,
+                        // Sandbox only: the QR image link to paste into Midtrans' QRIS simulator.
+                        testQrUrl: unpaid.vaBank === "qris" && midtransSandbox() ? unpaid.vaBillerCode : null,
                       }
                     : null,
               }

@@ -344,6 +344,7 @@ check('Midtrans VA: nomor VA dibaca, tanda tangan dicek, status lunas/kedaluwars
   const q = mt.chargeBody({ gatewayOrderId: 'g2', amount: 349000, bank: 'qris', item: { id: 'p', name: 'P' }, customer: { name: 'A', email: 'a@x.id' } });
   assert.deepEqual([q.payment_type, q.custom_expiry.unit], ['qris', 'minute']);
   assert.equal(mt.parseCharge({ status_code: '201', qr_string: '00020101021226...', expiry_time: '2026-11-20 16:30:00' }).vaNumber, '00020101021226...');
+  assert.equal(mt.parseCharge({ status_code: '201', qr_string: 'x', actions: [{ name: 'generate-qr-code', url: 'https://api.sandbox.midtrans.com/v2/qris/t1/qr-code' }] }).billerCode, 'https://api.sandbox.midtrans.com/v2/qris/t1/qr-code');
 });
 
 const pr = await load('src/lib/packageRules.ts');

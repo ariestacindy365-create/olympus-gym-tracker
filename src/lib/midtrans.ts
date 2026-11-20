@@ -9,6 +9,8 @@ import { chargeBody } from "@/lib/midtransRules";
 
 export const midtransEnabled = () => !!process.env.MIDTRANS_SERVER_KEY;
 export const midtransServerKey = () => process.env.MIDTRANS_SERVER_KEY ?? "";
+/** Sandbox: no real money; the payment screen shows test helpers. */
+export const midtransSandbox = () => process.env.MIDTRANS_IS_PRODUCTION !== "true";
 
 function baseUrl() {
   return process.env.MIDTRANS_BASE_URL ?? (process.env.MIDTRANS_IS_PRODUCTION === "true" ? "https://api.midtrans.com" : "https://api.sandbox.midtrans.com");

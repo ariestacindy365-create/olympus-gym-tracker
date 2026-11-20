@@ -38,7 +38,12 @@ export function midtransTime(v: unknown): Date | null {
 export function parseCharge(res: Record<string, unknown>): { vaNumber: string; billerCode: string | null; expiresAt: Date | null } | null {
   if (!["200", "201"].includes(String(res.status_code ?? ""))) return null;
   const expiresAt = midtransTime(res.expiry_time);
-  if (typeof res.qr_string === "string" && res.qr_string) return { vaNumber: res.qr_string, billerCode: null, expiresAt };
+  if (typeof res.qr_string === "string" && res.qr_string) {
+    // QRIS: billerCode carries Midtrans' QR image link (the sandbox simulator asks for it).
+    const actions = Array.isArray(res.actions) ? (res.actions as { name?: unknown; url?: unknown }[]) : [];
+    const qrUrl = actions.find((a) => a.name === "generate-qr-code")?.url;
+    return { vaNumber: res.qr_string, billerCode: typeof qrUrl === "string" ? qrUrl : null, expiresAt };
+  }
   if (typeof res.bill_key === "string" && res.bill_key) return { vaNumber: res.bill_key, billerCode: typeof res.biller_code === "string" ? res.biller_code : null, expiresAt };
   if (typeof res.permata_va_number === "string" && res.permata_va_number) return { vaNumber: res.permata_va_number, billerCode: null, expiresAt };
   const va = Array.isArray(res.va_numbers) ? (res.va_numbers[0] as { va_number?: unknown } | undefined) : undefined;
