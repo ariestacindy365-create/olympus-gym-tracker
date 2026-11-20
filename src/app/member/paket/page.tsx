@@ -8,7 +8,7 @@ import { MembershipList } from "@/components/member/MembershipList";
 import { CancelOrderButton, PackageShop } from "@/components/member/PackageShop";
 import { claimImportedMember, membershipViews } from "@/lib/membership";
 import { AUTO_CLOSED, closeStaleUnpaid, syncOpenVas } from "@/lib/orders";
-import { midtransEnabled, midtransSandbox } from "@/lib/midtrans";
+import { enabledVaBanks, midtransEnabled, midtransSandbox } from "@/lib/midtrans";
 import { formatRupiah } from "@/lib/packages";
 import { jakartaToday } from "@/lib/birthDate";
 
@@ -85,6 +85,7 @@ export default async function MemberPackagesPage() {
         lastWa={last?.waNumber || (looksLikeWaNumber(imported?.phone) ? imported!.phone! : "")}
         lastSender={last?.senderName ?? ""}
         vaEnabled={vaEnabled}
+        vaBanks={enabledVaBanks()}
         openOrder={
           unpaid
             ? {

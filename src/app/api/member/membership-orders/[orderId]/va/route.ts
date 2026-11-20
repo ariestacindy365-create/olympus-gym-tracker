@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { midtransEnabled } from "@/lib/midtrans";
+import { enabledVaBanks, midtransEnabled } from "@/lib/midtrans";
 import { OrderError, startVa } from "@/lib/orders";
 import { isGatewayMethod } from "@/lib/vaBanks";
 import { Role } from "@/generated/prisma/client";
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/member/
   if (!member || member.role !== Role.MEMBER) return NextResponse.json({ error: "Not authorized." }, { status: 401 });
   if (!midtransEnabled()) return NextResponse.json({ error: "Pembayaran virtual account belum dibuka." }, { status: 404 });
   const body = await request.json().catch(() => null);
-  if (!isGatewayMethod(body?.bank)) return NextResponse.json({ error: "Pilih bank atau QRIS." }, { status: 400 });
+  if (!isGatewayMethod(body?.bank) || (body.bank !== "qris" && !enabledVaBanks().includes(body.bank))) return NextResponse.json({ error: "Pilih bank atau QRIS." }, { status: 400 });
   const { orderId } = await ctx.params;
   try {
     const order = await startVa({ orderId, userId: member.id, bank: body.bank });

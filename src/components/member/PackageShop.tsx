@@ -9,7 +9,7 @@ import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { ProofImageUpload } from "@/components/leads/ProofImageUpload";
 import { formatRupiah } from "@/lib/packages";
 import { packageDetail } from "@/lib/packageRules";
-import { QRIS_HOW_TO, VA_BANKS, VA_BANK_LABEL, VA_HOW_TO, isVaBank, type GatewayMethod, type VaBank } from "@/lib/vaBanks";
+import { QRIS_HOW_TO, VA_BANK_LABEL, VA_HOW_TO, isVaBank, type GatewayMethod, type VaBank } from "@/lib/vaBanks";
 
 export interface ShopPackage {
   id: string;
@@ -41,7 +41,7 @@ export interface OpenOrder {
 }
 
 /** Step 1: pick a package. Step 2 (an unpaid order): transfer the exact amount and send the proof. */
-export function PackageShop({ packages, bank, lastWa, lastSender, openOrder, blocked, vaEnabled = false }: { packages: ShopPackage[]; bank: BankInfo; lastWa: string; lastSender: string; openOrder: OpenOrder | null; blocked: boolean; vaEnabled?: boolean }) {
+export function PackageShop({ packages, bank, lastWa, lastSender, openOrder, blocked, vaEnabled = false, vaBanks = [] }: { packages: ShopPackage[]; bank: BankInfo; lastWa: string; lastSender: string; openOrder: OpenOrder | null; blocked: boolean; vaEnabled?: boolean; vaBanks?: VaBank[] }) {
   const router = useRouter();
   const toast = useToast();
   const [picked, setPicked] = useState<string | null>(null);
@@ -51,7 +51,7 @@ export function PackageShop({ packages, bank, lastWa, lastSender, openOrder, blo
   if (!bank.accountNumber && !vaEnabled) return <p className="text-sm text-muted">Pembelian lewat aplikasi belum dibuka. Hubungi admin Olympus.</p>;
   if (openOrder) {
     if (!vaEnabled) return <PayStep order={openOrder} bank={bank} lastWa={lastWa} lastSender={lastSender} />;
-    return <PayChoice order={openOrder} bank={bank} lastWa={lastWa} lastSender={lastSender} />;
+    return <PayChoice order={openOrder} bank={bank} lastWa={lastWa} lastSender={lastSender} vaBanks={vaBanks} />;
   }
 
   async function start() {
@@ -250,7 +250,7 @@ export function CancelOrderButton({ orderId }: { orderId: string }) {
 }
 
 /** With virtual accounts on: pay by VA (activates by itself) or by manual transfer + proof. */
-function PayChoice({ order, bank, lastWa, lastSender }: { order: OpenOrder; bank: BankInfo; lastWa: string; lastSender: string }) {
+function PayChoice({ order, bank, lastWa, lastSender, vaBanks }: { order: OpenOrder; bank: BankInfo; lastWa: string; lastSender: string; vaBanks: VaBank[] }) {
   const [method, setMethod] = useState<"va" | "qris" | "manual">(order.va?.bank === "qris" ? "qris" : "va");
   return (
     <div className="flex flex-col gap-3">
@@ -277,7 +277,7 @@ function PayChoice({ order, bank, lastWa, lastSender }: { order: OpenOrder; bank
           ))}
         </div>
       )}
-      {method === "manual" ? <PayStep order={order} bank={bank} lastWa={lastWa} lastSender={lastSender} /> : <VaStep key={method} order={order} mode={method} />}
+      {method === "manual" ? <PayStep order={order} bank={bank} lastWa={lastWa} lastSender={lastSender} /> : <VaStep key={method} order={order} mode={method} banks={vaBanks} />}
     </div>
   );
 }
@@ -285,7 +285,7 @@ function PayChoice({ order, bank, lastWa, lastSender }: { order: OpenOrder; bank
 const fmtExpiry = (iso: string) =>
   new Date(iso).toLocaleString("id-ID", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
 
-function VaStep({ order, mode }: { order: OpenOrder; mode: "va" | "qris" }) {
+function VaStep({ order, mode, banks }: { order: OpenOrder; mode: "va" | "qris"; banks: VaBank[] }) {
   const router = useRouter();
   const toast = useToast();
   const confirmDialog = useConfirm();
@@ -421,13 +421,17 @@ function VaStep({ order, mode }: { order: OpenOrder; mode: "va" | "qris" }) {
         <div className="flex flex-col gap-2">
           <p className="text-sm font-semibold">Pilih bank untuk virtual account</p>
           <div className="grid grid-cols-2 gap-2">
-            {VA_BANKS.map((b) => (
+            {banks.map((b) => (
               <Button key={b} type="button" variant="secondary" disabled={!!pending} onClick={() => make(b)} className="h-12">
                 {pending === b ? "Membuat…" : VA_BANK_LABEL[b]}
               </Button>
             ))}
           </div>
-          <p className="text-xs text-muted">Bisa dibayar dari bank lain lewat menu transfer antarbank ke nomor VA.</p>
+          <p className="text-xs text-muted">
+            {banks.includes("bca")
+              ? "Bisa dibayar dari bank lain lewat menu transfer antarbank ke nomor VA."
+              : "Pakai BCA atau bank lain? Pilih VA BNI atau Permata, lalu transfer antarbank dari m-banking kamu ke nomor VA (biaya transfer antarbank dari bankmu)."}
+          </p>
           {va && (
             <button type="button" className="self-start text-xs font-semibold text-accent" onClick={() => setPicking(false)}>
               Kembali ke nomor VA {VA_BANK_LABEL[va.bank]}
