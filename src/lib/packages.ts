@@ -12,6 +12,7 @@ export const PAYMENT_METHOD_LABEL: Record<string, string> = {
   DEBIT: "Debit",
   FITQUARTER: "Fitquarter",
   TUNAI: "Tunai",
+  VIRTUAL_ACCOUNT: "Virtual Account",
 };
 
 export const EXPENSE_CATEGORY_LABEL: Record<string, string> = {

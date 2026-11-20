@@ -1,3 +1,4 @@
+import QRCode from "qrcode";
 import { getCurrentUser } from "@/lib/auth";
 import { looksLikeWaNumber } from "@/lib/whatsapp";
 import { prisma } from "@/lib/prisma";
@@ -6,7 +7,8 @@ import { TrialNotice } from "@/components/member/TrialNotice";
 import { MembershipList } from "@/components/member/MembershipList";
 import { CancelOrderButton, PackageShop } from "@/components/member/PackageShop";
 import { claimImportedMember, membershipViews } from "@/lib/membership";
-import { AUTO_CLOSED, closeStaleUnpaid } from "@/lib/orders";
+import { AUTO_CLOSED, closeStaleUnpaid, syncOpenVas } from "@/lib/orders";
+import { midtransEnabled, midtransSandbox } from "@/lib/midtrans";
 import { formatRupiah } from "@/lib/packages";
 import { jakartaToday } from "@/lib/birthDate";
 
@@ -15,6 +17,9 @@ export default async function MemberPackagesPage() {
   const user = await getCurrentUser();
   if (!user) return null;
   await claimImportedMember(user);
+  // A VA paid while the webhook was missed shows up as soon as they look.
+  const vaEnabled = midtransEnabled();
+  if (vaEnabled) await syncOpenVas(user.id);
   await closeStaleUnpaid(user.id);
   const today = jakartaToday();
   const [memberships, packages, bank, orders, imported] = await Promise.all([
@@ -56,7 +61,15 @@ export default async function MemberPackagesPage() {
       )}
       {autoClosed && (
         <p role="status" className="rounded-xl border border-[#f59e0b]/40 bg-[#f59e0b]/10 px-3 py-2 text-sm">
-          Pembelian {autoClosed.packageName} ({formatRupiah(autoClosed.price + autoClosed.uniqueCode)}) dibatalkan otomatis karena bukti transfer belum dikirim. <b>Kalau kamu sudah transfer, jangan transfer lagi</b>, hubungi admin Olympus dengan bukti transfernya.
+          {autoClosed.gatewayOrderId ? (
+            <>
+              Pembelian {autoClosed.packageName} ({formatRupiah(autoClosed.price)}) dibatalkan otomatis karena belum dibayar. Kalau kamu sudah bayar lewat virtual account, paket tetap aktif otomatis. <b>Jangan bayar lagi</b>; hubungi admin Olympus kalau paketnya belum muncul.
+            </>
+          ) : (
+            <>
+              Pembelian {autoClosed.packageName} ({formatRupiah(autoClosed.price + autoClosed.uniqueCode)}) dibatalkan otomatis karena bukti transfer belum dikirim. <b>Kalau kamu sudah transfer, jangan transfer lagi</b>, hubungi admin Olympus dengan bukti transfernya.
+            </>
+          )}
         </p>
       )}
       {rejected && !waiting && !unpaid && (
@@ -71,7 +84,33 @@ export default async function MemberPackagesPage() {
         // FitQuarter's Phone is sometimes an email or a stray digit: only a real number prefills.
         lastWa={last?.waNumber || (looksLikeWaNumber(imported?.phone) ? imported!.phone! : "")}
         lastSender={last?.senderName ?? ""}
-        openOrder={unpaid ? { id: unpaid.id, packageName: unpaid.packageName, price: unpaid.price, uniqueCode: unpaid.uniqueCode, credits: unpaid.credits, durationDays: unpaid.durationDays, durationMonths: unpaid.durationMonths } : null}
+        vaEnabled={vaEnabled}
+        openOrder={
+          unpaid
+            ? {
+                id: unpaid.id,
+                packageName: unpaid.packageName,
+                price: unpaid.price,
+                uniqueCode: unpaid.uniqueCode,
+                credits: unpaid.credits,
+                durationDays: unpaid.durationDays,
+                durationMonths: unpaid.durationMonths,
+                va:
+                  unpaid.vaNumber && unpaid.vaBank
+                    ? {
+                        bank: unpaid.vaBank,
+                        number: unpaid.vaNumber,
+                        billerCode: unpaid.vaBillerCode,
+                        expiresAt: unpaid.vaExpiresAt?.toISOString() ?? null,
+                        // QRIS: the code as an image to scan (or save and scan from the gallery).
+                        qr: unpaid.vaBank === "qris" ? await QRCode.toDataURL(unpaid.vaNumber, { margin: 2, width: 520, errorCorrectionLevel: "M" }) : null,
+                        // Sandbox only: the QR image link to paste into Midtrans' QRIS simulator.
+                        testQrUrl: unpaid.vaBank === "qris" && midtransSandbox() ? unpaid.vaBillerCode : null,
+                      }
+                    : null,
+              }
+            : null
+        }
         blocked={!!waiting}
       />
     </div>

@@ -6,6 +6,11 @@ import { BOOKABLE, type MembershipKind } from "@/lib/fitquarter";
 import { NO_EXPIRY_END, packageEnd, packageStart } from "@/lib/packageRules";
 import { jakartaToday } from "@/lib/birthDate";
 import { uploadProofImage } from "@/lib/googleDrive";
+import { lockForWrite } from "@/lib/writeLock";
+import { notifyUsers } from "@/lib/notify";
+import { cancelVa, chargeVa, vaStatus } from "@/lib/midtrans";
+import { gatewayOrderIdFor, parseCharge, vaOutcome } from "@/lib/midtransRules";
+import { GATEWAY_LABEL, QRIS_MINUTES, type GatewayMethod } from "@/lib/vaBanks";
 import type { PaymentMethod, Prisma } from "@/generated/prisma/client";
 
 type Tx = Prisma.TransactionClient;
@@ -220,4 +225,127 @@ export async function paymentsWithOrderProof(paymentIds: string[]): Promise<Set<
   if (paymentIds.length === 0) return new Set();
   const rows = await prisma.membershipOrder.findMany({ where: { paymentId: { in: paymentIds }, proofImageData: { not: null } }, select: { paymentId: true } });
   return new Set(rows.map((r) => r.paymentId!));
+}
+
+// --- Virtual account (Midtrans): paid and activated without the desk ---
+
+/** Who the books show as recording an automatic payment: the owner (else an admin). */
+async function systemStaffId(): Promise<string> {
+  const staff =
+    (await prisma.user.findFirst({ where: { role: "OWNER" }, orderBy: { createdAt: "asc" }, select: { id: true } })) ??
+    (await prisma.user.findFirst({ where: { role: "ADMIN" }, orderBy: { createdAt: "asc" }, select: { id: true } }));
+  if (!staff) throw new Error("No owner or admin to record the payment");
+  return staff.id;
+}
+
+/**
+ * Gives the member a VA number for their unpaid order: the package price,
+ * no unique code (the number identifies the payment). Another bank, or an
+ * expired number, makes a new one and cancels the old.
+ */
+export async function startVa(opts: { orderId: string; userId: string; bank: GatewayMethod; now?: Date }) {
+  const now = opts.now ?? new Date();
+  const order = await prisma.membershipOrder.findFirst({ where: { id: opts.orderId, userId: opts.userId, status: "UNPAID" }, include: { user: { select: { name: true, email: true } } } });
+  if (!order) throw new OrderError("Pembelian ini sudah dikirim atau dibatalkan.", 409);
+  const live = order.vaNumber && order.vaExpiresAt && order.vaExpiresAt > now;
+  if (live && order.vaBank === opts.bank) return order;
+  if (order.gatewayOrderId) await cancelVa(order.gatewayOrderId);
+  const gatewayOrderId = gatewayOrderIdFor(order.id, now);
+  const res = await chargeVa({
+    gatewayOrderId,
+    amount: order.price,
+    bank: opts.bank,
+    item: { id: order.packageId ?? order.id, name: order.packageName },
+    customer: { name: order.user.name, email: order.user.email, phone: order.waNumber },
+  });
+  const va = parseCharge(res);
+  if (!va) {
+    console.error("Midtrans charge refused", gatewayOrderId, res.status_code, res.status_message);
+    throw new OrderError(opts.bank === "qris" ? "Kode QRIS belum bisa dibuat. Coba lagi sebentar, atau pakai cara bayar lain." : "Nomor virtual account belum bisa dibuat. Coba lagi sebentar, atau pakai transfer manual.", 502);
+  }
+  return prisma.membershipOrder.update({
+    where: { id: order.id },
+    data: { vaBank: opts.bank, vaNumber: va.vaNumber, vaBillerCode: va.billerCode, gatewayOrderId, vaExpiresAt: va.expiresAt ?? new Date(now.getTime() + (opts.bank === "qris" ? QRIS_MINUTES * 60_000 : 24 * 3_600_000)) },
+  });
+}
+
+/** Paid at the bank: the package goes live, recorded as a Virtual Account payment. */
+async function settleVa(orderId: string, now: Date) {
+  const reviewerId = await systemStaffId();
+  const result = await prisma.$transaction(async (tx) => {
+    await lockForWrite(tx);
+    const order = await tx.membershipOrder.findUnique({ where: { id: orderId }, include: { user: { select: { name: true } } } });
+    // Paid even if the member cancelled or it timed out: the money came in.
+    if (!order || !["UNPAID", "CANCELLED"].includes(order.status)) return null;
+    const qris = order.vaBank === "qris";
+    const method = qris ? "QRIS" : "VIRTUAL_ACCOUNT";
+    await tx.membershipOrder.update({ where: { id: orderId }, data: { status: "APPROVED", paymentMethod: method, rejectReason: null, reviewedById: reviewerId, reviewedAt: now } });
+    const bank = order.vaBank ? (GATEWAY_LABEL[order.vaBank as GatewayMethod] ?? order.vaBank) : "";
+    const r = await grant(
+      tx,
+      {
+        userId: order.userId,
+        name: order.user.name,
+        packageName: order.packageName,
+        kind: order.kind,
+        credits: order.credits,
+        durationDays: order.durationDays,
+        durationMonths: order.durationMonths,
+        amount: order.price,
+        paymentMethod: method,
+        waNumber: order.waNumber,
+        note: [ORDER_NOTE, qris ? "QRIS" : `VA ${bank} ${order.vaNumber ?? ""}`.trim(), `Midtrans ${order.gatewayOrderId}`].join(" · "),
+        staffId: reviewerId,
+        orderId: order.id,
+      },
+      now
+    );
+    await tx.membershipOrder.update({ where: { id: orderId }, data: { paymentId: r.payment.id } });
+    return { ...r, order };
+  });
+  if (!result) return null;
+  await afterGrant(result, now);
+  const until = result.membership.expiresAt.toISOString().slice(0, 10) === NO_EXPIRY_END ? "tanpa batas waktu" : `s/d ${fmtDay(result.membership.expiresAt)}`;
+  const staff = await prisma.user.findMany({ where: { role: { in: ["ADMIN", "OWNER"] } }, select: { id: true } });
+  await Promise.all([
+    notifyUsers([result.order.userId], {
+      type: "MEMBERSHIP",
+      title: "Paket aktif ✅",
+      body: `Pembayaran ${result.order.packageName} diterima, aktif mulai ${fmtDay(result.membership.startsAt)} ${until}.`,
+      url: "/member/paket",
+    }),
+    notifyUsers(
+      staff.map((s) => s.id),
+      { type: "MEMBERSHIP", title: result.order.vaBank === "qris" ? "Pembayaran QRIS masuk" : "Pembayaran VA masuk", body: `${result.order.user.name}: ${result.order.packageName} · Rp ${result.order.price.toLocaleString("id-ID")} (otomatis)`, url: "/leads/paket" }
+    ),
+  ]).catch(() => {});
+  return result;
+}
+
+const fmtDay = (d: Date) => d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+
+/**
+ * Asks Midtrans how a VA attempt stands and acts on it: paid → package
+ * live; expired/cancelled → the number is cleared so the member can make a
+ * new one. Called by the webhook and when the member looks.
+ */
+export async function syncVa(gatewayOrderId: string, now = new Date()): Promise<"paid" | "pending" | "dead" | "mismatch" | "unknown"> {
+  const order = await prisma.membershipOrder.findUnique({ where: { gatewayOrderId }, select: { id: true, price: true, status: true } });
+  if (!order) return "unknown";
+  if (order.status === "APPROVED") return "paid";
+  const status = await vaStatus(gatewayOrderId);
+  const outcome = vaOutcome(status, order.price);
+  if (outcome === "paid") await settleVa(order.id, now);
+  else if (outcome === "dead") await prisma.membershipOrder.updateMany({ where: { id: order.id, gatewayOrderId, status: "UNPAID" }, data: { vaNumber: null, vaBillerCode: null, vaExpiresAt: null } });
+  else if (outcome === "mismatch") console.error("Midtrans amount mismatch", gatewayOrderId, status.gross_amount, order.price);
+  return outcome;
+}
+
+/** The member's recent VA attempts, checked with Midtrans (the webhook may have been missed). */
+export async function syncOpenVas(userId: string, now = new Date()) {
+  const open = await prisma.membershipOrder.findMany({
+    where: { userId, status: { in: ["UNPAID", "CANCELLED"] }, gatewayOrderId: { not: null }, updatedAt: { gt: new Date(now.getTime() - 4 * 86_400_000) } },
+    select: { gatewayOrderId: true },
+  });
+  for (const o of open) await syncVa(o.gatewayOrderId!, now).catch((error) => console.error("VA sync failed", error));
 }
