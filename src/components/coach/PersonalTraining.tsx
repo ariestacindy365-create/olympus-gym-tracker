@@ -225,7 +225,7 @@ function ProgramDialog({ exercises, initialDays, onClose, onSaved, draftKey, ini
   }
   return (
     <Dialog title="Program pribadi saya" description="Buat hingga 7 sesi, misalnya Senin · Upper atau Sesi A. Hasil latihan tetap tersimpan saat program diubah." onClose={close} className="max-w-2xl">
-      <DraftNotice status={draft.status} dirty={draft.dirty} onDownload={draft.download} onDiscard={() => { draft.clear(); window.location.reload(); }} />
+      <DraftNotice status={draft.status} dirty={draft.dirty} problem={draft.problem} onDownload={draft.download} onDiscard={() => { draft.clear(); window.location.reload(); }} />
       <form onSubmit={save} className="space-y-4" aria-busy={pending}>
         <fieldset disabled={pending || !draft.ready} className="space-y-4">
           {days.map((day, index) => <div key={index} className="space-y-3 rounded-xl border border-border p-3">
