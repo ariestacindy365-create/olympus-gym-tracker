@@ -535,7 +535,13 @@ export function DayFinishFlow({
       )}
       {story && summary && (
         <VolumeStoryModal
-          data={{ memberName, exerciseName: title || defaultTitle, sets: summary.sets.filter((s) => s.unit === "REPS") }}
+          data={{
+            memberName,
+            exerciseName: title || defaultTitle,
+            sets: summary.sets.filter((s) => s.unit === "REPS"),
+            // What was lifted: each movement and its kg.
+            lines: summary.lines.filter((l) => l.volume > 0).map((l) => ({ name: l.exercise, kg: l.volume })),
+          }}
           character={storyCharacter}
           skinTone={storySkinTone}
           onClose={() => setStory(false)}

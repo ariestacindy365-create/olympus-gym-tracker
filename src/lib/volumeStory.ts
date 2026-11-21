@@ -32,6 +32,8 @@ export interface VolumeStoryData {
   date?: string;
   /** Set when this exercise had a PR in the session, e.g. "120 KG × 12 · +20 KG". */
   prLabel?: string;
+  /** A whole day: each movement and its kg, shown instead of the set rows. */
+  lines?: { name: string; kg: number }[];
   /** Which cartoon lifter does the lift (picked by the member). */
   character?: LifterCharacter;
   skinTone?: SkinTone;
@@ -579,8 +581,10 @@ export function drawVolumeFrame(
       ctx.textBaseline = "alphabetic";
     }
   }
-  const rows = data.sets.slice(0, data.prLabel ? 4 : 5);
-  rows.forEach((s, i) => {
+  // A whole day lists what was lifted (movement · kg), heaviest first.
+  const lines = data.lines?.length ? [...data.lines].sort((x, y) => y.kg - x.kg) : null;
+  const rows = lines ? lines.slice(0, data.prLabel ? 4 : 5) : data.sets.slice(0, data.prLabel ? 4 : 5);
+  rows.forEach((row, i) => {
     const p = easeOut(progress(t, 2.4 + i * 0.25, 0.35));
     const alpha = p * (1 - out);
     if (alpha <= 0) return;
@@ -591,19 +595,25 @@ export function drawVolumeFrame(
     ctx.fill();
     ctx.textAlign = "left";
     ctx.fillStyle = COLORS.accentLight;
-    ctx.font = display(600, 30);
-    ctx.fillText(`SET ${i + 1}`, 210 + (1 - p) * 60, y + 42);
+    if ("name" in row) {
+      ctx.font = body(600, 32);
+      ctx.fillText(row.name, 210 + (1 - p) * 60, y + 42, 430);
+    } else {
+      ctx.font = display(600, 30);
+      ctx.fillText(`SET ${i + 1}`, 210 + (1 - p) * 60, y + 42);
+    }
     ctx.textAlign = "right";
     ctx.fillStyle = COLORS.white;
     ctx.font = body(700, 32);
-    ctx.fillText(`${formatKg(s.weight)} kg × ${s.reps}`, 870 + (1 - p) * 60, y + 42);
+    ctx.fillText("name" in row ? `${formatKg(row.kg)} kg` : `${formatKg(row.weight)} kg × ${row.reps}`, 870 + (1 - p) * 60, y + 42);
     ctx.textAlign = "center";
   });
-  if (data.sets.length > rows.length) {
+  const total = lines ? lines.length : data.sets.length;
+  if (total > rows.length) {
     ctx.globalAlpha = easeOut(progress(t, 2.4 + rows.length * 0.25, 0.35)) * (1 - out);
     ctx.fillStyle = COLORS.muted;
     ctx.font = body(500, 30);
-    ctx.fillText(`+${data.sets.length - rows.length} set lagi`, cx, rowsTop + rows.length * 78 + 40);
+    ctx.fillText(`+${total - rows.length} ${lines ? "gerakan" : "set"} lagi`, cx, rowsTop + rows.length * 78 + 40);
   }
   ctx.globalAlpha = 1;
 
