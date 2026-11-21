@@ -100,6 +100,7 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks, draft
   const [activeWeek, setActiveWeek] = useState(1);
   const [weekCount, setWeekCount] = useState(initialWeekCount);
   const weekNumbers = Array.from({ length: weekCount }, (_, i) => i + 1);
+  const unsavedWeeks = weekNumbers.filter((w) => JSON.stringify(weeks[w] ?? []) !== JSON.stringify(draft.baseline[w] ?? []));
   const [weekPending, setWeekPending] = useState(false);
 
   // "+ Tambah minggu" / "− Hapus Minggu N": the week running now stays the same.
@@ -328,7 +329,7 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks, draft
 
   return (
     <div className="flex flex-col gap-4" aria-busy={!draft.ready || pending}>
-      <DraftNotice status={draft.status} dirty={draft.dirty} onDownload={draft.download} onDiscard={() => { draft.clear(); window.location.reload(); }} />
+      <DraftNotice status={draft.status} dirty={draft.dirty} problem={draft.problem} what={unsavedWeeks.length ? unsavedWeeks.map((w) => `Minggu ${w}`).join(", ") : undefined} onDownload={draft.download} onDiscard={() => { draft.clear(); window.location.reload(); }} />
       <fieldset disabled={!draft.ready || pending} className="contents">
       <div className="flex flex-wrap items-center gap-2">
         {weekNumbers.map((w) => (
@@ -344,6 +345,7 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks, draft
             }`}
           >
             Minggu {w}
+            {unsavedWeeks.includes(w) && <span className="ml-1 text-warning" aria-label="belum disimpan">●</span>}
           </button>
         ))}
         {weekCount < MAX_PROGRAM_WEEKS && (
@@ -479,13 +481,14 @@ export function ProgramEditor({ movements: initialMovements, initialWeeks, draft
       {error && <p className="text-sm text-danger">{error}</p>}
       {saved && <p className="text-sm text-accent">Program Minggu {activeWeek} tersimpan.</p>}
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button onClick={handleSave} disabled={pending} className="px-6">
           {pending ? "Menyimpan..." : `Simpan Minggu ${activeWeek}`}
         </Button>
         <Button variant="secondary" onClick={() => setShowPreview(true)} className="px-4">
           📋 Lihat & Salin 1 Halaman
         </Button>
+        {unsavedWeeks.includes(activeWeek) && !pending && <span className="self-center text-sm text-warning">● belum disimpan</span>}
       </div>
         </>
       )}
