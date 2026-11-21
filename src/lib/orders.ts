@@ -249,7 +249,12 @@ export async function startVa(opts: { orderId: string; userId: string; bank: Gat
   if (!order) throw new OrderError("Pembelian ini sudah dikirim atau dibatalkan.", 409);
   const live = order.vaNumber && order.vaExpiresAt && order.vaExpiresAt > now;
   if (live && order.vaBank === opts.bank) return order;
-  if (order.gatewayOrderId) await cancelVa(order.gatewayOrderId);
+  if (order.gatewayOrderId) {
+    // The old number may already be paid (webhook late or missed): settle it
+    // rather than replace it and lose track of the money.
+    if ((await syncVa(order.gatewayOrderId, now)) === "paid") throw new OrderError("Pembayaran sebelumnya sudah masuk, paketmu sudah aktif.", 409);
+    await cancelVa(order.gatewayOrderId);
+  }
   const gatewayOrderId = gatewayOrderIdFor(order.id, now);
   const res = await chargeVa({
     gatewayOrderId,
@@ -270,17 +275,22 @@ export async function startVa(opts: { orderId: string; userId: string; bank: Gat
 }
 
 /** Paid at the bank: the package goes live, recorded as a Virtual Account payment. */
-async function settleVa(orderId: string, now: Date) {
+async function settleVa(orderId: string, paid: { id: string; bank?: string | null; number?: string | null }, now: Date) {
   const reviewerId = await systemStaffId();
   const result = await prisma.$transaction(async (tx) => {
     await lockForWrite(tx);
     const order = await tx.membershipOrder.findUnique({ where: { id: orderId }, include: { user: { select: { name: true } } } });
-    // Paid even if the member cancelled or it timed out: the money came in.
-    if (!order || !["UNPAID", "CANCELLED"].includes(order.status)) return null;
-    const qris = order.vaBank === "qris";
+    // Paid even if the member cancelled, it timed out, or they also sent a
+    // transfer proof that is still waiting: the money came in.
+    if (!order || !["UNPAID", "PENDING", "CANCELLED"].includes(order.status)) return null;
+    // Paid with an older number: its own bank, not the order's current one.
+    const current = order.gatewayOrderId === paid.id;
+    const paidBank = current ? order.vaBank : (paid.bank ?? null);
+    const paidNumber = current ? order.vaNumber : (paid.number ?? null);
+    const qris = paidBank === "qris";
     const method = qris ? "QRIS" : "VIRTUAL_ACCOUNT";
     await tx.membershipOrder.update({ where: { id: orderId }, data: { status: "APPROVED", paymentMethod: method, rejectReason: null, reviewedById: reviewerId, reviewedAt: now } });
-    const bank = order.vaBank ? (GATEWAY_LABEL[order.vaBank as GatewayMethod] ?? order.vaBank) : "";
+    const bank = paidBank ? (GATEWAY_LABEL[paidBank as GatewayMethod] ?? paidBank.toUpperCase()) : "";
     const r = await grant(
       tx,
       {
@@ -294,14 +304,14 @@ async function settleVa(orderId: string, now: Date) {
         amount: order.price,
         paymentMethod: method,
         waNumber: order.waNumber,
-        note: [ORDER_NOTE, qris ? "QRIS" : `VA ${bank} ${order.vaNumber ?? ""}`.trim(), `Midtrans ${order.gatewayOrderId}`].join(" · "),
+        note: [ORDER_NOTE, qris ? "QRIS" : `VA ${bank} ${paidNumber ?? ""}`.replace(/\s+/g, " ").trim(), `Midtrans ${paid.id}`].join(" · "),
         staffId: reviewerId,
         orderId: order.id,
       },
       now
     );
     await tx.membershipOrder.update({ where: { id: orderId }, data: { paymentId: r.payment.id } });
-    return { ...r, order };
+    return { ...r, order, qris };
   });
   if (!result) return null;
   await afterGrant(result, now);
@@ -316,7 +326,7 @@ async function settleVa(orderId: string, now: Date) {
     }),
     notifyUsers(
       staff.map((s) => s.id),
-      { type: "MEMBERSHIP", title: result.order.vaBank === "qris" ? "Pembayaran QRIS masuk" : "Pembayaran VA masuk", body: `${result.order.user.name}: ${result.order.packageName} · Rp ${result.order.price.toLocaleString("id-ID")} (otomatis)`, url: "/leads/paket" }
+      { type: "MEMBERSHIP", title: result.qris ? "Pembayaran QRIS masuk" : "Pembayaran VA masuk", body: `${result.order.user.name}: ${result.order.packageName} · Rp ${result.order.price.toLocaleString("id-ID")} (otomatis)`, url: "/leads/paket" }
     ),
   ]).catch(() => {});
   return result;
@@ -330,21 +340,50 @@ const fmtDay = (d: Date) => d.toLocaleDateString("id-ID", { day: "numeric", mont
  * new one. Called by the webhook and when the member looks.
  */
 export async function syncVa(gatewayOrderId: string, now = new Date()): Promise<"paid" | "pending" | "dead" | "mismatch" | "unknown"> {
-  const order = await prisma.membershipOrder.findUnique({ where: { gatewayOrderId }, select: { id: true, price: true, status: true } });
+  const select = { id: true, price: true, status: true, gatewayOrderId: true, packageName: true, user: { select: { name: true } } } as const;
+  // An older number of the order (replaced by another bank or QRIS) still
+  // reports here: "<orderId>-<time>" leads back to the order.
+  const ownerId = gatewayOrderId.slice(0, Math.max(0, gatewayOrderId.lastIndexOf("-")));
+  const order =
+    (await prisma.membershipOrder.findUnique({ where: { gatewayOrderId }, select })) ??
+    (ownerId ? await prisma.membershipOrder.findUnique({ where: { id: ownerId }, select }) : null);
   if (!order) return "unknown";
-  if (order.status === "APPROVED") return "paid";
+  const current = order.gatewayOrderId === gatewayOrderId;
+  if (order.status === "APPROVED" && current) return "paid";
   const status = await vaStatus(gatewayOrderId);
   const outcome = vaOutcome(status, order.price);
-  if (outcome === "paid") await settleVa(order.id, now);
-  else if (outcome === "dead") await prisma.membershipOrder.updateMany({ where: { id: order.id, gatewayOrderId, status: "UNPAID" }, data: { vaNumber: null, vaBillerCode: null, vaExpiresAt: null } });
+  if (outcome === "paid" && order.status !== "APPROVED") {
+    await settleVa(order.id, { id: gatewayOrderId, ...paidWith(status) }, now);
+    // Paid with an older number: the newer one must not be paid as well.
+    if (!current && order.gatewayOrderId) await cancelVa(order.gatewayOrderId);
+  } else if (outcome === "paid" && !current) {
+    // Paid twice (an older number after the order was already paid): the desk refunds it.
+    console.error("Midtrans second payment for a paid order", gatewayOrderId);
+    const staff = await prisma.user.findMany({ where: { role: { in: ["ADMIN", "OWNER"] } }, select: { id: true } });
+    await notifyUsers(staff.map((s) => s.id), {
+      type: "MEMBERSHIP",
+      title: "Pembayaran ganda perlu dikembalikan",
+      body: `${order.user.name}: ${order.packageName} dibayar dua kali (Rp ${order.price.toLocaleString("id-ID")}, Midtrans ${gatewayOrderId}). Paket sudah aktif; kembalikan kelebihannya.`,
+      url: "/leads/paket",
+    }).catch(() => {});
+  } else if (outcome === "dead" && current) await prisma.membershipOrder.updateMany({ where: { id: order.id, gatewayOrderId, status: "UNPAID" }, data: { vaNumber: null, vaBillerCode: null, vaExpiresAt: null } });
   else if (outcome === "mismatch") console.error("Midtrans amount mismatch", gatewayOrderId, status.gross_amount, order.price);
   return outcome;
+}
+
+/** Bank and number a Midtrans status says was paid (for an older number of an order). */
+function paidWith(s: Record<string, unknown>): { bank: string | null; number: string | null } {
+  if (s.payment_type === "qris") return { bank: "qris", number: null };
+  if (s.payment_type === "echannel") return { bank: "mandiri", number: typeof s.bill_key === "string" ? s.bill_key : null };
+  const va = Array.isArray(s.va_numbers) ? (s.va_numbers[0] as { bank?: unknown; va_number?: unknown } | undefined) : undefined;
+  if (typeof s.permata_va_number === "string") return { bank: "permata", number: s.permata_va_number };
+  return { bank: typeof va?.bank === "string" ? va.bank : null, number: typeof va?.va_number === "string" ? va.va_number : null };
 }
 
 /** The member's recent VA attempts, checked with Midtrans (the webhook may have been missed). */
 export async function syncOpenVas(userId: string, now = new Date()) {
   const open = await prisma.membershipOrder.findMany({
-    where: { userId, status: { in: ["UNPAID", "CANCELLED"] }, gatewayOrderId: { not: null }, updatedAt: { gt: new Date(now.getTime() - 4 * 86_400_000) } },
+    where: { userId, status: { in: ["UNPAID", "PENDING", "CANCELLED"] }, gatewayOrderId: { not: null }, updatedAt: { gt: new Date(now.getTime() - 4 * 86_400_000) } },
     select: { gatewayOrderId: true },
   });
   for (const o of open) await syncVa(o.gatewayOrderId!, now).catch((error) => console.error("VA sync failed", error));
