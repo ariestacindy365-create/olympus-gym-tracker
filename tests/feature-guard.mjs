@@ -127,6 +127,9 @@ const FEATURES = [
   ['VA lunas → paket aktif otomatis', 'src/lib/orders.ts', 'settleVa'],
   ['Bayar paket lewat QRIS Midtrans', 'src/components/member/PackageShop.tsx', 'Tampilkan kode QRIS'],
   ['Bank VA diatur lewat MIDTRANS_VA_BANKS (kosong = QRIS saja)', 'src/lib/midtrans.ts', 'enabledVaBanks'],
+  ['Kartu Total angkatan: daftar yang diangkat', 'src/lib/shareCards.ts', 'drawTotalWithList'],
+  ['Perbandingan berat: binatang semua', 'src/lib/volumeStory.ts', 'paus biru'],
+  ['Video volume harian: daftar gerakan + kg', 'src/lib/volumeStory.ts', 'gerakan" : "set"} lagi'],
   ['Program coach: tanda kecil "Belum disimpan" (bukan kotak draft)', 'src/components/coach/DraftNotice.tsx', 'data-draft-unsaved'],
 ];
 for (const [name, file, marker] of FEATURES) {
