@@ -127,6 +127,8 @@ const FEATURES = [
   ['VA lunas → paket aktif otomatis', 'src/lib/orders.ts', 'settleVa'],
   ['Bayar paket lewat QRIS Midtrans', 'src/components/member/PackageShop.tsx', 'Tampilkan kode QRIS'],
   ['Bank VA diatur lewat MIDTRANS_VA_BANKS (kosong = QRIS saja)', 'src/lib/midtrans.ts', 'enabledVaBanks'],
+  ['Kartu Total angkatan: daftar yang diangkat', 'src/lib/shareCards.ts', 'drawTotalWithList'],
+  ['Perbandingan berat: binatang semua', 'src/lib/volumeStory.ts', 'paus biru'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);

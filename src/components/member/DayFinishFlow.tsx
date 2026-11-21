@@ -374,6 +374,11 @@ export function DayFinishFlow({
                             emoji: eq?.emoji,
                             times: eq?.factor,
                             sub: eq ? `Setara mengangkat ${formatKg(eq.factor)}× ${eq.name}` : undefined,
+                            // What was lifted, heaviest first.
+                            rows: summary.lines
+                              .filter((l) => l.volume > 0)
+                              .sort((a, b) => b.volume - a.volume)
+                              .map((l) => ({ name: l.exercise, value: `${formatKg(l.volume)} kg` })),
                           },
                           video: "volume" as const,
                         },

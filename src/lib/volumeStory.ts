@@ -46,14 +46,20 @@ export interface VolumeStoryAssets {
 
 // Rough real-world weights; the card picks the heaviest one the volume
 // still beats so the multiplier stays a fun 1×–10× instead of "0,01 gajah".
-const EQUIVALENTS = [
+// What a volume weighs as much as: animals only, lightest first (rough adult weights).
+export const EQUIVALENTS = [
   { emoji: "🐈", name: "kucing", kg: 4 },
   { emoji: "🐕", name: "anjing", kg: 30 },
   { emoji: "🐼", name: "panda", kg: 100 },
-  { emoji: "🏍️", name: "motor", kg: 110 },
+  { emoji: "🦁", name: "singa", kg: 190 },
+  { emoji: "🐻", name: "beruang", kg: 300 },
+  { emoji: "🐎", name: "kuda", kg: 500 },
   { emoji: "🐄", name: "sapi", kg: 600 },
-  { emoji: "🚗", name: "mobil", kg: 1200 },
+  { emoji: "🦒", name: "jerapah", kg: 1200 },
+  { emoji: "🦛", name: "kuda nil", kg: 1500 },
+  { emoji: "🦏", name: "badak", kg: 2300 },
   { emoji: "🐘", name: "gajah", kg: 5000 },
+  { emoji: "🐋", name: "paus biru", kg: 150000 },
 ] as const;
 
 export const COLORS = {
