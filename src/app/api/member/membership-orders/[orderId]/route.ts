@@ -26,6 +26,11 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/member
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Data tidak valid." }, { status: 400 });
   const order = await prisma.membershipOrder.findFirst({ where: { id: orderId, userId: member.id, status: "UNPAID" } });
   if (!order) return NextResponse.json({ error: "Pembelian ini sudah dikirim atau dibatalkan." }, { status: 409 });
+  // Switching to a manual transfer: the QRIS/VA must not stay payable too.
+  if (order.gatewayOrderId) {
+    if ((await syncVa(order.gatewayOrderId).catch(() => "pending")) === "paid") return NextResponse.json({ error: "Pembayaran sudah masuk, paketmu sudah aktif." }, { status: 409 });
+    await cancelVa(order.gatewayOrderId);
+  }
 
   // Proofs go to the same Drive folder as front-desk payments; without Drive
   // (or when the upload fails) the compressed image is kept on the order
@@ -53,6 +58,9 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/member
       senderName: parsed.data.senderName,
       proofImageFileId,
       proofImageData,
+      vaNumber: null,
+      vaBillerCode: null,
+      vaExpiresAt: null,
       // The admin's queue is ordered by when the proof came in.
       createdAt: new Date(),
     },
