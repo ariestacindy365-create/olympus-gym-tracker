@@ -7,6 +7,8 @@ export function useProgramDraft<T, R>(key: string, initial: T, initialVersion: R
   const [state, setState] = useState<Draft<T, R>>(() => ({ value: initial, version: initialVersion, baseline: initial }));
   const [ready, setReady] = useState(false);
   const [status, setStatus] = useState("Memuat draft…");
+  // Storage failed: the notice shows the full message and a download button.
+  const [problem, setProblem] = useState(false);
   const cleared = useRef(false);
   const validator = useRef(validate);
   const unreadable = useRef(false);
@@ -21,7 +23,7 @@ export function useProgramDraft<T, R>(key: string, initial: T, initialVersion: R
           if (validator.current && (!validator.current(draft.value) || !validator.current(draft.baseline))) throw new Error("Invalid draft content");
           setState(draft); setStatus("Draft lokal dipulihkan. Versi server diperiksa saat menyimpan.");
         } else setStatus("Belum ada perubahan.");
-      } catch { unreadable.current = true; setStatus("Penyimpanan draft tidak tersedia atau tidak bisa dibaca. Jangan tutup halaman; unduh draft sebagai cadangan."); }
+      } catch { unreadable.current = true; setProblem(true); setStatus("Penyimpanan draft tidak tersedia atau tidak bisa dibaca. Jangan tutup halaman; unduh draft sebagai cadangan."); }
       setReady(true);
     }, 0);
     return () => clearTimeout(timer);
@@ -35,7 +37,7 @@ export function useProgramDraft<T, R>(key: string, initial: T, initialVersion: R
       const timer = setTimeout(() => setStatus(dirty ? "Draft tersimpan di perangkat ini. Belum disimpan ke server." : "Program sesuai versi tersimpan."), 0);
       return () => clearTimeout(timer);
     } catch {
-      const timer = setTimeout(() => setStatus("Draft belum tersimpan: penyimpanan penuh/ditolak. Jangan tutup halaman; unduh draft."), 0);
+      const timer = setTimeout(() => { setProblem(true); setStatus("Draft belum tersimpan: penyimpanan penuh/ditolak. Jangan tutup halaman; unduh draft."); }, 0);
       return () => clearTimeout(timer);
     }
   }, [state, ready, dirty, key]);
@@ -47,7 +49,7 @@ export function useProgramDraft<T, R>(key: string, initial: T, initialVersion: R
     return () => window.removeEventListener("beforeunload", guard);
   }, [dirty]);
   return {
-    ...state, dirty, ready, status,
+    ...state, dirty, ready, status, problem,
     setValue(value: SetStateAction<T>) {
       cleared.current = false;
       setState((current) => ({ ...current, value: typeof value === "function" ? (value as (old: T) => T)(current.value) : value }));
@@ -58,7 +60,7 @@ export function useProgramDraft<T, R>(key: string, initial: T, initialVersion: R
       try {
         if (JSON.stringify(value) === JSON.stringify(baseline)) localStorage.removeItem(key);
         else localStorage.setItem(key, JSON.stringify(next));
-      } catch { setStatus("Program tersimpan di server, tetapi draft lokal belum dapat diperbarui."); }
+      } catch { setProblem(true); setStatus("Program tersimpan di server, tetapi draft lokal belum dapat diperbarui."); }
       setState(next);
     },
     download() {

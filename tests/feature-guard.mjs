@@ -130,6 +130,7 @@ const FEATURES = [
   ['Kartu Total angkatan: daftar yang diangkat', 'src/lib/shareCards.ts', 'drawTotalWithList'],
   ['Perbandingan berat: binatang semua', 'src/lib/volumeStory.ts', 'paus biru'],
   ['Video volume harian: daftar gerakan + kg', 'src/lib/volumeStory.ts', 'gerakan" : "set"} lagi'],
+  ['Program coach: tanda kecil "Belum disimpan" (bukan kotak draft)', 'src/components/coach/DraftNotice.tsx', 'data-draft-unsaved'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
