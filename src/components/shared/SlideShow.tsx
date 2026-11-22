@@ -6,6 +6,7 @@ import type { ProgramSlideData } from "@/lib/programSlide";
 import { ClassTimer } from "@/components/shared/ClassTimer";
 import { timerFromScheme, type TimerConfig } from "@/lib/classTimer";
 import { PRCelebration } from "@/components/shared/PRCelebration";
+import { MusicPlayer } from "@/components/shared/MusicPlayer";
 
 interface SlideShowProps {
   slides: (ProgramSlideData & { isToday?: boolean })[];
@@ -202,6 +203,8 @@ export function SlideShow({ slides, startIndex = 0, celebratePRs = false, onClos
       </div>
       {/* Full screen over everything; the timer keeps running underneath. */}
       {celebratePRs && <PRCelebration sound={prSound} clock={timer ? timerClock : null} />}
+      {/* Music for the class; it turns down while a PR is announced. */}
+      {celebratePRs && <MusicPlayer />}
       {timer && (
         <ClassTimer
           key={timer.key}
