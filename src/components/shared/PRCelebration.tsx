@@ -287,10 +287,29 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
     canvas.height = root.clientHeight * dpr;
     let bits: Bit[] = [];
     const a = soundRef.current ? audio.current : null;
-    // Read out the PR after the fanfare, when the TV has an Indonesian voice.
+    // Read out the PR after the fanfare: the ElevenLabs voice (fetched while
+    // the lifter walks in), else the TV's own Indonesian voice.
     const voice = soundRef.current ? indonesianVoice() : null;
-    const hold = voice ? HOLD_SPOKEN : HOLD;
-    const total = IN + hold + OUT;
+    const text = announcement(current);
+    const aborter = new AbortController();
+    let aiBuffer: AudioBuffer | null = null;
+    let aiPending = !!a;
+    let aiSource: AudioBufferSourceNode | null = null;
+    let hold = voice || a ? HOLD_SPOKEN : HOLD;
+    if (a) {
+      fetch("/api/coach/pr-voice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }), signal: aborter.signal })
+        .then((res) => (res.ok ? res.arrayBuffer() : Promise.reject(new Error(String(res.status)))))
+        .then((buf) => a.decodeAudioData(buf))
+        .then((b) => {
+          aiBuffer = b;
+        })
+        .catch(() => {})
+        .finally(() => {
+          aiPending = false;
+          // Nothing will be said: don't stand still waiting.
+          if (!aiBuffer && !voice && !celebrated) hold = HOLD;
+        });
+    }
     let speakTimer = 0;
     // Walked off on its own: let a long announcement (a full board) finish.
     let walkedOff = false;
@@ -298,8 +317,28 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
     let steps = 0;
     let celebrated = false;
     const start = performance.now();
+    const speak = () => {
+      const t = (performance.now() - start) / 1000;
+      if (aiBuffer && a) {
+        aiSource = a.createBufferSource();
+        aiSource.buffer = aiBuffer;
+        aiSource.connect(a.destination);
+        aiSource.start();
+        // Stand still until it has been said.
+        hold = Math.max(hold, t - IN + aiBuffer.duration + 0.6);
+      } else if (aiPending && t < IN + 4) {
+        speakTimer = window.setTimeout(speak, 250);
+      } else if (voice) {
+        const say = new SpeechSynthesisUtterance(text);
+        say.voice = voice;
+        say.lang = voice.lang;
+        say.rate = 1.02;
+        window.speechSynthesis.speak(say);
+      }
+    };
     const frame = (now: number) => {
       const t = (now - start) / 1000;
+      const total = IN + hold + OUT;
       const W = root.clientWidth;
       const H = root.clientHeight;
       const ww = walker.offsetWidth;
@@ -344,14 +383,8 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
           fanfare(a, a.currentTime + 0.05);
           cheer(a, a.currentTime + 0.35, 2.8);
         }
-        if (voice) {
-          const say = new SpeechSynthesisUtterance(announcement(current));
-          say.voice = voice;
-          say.lang = voice.lang;
-          say.rate = 1.02;
-          // After the fanfare's first notes.
-          speakTimer = window.setTimeout(() => window.speechSynthesis.speak(say), 1300);
-        }
+        // After the fanfare's first notes.
+        if (voice || a) speakTimer = window.setTimeout(speak, 1300);
       }
       // A light confetti rain over the whole screen the entire time.
       if (!reduce && t < total - OUT) {
@@ -388,9 +421,17 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
     return () => {
       cancelAnimationFrame(raf);
       window.clearTimeout(speakTimer);
+      aborter.abort();
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       // Tapped closed (or the slideshow closed): stop talking.
-      if (!walkedOff && "speechSynthesis" in window) window.speechSynthesis.cancel();
+      if (!walkedOff) {
+        if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+        try {
+          aiSource?.stop();
+        } catch {
+          // Already finished.
+        }
+      }
     };
   }, [current]);
 
