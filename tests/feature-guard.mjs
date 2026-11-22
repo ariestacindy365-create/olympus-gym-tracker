@@ -134,6 +134,9 @@ const FEATURES = [
   ['Pengumuman PR di TV pakai suara ElevenLabs (cadangan: suara browser)', 'src/components/shared/PRCelebration.tsx', '/api/coach/pr-voice'],
   ['QRIS/VA: nomor lama yang terbayar tetap mengaktifkan paket', 'src/lib/orders.ts', 'paidWith('],
   ['QRIS/VA dibatalkan saat member kirim bukti transfer', 'src/app/api/member/membership-orders/[orderId]/route.ts', 'Switching to a manual transfer'],
+  ['Video volume 3D kartun: 12 binatang', 'src/lib/story3d.ts', '"paus biru"()'],
+  ['Video volume pakai panggung 3D (cadangan 2D)', 'src/components/member/VolumeStoryModal.tsx', 'createStoryStage'],
+  ['Kartu Total angkatan: gambar 3D karakter mengangkat binatang', 'src/lib/shareCards.ts', 'liftArt('],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);

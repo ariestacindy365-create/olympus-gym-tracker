@@ -6,7 +6,7 @@ import { MuscleMap } from "@/components/shared/MuscleMap";
 import { VolumeStoryModal } from "@/components/member/VolumeStoryModal";
 import { ShareCards } from "@/components/member/ShareCards";
 import { PhotoStory } from "@/components/member/PhotoStory";
-import { formatKg, pickEquivalent, type LifterCharacter, type SkinTone } from "@/lib/volumeStory";
+import { DEFAULT_SKIN_TONE, formatKg, pickEquivalent, type LifterCharacter, type SkinTone } from "@/lib/volumeStory";
 import { MUSCLE_LABEL, focusTitle, type MuscleKey } from "@/lib/muscles";
 import type { DaySummary } from "@/lib/workoutSummary";
 import { DEFAULT_WORKOUT_MINUTES } from "@/lib/workoutDuration";
@@ -373,6 +373,8 @@ export function DayFinishFlow({
                             big: formatKg(summary.totalVolume),
                             emoji: eq?.emoji,
                             times: eq?.factor,
+                            // Their cartoon lifter holding the animal (3D).
+                            art: eq ? { animal: eq.name, character: storyCharacter ?? "pria", skinTone: storySkinTone ?? DEFAULT_SKIN_TONE } : undefined,
                             sub: eq ? `Setara mengangkat ${formatKg(eq.factor)}× ${eq.name}` : undefined,
                             // What was lifted, heaviest first.
                             rows: summary.lines

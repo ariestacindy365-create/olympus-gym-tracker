@@ -3,6 +3,8 @@
 // background (Biru, Terang). Canvas, not an HTML screenshot, so the text
 // always shows up on iPhone.
 
+import type { LifterCharacter, SkinTone } from "@/lib/volumeStory";
+
 export const CARD_W = 1080;
 export const CARD_H = 1440;
 
@@ -204,6 +206,21 @@ export interface TotalCard {
   sub?: string;
   /** What was lifted: each movement and its kg, heaviest first. */
   rows?: { name: string; value: string }[];
+  /** The member's cartoon lifter holding the animal (3D); the emoji when WebGL isn't there. */
+  art?: { animal: string; character: LifterCharacter; skinTone: SkinTone };
+}
+
+/** The 3D lift as a picture, or null (no WebGL, or an unknown animal). */
+async function liftArt(art: TotalCard["art"], size: number): Promise<HTMLCanvasElement | null> {
+  if (!art) return null;
+  try {
+    const m = await import("@/lib/story3d");
+    if (!(art.animal in m.ANIMAL_NAMES)) return null;
+    return m.renderLiftStill({ animal: art.animal as import("@/lib/story3d").AnimalName, character: art.character, skinTone: art.skinTone, size });
+  } catch (e) {
+    console.warn("3D card art unavailable", e);
+    return null;
+  }
 }
 
 /** "Total angkatan": the day's volume and what it weighs as much as. */
@@ -221,7 +238,11 @@ export async function drawTotalCard(canvas: HTMLCanvasElement, card: TotalCard, 
   ctx.fillStyle = c.accent;
   ctx.font = `700 64px ${display}`;
   ctx.fillText("KG TOTAL ANGKATAN", W / 2, 330 + px * 0.9 + 100, maxW);
-  if (card.emoji) {
+  const art = await liftArt(card.art, 760);
+  if (art) {
+    const s = 470;
+    ctx.drawImage(art, W / 2 - s / 2, 1000 - s + 20, s, s);
+  } else if (card.emoji) {
     const n = Math.max(1, Math.min(6, Math.round(card.times ?? 1)));
     ctx.font = `${n > 3 ? 120 : 150}px ${body}`;
     ctx.fillText(Array.from({ length: n }, () => card.emoji).join(""), W / 2, 960, maxW);
@@ -254,7 +275,12 @@ async function drawTotalWithList(ctx: CanvasRenderingContext2D, c: Ink, display:
   ctx.font = `700 54px ${display}`;
   ctx.fillText("KG TOTAL ANGKATAN", W / 2, bigY + 80, maxW);
   let y = bigY + 80;
-  if (card.emoji) {
+  const art = await liftArt(card.art, 640);
+  if (art) {
+    const s = 360;
+    ctx.drawImage(art, W / 2 - s / 2, y + 10, s, s);
+    y += s - 20;
+  } else if (card.emoji) {
     const n = Math.max(1, Math.min(6, Math.round(card.times ?? 1)));
     ctx.font = `${n > 3 ? 84 : 100}px ${body}`;
     y += 130;
