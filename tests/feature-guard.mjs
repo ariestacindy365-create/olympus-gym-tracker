@@ -129,6 +129,8 @@ const FEATURES = [
   ['Bank VA diatur lewat MIDTRANS_VA_BANKS (kosong = QRIS saja)', 'src/lib/midtrans.ts', 'enabledVaBanks'],
   ['Program coach: tanda kecil "Belum disimpan" (bukan kotak draft)', 'src/components/coach/DraftNotice.tsx', 'data-draft-unsaved'],
   ['Pengumuman PR di TV pakai suara ElevenLabs (cadangan: suara browser)', 'src/components/shared/PRCelebration.tsx', '/api/coach/pr-voice'],
+  ['QRIS/VA: nomor lama yang terbayar tetap mengaktifkan paket', 'src/lib/orders.ts', 'paidWith('],
+  ['QRIS/VA dibatalkan saat member kirim bukti transfer', 'src/app/api/member/membership-orders/[orderId]/route.ts', 'Switching to a manual transfer'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
