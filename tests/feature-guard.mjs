@@ -137,6 +137,8 @@ const FEATURES = [
   ['Video volume 3D kartun: 12 binatang', 'src/lib/story3d.ts', '"paus biru"()'],
   ['Video volume pakai panggung 3D (cadangan 2D)', 'src/components/member/VolumeStoryModal.tsx', 'createStoryStage'],
   ['Kartu Total angkatan: gambar 3D karakter mengangkat binatang', 'src/lib/shareCards.ts', 'liftArt('],
+  ['Musik YouTube di slideshow coach (bisa disembunyikan)', 'src/components/shared/SlideShow.tsx', '<MusicPlayer'],
+  ['Musik otomatis mengecil saat pengumuman PR', 'src/components/shared/PRCelebration.tsx', 'setMusicDucked(true)'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);

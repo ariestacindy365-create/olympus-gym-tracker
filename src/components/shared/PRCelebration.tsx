@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PREvent } from "@/lib/barbell";
 import { PRLifter } from "@/components/shared/PRLifter";
+import { setMusicDucked } from "@/lib/musicDuck";
 import { DEFAULT_SKIN_TONE, SKIN_TONES, type LifterCharacter, type SkinTone } from "@/lib/volumeStory";
 
 // The celebration on the coach's slideshow when a member logs a barbell PR:
@@ -252,6 +253,8 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
     const sign = signRef.current;
     const canvas = canvasRef.current;
     if (!current || !root || !bar || !walker || !sign || !canvas) return;
+    // The slideshow's music turns down for the fanfare and the announcement.
+    if (soundRef.current) setMusicDucked(true);
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const part = (id: string) => root.querySelector<SVGGElement>(`#prc-${id}`)!;
     const p = {
@@ -422,6 +425,7 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
       cancelAnimationFrame(raf);
       window.clearTimeout(speakTimer);
       aborter.abort();
+      setMusicDucked(false);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       // Tapped closed (or the slideshow closed): stop talking.
       if (!walkedOff) {
