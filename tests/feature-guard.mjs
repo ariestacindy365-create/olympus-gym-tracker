@@ -131,6 +131,9 @@ const FEATURES = [
   ['Perbandingan berat: binatang semua', 'src/lib/volumeStory.ts', 'paus biru'],
   ['Video volume harian: daftar gerakan + kg', 'src/lib/volumeStory.ts', 'gerakan" : "set"} lagi'],
   ['Program coach: tanda kecil "Belum disimpan" (bukan kotak draft)', 'src/components/coach/DraftNotice.tsx', 'data-draft-unsaved'],
+  ['Pengumuman PR di TV pakai suara ElevenLabs (cadangan: suara browser)', 'src/components/shared/PRCelebration.tsx', '/api/coach/pr-voice'],
+  ['QRIS/VA: nomor lama yang terbayar tetap mengaktifkan paket', 'src/lib/orders.ts', 'paidWith('],
+  ['QRIS/VA dibatalkan saat member kirim bukti transfer', 'src/app/api/member/membership-orders/[orderId]/route.ts', 'Switching to a manual transfer'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
