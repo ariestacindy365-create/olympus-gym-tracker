@@ -19,6 +19,15 @@ import {
   DEFAULT_SKIN_TONE,
   type SkinTone,
 } from "@/lib/volumeStory";
+import type { Stage } from "@/lib/story3d";
+
+type Draw3d = typeof import("@/lib/story3d").drawVolumeFrame3d;
+
+/** One frame of the story: the 3D version when it loaded, else the 2D one. */
+function drawStory(s: { stage: Stage; draw: Draw3d } | null, ctx: CanvasRenderingContext2D, assets: VolumeStoryAssets, data: VolumeStoryData, t: number) {
+  if (s) s.draw(ctx, assets, s.stage, data, t);
+  else drawVolumeFrame(ctx, assets, data, t);
+}
 
 interface VolumeStoryModalProps {
   data: VolumeStoryData;
@@ -47,6 +56,8 @@ export function VolumeStoryModal({
 
   const previewRef = useRef<HTMLCanvasElement>(null);
   const assetsRef = useRef<VolumeStoryAssets | null>(null);
+  // The cartoon 3D lift (three.js, loaded on demand); without WebGL the 2D story.
+  const stageRef = useRef<{ stage: Stage; draw: Draw3d } | null>(null);
   // While a video records, the recorder owns the preview canvas.
   const recordingRef = useRef(false);
   const [playKey, setPlayKey] = useState(0);
@@ -62,9 +73,19 @@ export function VolumeStoryModal({
 
   useEffect(() => {
     let cancelled = false;
-    loadStoryAssets().then((assets) => {
-      if (cancelled) return;
+    const stage = import("@/lib/story3d")
+      .then((m) => ({ stage: m.createStoryStage(), draw: m.drawVolumeFrame3d }))
+      .catch((e) => {
+        console.warn("3D story unavailable, using 2D", e);
+        return null;
+      });
+    Promise.all([loadStoryAssets(), stage]).then(([assets, s]) => {
+      if (cancelled) {
+        s?.stage.dispose();
+        return;
+      }
       assetsRef.current = assets;
+      stageRef.current = s;
       setVideoSupported(
         typeof MediaRecorder !== "undefined" && typeof HTMLCanvasElement.prototype.captureStream === "function"
       );
@@ -72,8 +93,11 @@ export function VolumeStoryModal({
     });
     return () => {
       cancelled = true;
+      stageRef.current?.stage.dispose();
+      stageRef.current = null;
     };
   }, []);
+
 
   // Live preview: play the timeline once, then hold on the final frame.
   useEffect(() => {
@@ -87,7 +111,7 @@ export function VolumeStoryModal({
     const frame = (now: number) => {
       if (recordingRef.current) return;
       const t = Math.min((now - start) / 1000, STORY_DURATION);
-      drawVolumeFrame(ctx, assets, data, t);
+      drawStory(stageRef.current, ctx, assets, data, t);
       if (t < STORY_DURATION) raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
@@ -115,7 +139,7 @@ export function VolumeStoryModal({
     const assets = assetsRef.current;
     if (!assets) throw new Error("Kartu belum siap.");
     const { canvas, ctx } = makeCanvas();
-    drawVolumeFrame(ctx, assets, data, STORY_DURATION);
+    drawStory(stageRef.current, ctx, assets, data, STORY_DURATION);
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
     if (!blob) throw new Error("Gagal membuat gambar.");
     return new File([blob], `olympus-volume-${Date.now()}.png`, { type: "image/png" });
@@ -130,7 +154,7 @@ export function VolumeStoryModal({
     if (!mimeType) throw new Error("Video tidak didukung di perangkat ini.");
 
     const { canvas, ctx } = makeCanvas();
-    drawVolumeFrame(ctx, assets, data, 0);
+    drawStory(stageRef.current, ctx, assets, data, 0);
     const stream = canvas.captureStream(30);
     const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 6_000_000 });
     const chunks: BlobPart[] = [];
@@ -151,7 +175,7 @@ export function VolumeStoryModal({
       const frame = (now: number) => {
         const t = (now - start) / 1000;
         // Hold the last frame a moment so the logo isn't cut off.
-        drawVolumeFrame(ctx, assets, data, Math.min(t, STORY_DURATION));
+        drawStory(stageRef.current, ctx, assets, data, Math.min(t, STORY_DURATION));
         // Mirror the recording into the preview so members watch it build.
         previewCtx?.drawImage(canvas, 0, 0);
         const pct = Math.min(99, Math.floor((t / total) * 100));

@@ -3,6 +3,8 @@
 // background (Biru, Terang). Canvas, not an HTML screenshot, so the text
 // always shows up on iPhone.
 
+import type { LifterCharacter, SkinTone } from "@/lib/volumeStory";
+
 export const CARD_W = 1080;
 export const CARD_H = 1440;
 
@@ -200,14 +202,32 @@ export interface TotalCard {
   /** The thing it equals, repeated to show the size. */
   emoji?: string;
   times?: number;
-  /** "Setara mengangkat 3,3× mobil" */
+  /** "Setara mengangkat 3,5× sapi" */
   sub?: string;
+  /** What was lifted: each movement and its kg, heaviest first. */
+  rows?: { name: string; value: string }[];
+  /** The member's cartoon lifter holding the animal (3D); the emoji when WebGL isn't there. */
+  art?: { animal: string; character: LifterCharacter; skinTone: SkinTone };
+}
+
+/** The 3D lift as a picture, or null (no WebGL, or an unknown animal). */
+async function liftArt(art: TotalCard["art"], size: number): Promise<HTMLCanvasElement | null> {
+  if (!art) return null;
+  try {
+    const m = await import("@/lib/story3d");
+    if (!(art.animal in m.ANIMAL_NAMES)) return null;
+    return m.renderLiftStill({ animal: art.animal as import("@/lib/story3d").AnimalName, character: art.character, skinTone: art.skinTone, size });
+  } catch (e) {
+    console.warn("3D card art unavailable", e);
+    return null;
+  }
 }
 
 /** "Total angkatan": the day's volume and what it weighs as much as. */
 export async function drawTotalCard(canvas: HTMLCanvasElement, card: TotalCard, ink: CardInk, memberName: string) {
   const { ctx, c, display, body, W, margin } = await startCard(canvas, ink);
   const maxW = W - margin * 2;
+  if (card.rows?.length) return drawTotalWithList(ctx, c, display, body, card, memberName, margin);
   ctx.textAlign = "center";
   ctx.fillStyle = c.muted;
   ctx.font = `600 38px ${body}`;
@@ -218,7 +238,11 @@ export async function drawTotalCard(canvas: HTMLCanvasElement, card: TotalCard, 
   ctx.fillStyle = c.accent;
   ctx.font = `700 64px ${display}`;
   ctx.fillText("KG TOTAL ANGKATAN", W / 2, 330 + px * 0.9 + 100, maxW);
-  if (card.emoji) {
+  const art = await liftArt(card.art, 760);
+  if (art) {
+    const s = 470;
+    ctx.drawImage(art, W / 2 - s / 2, 1000 - s + 20, s, s);
+  } else if (card.emoji) {
     const n = Math.max(1, Math.min(6, Math.round(card.times ?? 1)));
     ctx.font = `${n > 3 ? 120 : 150}px ${body}`;
     ctx.fillText(Array.from({ length: n }, () => card.emoji).join(""), W / 2, 960, maxW);
@@ -231,6 +255,68 @@ export async function drawTotalCard(canvas: HTMLCanvasElement, card: TotalCard, 
       ctx.fillText(line, W / 2, y);
       y += 62;
     }
+  }
+  await footer(ctx, c, body, memberName, margin);
+}
+
+/** Total angkatan with the list of what was lifted: number, animal, then the movements. */
+async function drawTotalWithList(ctx: CanvasRenderingContext2D, c: Ink, display: string, body: string, card: TotalCard, memberName: string, margin: number) {
+  const W = CARD_W;
+  const maxW = W - margin * 2;
+  ctx.textAlign = "center";
+  ctx.fillStyle = c.muted;
+  ctx.font = `600 36px ${body}`;
+  ctx.fillText(card.eyebrow.toUpperCase().slice(0, 40), W / 2, 150, maxW);
+  const px = fitSize(ctx, card.big, (p) => `700 ${p}px ${display}`, 230, maxW);
+  ctx.fillStyle = c.text;
+  const bigY = 190 + px * 0.9;
+  ctx.fillText(card.big, W / 2, bigY);
+  ctx.fillStyle = c.accent;
+  ctx.font = `700 54px ${display}`;
+  ctx.fillText("KG TOTAL ANGKATAN", W / 2, bigY + 80, maxW);
+  let y = bigY + 80;
+  const art = await liftArt(card.art, 640);
+  if (art) {
+    const s = 360;
+    ctx.drawImage(art, W / 2 - s / 2, y + 10, s, s);
+    y += s - 20;
+  } else if (card.emoji) {
+    const n = Math.max(1, Math.min(6, Math.round(card.times ?? 1)));
+    ctx.font = `${n > 3 ? 84 : 100}px ${body}`;
+    y += 130;
+    ctx.fillText(Array.from({ length: n }, () => card.emoji).join(""), W / 2, y, maxW);
+  }
+  if (card.sub) {
+    ctx.fillStyle = c.text;
+    ctx.font = `600 42px ${body}`;
+    y += 72;
+    ctx.fillText(card.sub, W / 2, y, maxW);
+  }
+  // The list: what was lifted, heaviest first.
+  y += 64;
+  ctx.globalAlpha = 0.35;
+  ctx.fillStyle = c.muted;
+  ctx.fillRect(margin, y, maxW, 3);
+  ctx.globalAlpha = 1;
+  const rows = card.rows ?? [];
+  const room = Math.max(1, Math.floor((CARD_H - margin - 110 - (y + 70)) / 60) + 1);
+  const shown = rows.length > room ? rows.slice(0, room - 1) : rows;
+  y += 70;
+  for (const r of shown) {
+    ctx.textAlign = "left";
+    ctx.fillStyle = c.text;
+    ctx.font = `500 40px ${body}`;
+    ctx.fillText(r.name, margin, y, maxW - 300);
+    ctx.textAlign = "right";
+    ctx.font = `700 44px ${display}`;
+    ctx.fillText(r.value, W - margin, y, 290);
+    y += 60;
+  }
+  if (shown.length < rows.length) {
+    ctx.textAlign = "left";
+    ctx.fillStyle = c.muted;
+    ctx.font = `500 34px ${body}`;
+    ctx.fillText(`+${rows.length - shown.length} gerakan lainnya`, margin, y);
   }
   await footer(ctx, c, body, memberName, margin);
 }

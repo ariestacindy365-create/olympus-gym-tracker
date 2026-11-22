@@ -127,10 +127,16 @@ const FEATURES = [
   ['VA lunas → paket aktif otomatis', 'src/lib/orders.ts', 'settleVa'],
   ['Bayar paket lewat QRIS Midtrans', 'src/components/member/PackageShop.tsx', 'Tampilkan kode QRIS'],
   ['Bank VA diatur lewat MIDTRANS_VA_BANKS (kosong = QRIS saja)', 'src/lib/midtrans.ts', 'enabledVaBanks'],
+  ['Kartu Total angkatan: daftar yang diangkat', 'src/lib/shareCards.ts', 'drawTotalWithList'],
+  ['Perbandingan berat: binatang semua', 'src/lib/volumeStory.ts', 'paus biru'],
+  ['Video volume harian: daftar gerakan + kg', 'src/lib/volumeStory.ts', 'gerakan" : "set"} lagi'],
   ['Program coach: tanda kecil "Belum disimpan" (bukan kotak draft)', 'src/components/coach/DraftNotice.tsx', 'data-draft-unsaved'],
   ['Pengumuman PR di TV pakai suara ElevenLabs (cadangan: suara browser)', 'src/components/shared/PRCelebration.tsx', '/api/coach/pr-voice'],
   ['QRIS/VA: nomor lama yang terbayar tetap mengaktifkan paket', 'src/lib/orders.ts', 'paidWith('],
   ['QRIS/VA dibatalkan saat member kirim bukti transfer', 'src/app/api/member/membership-orders/[orderId]/route.ts', 'Switching to a manual transfer'],
+  ['Video volume 3D kartun: 12 binatang', 'src/lib/story3d.ts', '"paus biru"()'],
+  ['Video volume pakai panggung 3D (cadangan 2D)', 'src/components/member/VolumeStoryModal.tsx', 'createStoryStage'],
+  ['Kartu Total angkatan: gambar 3D karakter mengangkat binatang', 'src/lib/shareCards.ts', 'liftArt('],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
