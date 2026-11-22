@@ -32,6 +32,7 @@
   "api/coach/members/route.ts",
   "api/coach/movements/route.ts",
   "api/coach/pr-events/route.ts",
+  "api/coach/pr-voice/route.ts",
   "api/coach/programs/[weekNumber]/route.ts",
   "api/coach/programs/override/route.ts",
   "api/coach/programs/riwayat/route.ts",

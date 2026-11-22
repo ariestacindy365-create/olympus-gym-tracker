@@ -128,6 +128,7 @@ const FEATURES = [
   ['Bayar paket lewat QRIS Midtrans', 'src/components/member/PackageShop.tsx', 'Tampilkan kode QRIS'],
   ['Bank VA diatur lewat MIDTRANS_VA_BANKS (kosong = QRIS saja)', 'src/lib/midtrans.ts', 'enabledVaBanks'],
   ['Program coach: tanda kecil "Belum disimpan" (bukan kotak draft)', 'src/components/coach/DraftNotice.tsx', 'data-draft-unsaved'],
+  ['Pengumuman PR di TV pakai suara ElevenLabs (cadangan: suara browser)', 'src/components/shared/PRCelebration.tsx', '/api/coach/pr-voice'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
