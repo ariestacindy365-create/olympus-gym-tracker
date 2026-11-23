@@ -11,6 +11,11 @@ export async function buildDailyReportMessage(): Promise<string> {
   const today = todayDateKey();
   const yesterday = subDays(today, 1);
   const in7Days = addDays(today, 7);
+  // Payments, sales and the like are stamped with the actual time; "kemarin"
+  // is the Jakarta calendar day, 00:00–24:00 WIB (UTC+7), not UTC.
+  const wib = (d: Date) => new Date(d.getTime() - 7 * 3_600_000);
+  const since = wib(yesterday);
+  const until = wib(today);
 
   const [
     capturesYesterday,
@@ -20,33 +25,31 @@ export async function buildDailyReportMessage(): Promise<string> {
     expensesYesterday,
     followUpsDueToday,
     followUpsOverdue,
-    activeMembers,
+    memberships,
     totalChurned,
   ] = await Promise.all([
-    prisma.lead.count({ where: { capturedAt: { gte: yesterday, lt: today }, deletedAt: null } }),
+    prisma.lead.count({ where: { capturedAt: { gte: since, lt: until }, deletedAt: null } }),
     prisma.followUp.count({
-      where: { completedAt: { gte: yesterday, lt: today }, lead: { deletedAt: null } },
+      where: { completedAt: { gte: since, lt: until }, lead: { deletedAt: null } },
     }),
     prisma.payment.findMany({
-      where: { paidAt: { gte: yesterday, lt: today }, deletedAt: null },
+      where: { paidAt: { gte: since, lt: until }, deletedAt: null },
       select: { amount: true },
     }),
     prisma.sale.findMany({
-      where: { createdAt: { gte: yesterday, lt: today }, deletedAt: null },
+      where: { createdAt: { gte: since, lt: until }, deletedAt: null },
       select: { price: true },
     }),
-    prisma.expense.findMany({ where: { paidAt: { gte: yesterday, lt: today } }, select: { amount: true } }),
+    prisma.expense.findMany({ where: { paidAt: { gte: since, lt: until } }, select: { amount: true } }),
     prisma.followUp.count({
       where: { status: "PENDING", dueDate: { gte: today, lt: addDays(today, 1) }, lead: { deletedAt: null } },
     }),
     prisma.followUp.count({
       where: { status: "PENDING", dueDate: { lt: today }, lead: { deletedAt: null } },
     }),
-    prisma.lead.findMany({
-      where: { status: { in: ["MEMBER", "RETENSI"] }, deletedAt: null },
-      select: {
-        payments: { where: { deletedAt: null }, orderBy: { paidAt: "desc" }, take: 1, select: { expiresAt: true } },
-      },
+    // Every package a member holds (app, desk, QRIS/VA, FitQuarter import).
+    prisma.membership.findMany({
+      select: { userId: true, importedMemberId: true, expiresAt: true, importedMember: { select: { userId: true } } },
     }),
     prisma.lead.count({ where: { status: "LOST", convertedAt: { not: null }, deletedAt: null } }),
   ]);
@@ -64,18 +67,25 @@ export async function buildDailyReportMessage(): Promise<string> {
   const salesTotalYesterday = salesYesterday.reduce((sum, s) => sum + s.price, 0);
   const expensesTotalYesterday = expensesYesterday.reduce((sum, e) => sum + e.amount, 0);
 
-  const overdueRenewals = activeMembers.filter((l) => {
-    const expiresAt = l.payments[0]?.expiresAt;
-    return expiresAt && expiresAt < today;
-  }).length;
-  const soonRenewals = activeMembers.filter((l) => {
-    const expiresAt = l.payments[0]?.expiresAt;
-    return expiresAt && expiresAt >= today && expiresAt <= in7Days;
-  }).length;
+  // One person may hold several packages (or an imported record linked to
+  // their account): what counts is when their last one ends.
+  const lastEnd = new Map<string, Date>();
+  for (const m of memberships) {
+    const who = m.userId ?? m.importedMember?.userId ?? `imp:${m.importedMemberId}`;
+    const prev = lastEnd.get(who);
+    if (!prev || m.expiresAt > prev) lastEnd.set(who, m.expiresAt);
+  }
+  const ends = [...lastEnd.values()];
+  const recentCutoff = subDays(today, 30);
+  // Ran out in the last 30 days and hasn't bought again.
+  const overdueRenewals = ends.filter((e) => e < today && e >= recentCutoff).length;
+  const soonRenewals = ends.filter((e) => e >= today && e <= in7Days).length;
 
-  const totalActive = activeMembers.length;
+  const totalActive = ends.filter((e) => e >= today).length;
+  // Retention stays on the lead funnel (members flagged "Tidak Perpanjang").
+  const leadMembers = await prisma.lead.count({ where: { status: { in: ["MEMBER", "RETENSI"] }, deletedAt: null } });
   const retentionRate =
-    totalActive + totalChurned > 0 ? Math.round((totalActive / (totalActive + totalChurned)) * 100) : null;
+    leadMembers + totalChurned > 0 ? Math.round((leadMembers / (leadMembers + totalChurned)) * 100) : null;
 
   const dateLabel = today.toLocaleDateString("id-ID", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
 
@@ -93,7 +103,7 @@ export async function buildDailyReportMessage(): Promise<string> {
     `<b>Perlu Perhatian Hari Ini</b>`,
     `• Follow up jatuh tempo hari ini: ${followUpsDueToday}`,
     `• Follow up terlambat (belum ditindak): ${followUpsOverdue}`,
-    `• Member lewat masa aktif: ${overdueRenewals}`,
+    `• Member habis paket (30 hari terakhir, belum perpanjang): ${overdueRenewals}`,
     `• Member akan expired 7 hari lagi: ${soonRenewals}`,
     `• Stok menipis: ${lowStockProducts.length} produk${
       lowStockProducts.length > 0
