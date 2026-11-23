@@ -101,6 +101,9 @@ export function SlideShow({ slides, startIndex = 0, celebratePRs = false, onClos
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      // Typing (the music link box): keys are letters, not slide controls.
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName))) return;
       // While a timer is open it owns space / R / Esc; arrows still page the
       // slides when it's in the side panel.
       if (timer && (timerBig || !["ArrowRight", "ArrowLeft", "PageDown", "PageUp"].includes(e.key))) return;

@@ -211,8 +211,15 @@ export interface TotalCard {
 }
 
 /** The 3D lift as a picture, or null (no WebGL, or an unknown animal). */
-async function liftArt(art: TotalCard["art"], size: number): Promise<HTMLCanvasElement | null> {
-  if (!art) return null;
+// Drawn once per look: the card is redrawn on every background switch.
+const artCache = new Map<string, Promise<HTMLCanvasElement | null>>();
+function liftArt(art: TotalCard["art"], size: number): Promise<HTMLCanvasElement | null> {
+  if (!art) return Promise.resolve(null);
+  const key = `${art.animal}|${art.character}|${art.skinTone}|${size}`;
+  if (!artCache.has(key)) artCache.set(key, makeLiftArt(art, size));
+  return artCache.get(key)!;
+}
+async function makeLiftArt(art: NonNullable<TotalCard["art"]>, size: number): Promise<HTMLCanvasElement | null> {
   try {
     const m = await import("@/lib/story3d");
     if (!(art.animal in m.ANIMAL_NAMES)) return null;

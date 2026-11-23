@@ -19,6 +19,7 @@ interface YTPlayer {
   pauseVideo(): void;
   getPlayerState(): number;
   setShuffle?(on: boolean): void;
+  nextVideo?(): void;
   destroy(): void;
 }
 interface YTNamespace {
@@ -109,7 +110,11 @@ export function MusicPlayer() {
               e.target.playVideo();
             },
             onStateChange: (e: { data: number }) => setPlaying(e.data === YT.PlayerState.PLAYING),
-            onError: () => setError("Video ini tidak bisa diputar di luar YouTube. Coba link lain."),
+            onError: (e: { target: YTPlayer }) => {
+              // In a playlist, skip a song that can't play outside YouTube.
+              if (src.listId && e.target.nextVideo) e.target.nextVideo();
+              else setError("Video ini tidak bisa diputar di luar YouTube. Coba link lain.");
+            },
           },
         });
       })
@@ -131,6 +136,7 @@ export function MusicPlayer() {
     volumeRef.current = volume;
     const target = volume * (ducked ? DUCKED_SHARE : 1);
     const step = ducked ? 6 : 2; // down fast, back up gently
+    if (!link) return;
     const id = window.setInterval(() => {
       const p = playerRef.current;
       if (!p) return;
@@ -142,7 +148,7 @@ export function MusicPlayer() {
       p.setVolume(Math.round(shown.current));
     }, 60);
     return () => window.clearInterval(id);
-  }, [volume, ducked]);
+  }, [volume, ducked, link]);
 
   function start() {
     const src = parseYouTube(draft);

@@ -252,7 +252,9 @@ export async function startVa(opts: { orderId: string; userId: string; bank: Gat
   if (order.gatewayOrderId) {
     // The old number may already be paid (webhook late or missed): settle it
     // rather than replace it and lose track of the money.
-    if ((await syncVa(order.gatewayOrderId, now)) === "paid") throw new OrderError("Pembayaran sebelumnya sudah masuk, paketmu sudah aktif.", 409);
+    // Midtrans slow or down: go on (a late payment of the old number still
+    // finds its order through the webhook).
+    if ((await syncVa(order.gatewayOrderId, now).catch(() => "pending")) === "paid") throw new OrderError("Pembayaran sebelumnya sudah masuk, paketmu sudah aktif.", 409);
     await cancelVa(order.gatewayOrderId);
   }
   const gatewayOrderId = gatewayOrderIdFor(order.id, now);

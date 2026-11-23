@@ -139,6 +139,7 @@ const FEATURES = [
   ['Kartu Total angkatan: gambar 3D karakter mengangkat binatang', 'src/lib/shareCards.ts', 'liftArt('],
   ['Musik YouTube di slideshow coach (bisa disembunyikan)', 'src/components/shared/SlideShow.tsx', '<MusicPlayer'],
   ['Musik otomatis mengecil saat pengumuman PR', 'src/components/shared/PRCelebration.tsx', 'setMusicDucked(true)'],
+  ['Slideshow: mengetik di kotak (link musik) tidak memindah slide', 'src/components/shared/SlideShow.tsx', 'keys are letters, not slide controls'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
