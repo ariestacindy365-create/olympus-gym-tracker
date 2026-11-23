@@ -142,6 +142,8 @@ const FEATURES = [
   ['Slideshow: mengetik di kotak (link musik) tidak memindah slide', 'src/components/shared/SlideShow.tsx', 'keys are letters, not slide controls'],
   ['Menu staf: Paket di bar utama (Perpanjangan & Bayar disembunyikan)', 'src/app/leads/layout.tsx', '{ href: "/leads/paket", label: "Paket" }'],
   ['Paket member: link Riwayat pembayaran', 'src/app/leads/paket/page.tsx', 'Riwayat pembayaran'],
+  ['Laporan harian: perpanjangan dihitung dari paket member (semua sumber)', 'src/lib/dailyReport.ts', 'prisma.membership.findMany'],
+  ['Laporan harian: "kemarin" = hari WIB', 'src/lib/dailyReport.ts', 'const until = wib(today)'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
