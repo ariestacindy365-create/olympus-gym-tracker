@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireAnyRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -18,7 +19,13 @@ export default async function PackageDeskPage() {
   ]);
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader eyebrow="Membership" title="Paket member" subtitle="Verifikasi transfer dari aplikasi, dan jual paket ke member yang datang langsung." />
+      <PageHeader eyebrow="Membership" title="Paket member" subtitle="Verifikasi transfer dari aplikasi, dan jual paket ke member yang datang langsung."
+        actions={
+          <Link href="/leads/payments" className="text-sm font-semibold text-accent hover:underline">
+            Riwayat pembayaran →
+          </Link>
+        }
+      />
 
       <section className="flex flex-col gap-3">
         <h2 className="font-display text-xl font-bold">

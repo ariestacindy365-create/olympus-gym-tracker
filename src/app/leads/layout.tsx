@@ -27,15 +27,15 @@ const ADMIN_LINKS = [
   { href: "/leads/dashboard", label: "Dashboard" },
   { href: "/leads/kelas", label: "Kelas" },
   { href: "/leads", label: "Lead", exclude: LEAD_SECTION_PATHS },
-  { href: "/leads/renewals", label: "Perpanjangan" },
-  { href: "/leads/payments", label: "Bayar" },
+  // Packages are sold and renewed here (memberships); the older lead-based
+  // "Perpanjangan" and "Bayar" pages stay reachable by link only.
+  { href: "/leads/paket", label: "Paket" },
   { href: "/leads/expenses", label: "Biaya" },
   { href: "/leads/kasir", label: "Kasir" },
 ];
 
 // Under "Lainnya ▾" on desktop, so the bar fits beside the name.
 const STAFF_MORE = [
-  { href: "/leads/paket", label: "Paket member" },
   { href: "/leads/impor", label: "Impor FitQuarter" },
   { href: "/leads/ekspor", label: "Ekspor data" },
   { href: "/leads/history", label: "Riwayat" },
@@ -47,8 +47,7 @@ const OWNER_LINKS = [
   { href: "/leads/owner", label: "Overview" },
   { href: "/leads/kelas", label: "Kelas" },
   { href: "/leads", label: "Lead", exclude: LEAD_SECTION_PATHS },
-  { href: "/leads/renewals", label: "Perpanjangan" },
-  { href: "/leads/payments", label: "Bayar" },
+  { href: "/leads/paket", label: "Paket" },
   { href: "/leads/kasir", label: "Kasir" },
   { href: "/leads/packages", label: "Harga" },
 ];
@@ -63,8 +62,6 @@ const ADMIN_TABS: BottomNavItem[] = [
 ];
 const ADMIN_TABS_MORE: BottomNavItem[] = [
   { href: "/leads/paket", label: "Paket member" },
-  { href: "/leads/payments", label: "Bayar" },
-  { href: "/leads/renewals", label: "Perpanjangan" },
   { href: "/leads/impor", label: "Impor FitQuarter" },
   { href: "/leads/ekspor", label: "Ekspor data" },
   { href: "/leads/expenses", label: "Biaya" },
@@ -75,13 +72,11 @@ const ADMIN_TABS_MORE: BottomNavItem[] = [
 const OWNER_TABS: BottomNavItem[] = [
   { href: "/leads/owner", label: "Overview", icon: "home" },
   LEAD_TAB,
-  { href: "/leads/payments", label: "Bayar", icon: "bayar" },
+  { href: "/leads/paket", label: "Paket", icon: "bayar" },
   { href: "/leads/packages", label: "Harga", icon: "harga" },
 ];
 const OWNER_TABS_MORE: BottomNavItem[] = [
-  { href: "/leads/paket", label: "Paket member" },
   { href: "/leads/kelas", label: "Kelas & check-in" },
-  { href: "/leads/renewals", label: "Perpanjangan" },
   { href: "/leads/impor", label: "Impor FitQuarter" },
   { href: "/leads/ekspor", label: "Ekspor data" },
   { href: "/leads/kasir", label: "Kasir" },

@@ -140,6 +140,8 @@ const FEATURES = [
   ['Musik YouTube di slideshow coach (bisa disembunyikan)', 'src/components/shared/SlideShow.tsx', '<MusicPlayer'],
   ['Musik otomatis mengecil saat pengumuman PR', 'src/components/shared/PRCelebration.tsx', 'setMusicDucked(true)'],
   ['Slideshow: mengetik di kotak (link musik) tidak memindah slide', 'src/components/shared/SlideShow.tsx', 'keys are letters, not slide controls'],
+  ['Menu staf: Paket di bar utama (Perpanjangan & Bayar disembunyikan)', 'src/app/leads/layout.tsx', '{ href: "/leads/paket", label: "Paket" }'],
+  ['Paket member: link Riwayat pembayaran', 'src/app/leads/paket/page.tsx', 'Riwayat pembayaran'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
