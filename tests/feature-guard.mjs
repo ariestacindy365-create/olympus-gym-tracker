@@ -144,6 +144,10 @@ const FEATURES = [
   ['Paket member: link Riwayat pembayaran', 'src/app/leads/paket/page.tsx', 'Riwayat pembayaran'],
   ['Laporan harian: perpanjangan dihitung dari paket member (semua sumber)', 'src/lib/dailyReport.ts', 'prisma.membership.findMany'],
   ['Laporan harian: "kemarin" = hari WIB', 'src/lib/dailyReport.ts', 'const until = wib(today)'],
+  ['Latihan: kartu program ringkas, Otot & slide dilipat', 'src/components/member/TodayWorkoutPlan.tsx', 'setShowExtra'],
+  ['Latihan: gerakan dilipat, berikutnya terbuka otomatis', 'src/components/member/TodayWorkoutPlan.tsx', 'firstOpen(after, i)'],
+  ['Latihan: belum ada program → pesan + form catat langsung', 'src/app/member/dashboard/page.tsx', 'belum diisi coach'],
+  ['Member: Keluar & tampilan pindah ke Akun', 'src/app/member/account/page.tsx', '<LogoutButton full'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);

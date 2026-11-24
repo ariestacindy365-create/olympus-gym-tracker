@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { ThemePicker } from "@/components/ui/ThemePicker";
+import { LogoutButton } from "@/components/ui/LogoutButton";
 import { getCurrentUser } from "@/lib/auth";
 import { Card } from "@/components/ui/Card";
 import { ChangeEmailForm } from "@/components/member/ChangeEmailForm";
@@ -74,6 +76,17 @@ export default async function MemberAccountPage() {
         <h2 className="mb-1 font-display text-lg font-semibold">Ubah PIN</h2>
         <p className="mb-4 text-xs text-muted">PIN 4 digit ini dipakai untuk login.</p>
         <ChangePinForm />
+      </Card>
+
+      <Card>
+        <h2 className="mb-3 font-display text-lg font-semibold">Tampilan</h2>
+        <ThemePicker />
+      </Card>
+
+      <Card>
+        <h2 className="mb-1 font-display text-lg font-semibold">Keluar</h2>
+        <p className="mb-3 text-xs text-muted">Nanti masuk lagi pakai email dan PIN kamu.</p>
+        <LogoutButton full />
       </Card>
     </div>
   );

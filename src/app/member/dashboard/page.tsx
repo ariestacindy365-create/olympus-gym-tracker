@@ -304,6 +304,16 @@ export default async function MemberDashboardPage(props: PageProps<"/member/dash
         </div>
       )}
 
+      {/* No program today: say so, and point straight at the logger below. */}
+      {!todayPlan && !programToday && !dailyWorkout && exercises.length > 0 && (
+        <div className="rounded-xl border border-border bg-surface p-4 shadow-card">
+          <p className="font-display text-lg font-semibold">
+            Program hari {new Intl.DateTimeFormat("id-ID", { weekday: "long", timeZone: "UTC" }).format(pastDay ? new Date(`${dateStr}T00:00:00Z`) : todayDateKey())} belum diisi coach
+          </p>
+          <p className="mt-0.5 text-sm text-muted">Tenang, kamu tetap bisa catat latihan di bawah ini 👇</p>
+        </div>
+      )}
+
       {/* The plan above already has every set row; the free-form logger is
           only for days without a class program. */}
       {todayPlan ? null : exercises.length === 0 ? (
