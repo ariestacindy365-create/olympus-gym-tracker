@@ -11,7 +11,8 @@ import { DEFAULT_SKIN_TONE, SKIN_TONES, type LifterCharacter, type SkinTone } fr
 // head, stops in the middle and hops in the confetti, then walks out. The
 // class timer keeps running underneath and shows small in the corner.
 
-const POLL_MS = 12_000;
+// How often the TV asks for new PRs: a PR shows within a few seconds of the ✓.
+const POLL_MS = 4_000;
 // PRs already walked across this TV, so reopening the slideshow doesn't replay them.
 const SEEN_KEY = "olympus-pr-seen";
 const IN = 2.4;
@@ -237,9 +238,13 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
     } catch {
       // Nothing remembered yet.
     }
+    // One request at a time: a slow answer isn't overtaken by the next tick.
+    let busy = false;
     async function poll() {
-      if (document.visibilityState !== "visible") return;
+      if (document.visibilityState !== "visible" || busy) return;
+      busy = true;
       const res = await fetch(`/api/coach/pr-events${since ? `?since=${encodeURIComponent(since)}` : ""}`, { cache: "no-store" }).catch(() => null);
+      busy = false;
       if (!res?.ok || stopped) return;
       const data: { events: PREvent[]; now: string } = await res.json();
       since = data.now;
@@ -257,9 +262,15 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
     }
     void poll();
     const id = setInterval(poll, POLL_MS);
+    // Back on the slideshow tab (e.g. after the YouTube tab): check right away.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void poll();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       stopped = true;
       clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 
