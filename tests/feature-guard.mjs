@@ -156,6 +156,8 @@ const FEATURES = [
   ['Latihan: belum ada program → pesan + form catat langsung', 'src/app/member/dashboard/page.tsx', 'belum diisi coach'],
   ['Member: Keluar & tampilan pindah ke Akun', 'src/app/member/account/page.tsx', '<LogoutButton full'],
   ['Slideshow: tombol Tes pengumuman PR', 'src/components/shared/SlideShow.tsx', 'requestTestAnnouncement'],
+  ['Musik slideshow: link bisa dihapus, pemutar hilang kalau extension aktif', 'src/components/shared/MusicPlayer.tsx', 'function removeMusic'],
+  ['Pengumuman PR gelombang besar: nama dibatasi + jumlah lainnya', 'src/components/shared/PRCelebration.tsx', 'member lainnya'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
