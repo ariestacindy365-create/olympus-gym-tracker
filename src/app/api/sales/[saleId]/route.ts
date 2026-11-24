@@ -22,16 +22,20 @@ export async function DELETE(_request: NextRequest, ctx: RouteContext<"/api/sale
     return NextResponse.json({ error: "Transaksi sudah dihapus sebelumnya." }, { status: 409 });
   }
 
-  await prisma.$transaction([
-    prisma.sale.update({
-      where: { id: saleId },
+  // Only the request that actually marks it deleted gives the stock back,
+  // so two admins tapping at once can't add it twice.
+  const restored = await prisma.$transaction(async (tx) => {
+    const marked = await tx.sale.updateMany({
+      where: { id: saleId, deletedAt: null },
       data: { deletedAt: new Date(), deletedById: admin.id },
-    }),
-    prisma.product.update({
-      where: { id: sale.productId },
-      data: { stock: { increment: 1 } },
-    }),
-  ]);
+    });
+    if (marked.count === 0) return false;
+    await tx.product.update({ where: { id: sale.productId }, data: { stock: { increment: 1 } } });
+    return true;
+  });
+  if (!restored) {
+    return NextResponse.json({ error: "Transaksi sudah dihapus sebelumnya." }, { status: 409 });
+  }
 
   return NextResponse.json({ ok: true });
 }

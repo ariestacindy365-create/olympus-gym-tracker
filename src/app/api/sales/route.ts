@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { dateKeyFromString } from "@/lib/workout";
+import { dateKeyFromString, wibStart } from "@/lib/workout";
 import { Role } from "@/generated/prisma/client";
 
 // Sales history for a date range (Riwayat tab on Kasir) — ADMIN and OWNER
@@ -21,8 +21,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Rentang tanggal tidak valid." }, { status: 400 });
   }
 
-  const fromDate = dateKeyFromString(from);
-  const toDateExclusive = addDays(dateKeyFromString(to), 1);
+  // Jakarta days: 00:00 WIB of `from` up to 00:00 WIB after `to`.
+  const fromDate = wibStart(dateKeyFromString(from));
+  const toDateExclusive = wibStart(addDays(dateKeyFromString(to), 1));
 
   const sales = await prisma.sale.findMany({
     where: { deletedAt: null, createdAt: { gte: fromDate, lt: toDateExclusive } },
