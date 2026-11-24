@@ -155,6 +155,7 @@ const FEATURES = [
   ['Latihan: gerakan dilipat, berikutnya terbuka otomatis', 'src/components/member/TodayWorkoutPlan.tsx', 'firstOpen(after, i)'],
   ['Latihan: belum ada program → pesan + form catat langsung', 'src/app/member/dashboard/page.tsx', 'belum diisi coach'],
   ['Member: Keluar & tampilan pindah ke Akun', 'src/app/member/account/page.tsx', '<LogoutButton full'],
+  ['Slideshow: tombol Tes pengumuman PR', 'src/components/shared/SlideShow.tsx', 'requestTestAnnouncement'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);

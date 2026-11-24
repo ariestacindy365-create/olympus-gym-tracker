@@ -14,6 +14,18 @@ export function onMusicDuck(cb: (on: boolean) => void): () => void {
   return () => window.removeEventListener(EVENT, handler);
 }
 
+const TEST_EVENT = "olympus:pr-test";
+
+/** The coach's "Tes pengumuman" button: play a made-up PR on the TV. */
+export function requestTestAnnouncement() {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(TEST_EVENT));
+}
+
+export function onTestAnnouncement(cb: () => void): () => void {
+  window.addEventListener(TEST_EVENT, cb);
+  return () => window.removeEventListener(TEST_EVENT, cb);
+}
+
 /** A YouTube link → the video and/or playlist to play; null if it isn't one. */
 export function parseYouTube(link: string): { videoId: string | null; listId: string | null } | null {
   let url: URL;

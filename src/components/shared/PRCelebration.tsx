@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PREvent } from "@/lib/barbell";
 import { PRLifter } from "@/components/shared/PRLifter";
-import { setMusicDucked } from "@/lib/musicDuck";
+import { onTestAnnouncement, setMusicDucked } from "@/lib/musicDuck";
 import { DEFAULT_SKIN_TONE, SKIN_TONES, type LifterCharacter, type SkinTone } from "@/lib/volumeStory";
 
 // The celebration on the coach's slideshow when a member logs a barbell PR:
@@ -209,6 +209,18 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
     }
     void audio.current?.resume().catch(() => {});
   }, [sound]);
+
+  // "Tes pengumuman": a made-up PR walks across, with the music turned
+  // down and the announcement read, so the coach can check the TV's sound.
+  useEffect(
+    () =>
+      onTestAnnouncement(() => {
+        void audio.current?.resume().catch(() => {});
+        queue.current.push({ id: `tes-${Date.now()}`, memberName: "Tes Olympus", exercise: "Back Squat", weight: 100, reps: 5, delta: 2.5, character: "pria", skinTone: "langsat" });
+        setCurrent((c) => c ?? nextShow.current());
+      }),
+    []
+  );
 
   // Poll for PRs since the slideshow opened; the server's `now` is the next `since`.
   useEffect(() => {

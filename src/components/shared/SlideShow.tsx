@@ -7,6 +7,7 @@ import { ClassTimer } from "@/components/shared/ClassTimer";
 import { timerFromScheme, type TimerConfig } from "@/lib/classTimer";
 import { PRCelebration } from "@/components/shared/PRCelebration";
 import { MusicPlayer } from "@/components/shared/MusicPlayer";
+import { requestTestAnnouncement } from "@/lib/musicDuck";
 
 interface SlideShowProps {
   slides: (ProgramSlideData & { isToday?: boolean })[];
@@ -190,6 +191,16 @@ export function SlideShow({ slides, startIndex = 0, celebratePRs = false, onClos
               className="rounded-full bg-black/70 px-3 py-2 text-xs font-semibold ring-1 ring-white/30 hover:bg-black/85"
             >
               {prSound ? "🔊 PR" : "🔇 PR"}
+            </button>
+          )}
+          {celebratePRs && (
+            <button
+              type="button"
+              onClick={requestTestAnnouncement}
+              title="Putar contoh pengumuman PR (musik mengecil + suara)"
+              className="rounded-full bg-black/70 px-3 py-2 text-xs font-semibold ring-1 ring-white/30 hover:bg-black/85"
+            >
+              🧪 Tes pengumuman
             </button>
           )}
           <button type="button" onClick={() => go(-1)} disabled={index === 0} className="rounded-full bg-black/70 px-4 py-2 text-sm font-semibold ring-1 ring-white/30 hover:bg-black/85 disabled:opacity-30">
