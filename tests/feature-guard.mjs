@@ -144,6 +144,9 @@ const FEATURES = [
   ['Paket member: link Riwayat pembayaran', 'src/app/leads/paket/page.tsx', 'Riwayat pembayaran'],
   ['Laporan harian: perpanjangan dihitung dari paket member (semua sumber)', 'src/lib/dailyReport.ts', 'prisma.membership.findMany'],
   ['Laporan harian: "kemarin" = hari WIB', 'src/lib/dailyReport.ts', 'const until = wib(today)'],
+  ['Extension Chrome Olympus Musik: YouTube tab lain mengecil saat PR', 'extension/olympus-musik/youtube.js', 'olympusDuck'],
+  ['Extension Olympus Musik bisa diunduh dari slideshow', 'src/components/shared/MusicPlayer.tsx', '/olympus-musik.zip'],
+  ['File unduhan extension Olympus Musik', 'public/olympus-musik.zip', ''],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
