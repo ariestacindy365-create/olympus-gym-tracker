@@ -39,6 +39,13 @@ export function todayDateKey(): Date {
 // a coach picking a date to backfill) — so picking today's date always
 // produces the exact same key todayDateKey() would, instead of colliding on
 // a near-miss and creating a duplicate row.
+/**
+ * When a Jakarta calendar day begins (00:00 WIB), from its date key (UTC
+ * midnight of that day). For filtering real timestamps (paidAt, createdAt…)
+ * by day: comparing them to the date key itself would run 07:00–07:00 WIB.
+ */
+export const wibStart = (dateKey: Date) => new Date(dateKey.getTime() - 7 * 3_600_000);
+
 export function dateKeyFromString(dateString: string): Date {
   const [year, month, day] = dateString.split("-").map(Number);
   return new Date(Date.UTC(year, month - 1, day));

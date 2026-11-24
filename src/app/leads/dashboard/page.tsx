@@ -2,7 +2,7 @@ import Link from "next/link";
 import { addDays } from "date-fns";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { todayDateKey } from "@/lib/workout";
+import { todayDateKey, wibStart } from "@/lib/workout";
 import { getTodayDueFollowUps } from "@/lib/leads";
 import { StatTile } from "@/components/ui/StatTile";
 import { Card } from "@/components/ui/Card";
@@ -24,10 +24,10 @@ export default async function LeadsDashboardPage() {
   const [target, capturesToday, followUpsDoneToday, dueFollowUps] = await Promise.all([
     prisma.target.findUnique({ where: { adminId: admin.id } }),
     prisma.lead.count({
-      where: { capturedById: admin.id, capturedAt: { gte: today, lt: tomorrow }, deletedAt: null },
+      where: { capturedById: admin.id, capturedAt: { gte: wibStart(today), lt: wibStart(tomorrow) }, deletedAt: null },
     }),
     prisma.followUp.count({
-      where: { completedById: admin.id, completedAt: { gte: today, lt: tomorrow } },
+      where: { completedById: admin.id, completedAt: { gte: wibStart(today), lt: wibStart(tomorrow) } },
     }),
     getTodayDueFollowUps(admin.id),
   ]);

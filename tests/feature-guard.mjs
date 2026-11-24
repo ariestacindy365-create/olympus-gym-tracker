@@ -159,6 +159,8 @@ const FEATURES = [
   ['Musik slideshow: link bisa dihapus, pemutar hilang kalau extension aktif', 'src/components/shared/MusicPlayer.tsx', 'function removeMusic'],
   ['Pengumuman PR gelombang besar: nama dibatasi + jumlah lainnya', 'src/components/shared/PRCelebration.tsx', 'member lainnya'],
   ['Suara pengumuman PR dikeraskan (gain + kompresor)', 'src/components/shared/PRCelebration.tsx', 'VOICE_BOOST'],
+  ['Kasir/Keuangan/Overview: hari & bulan dihitung jam WIB', 'src/lib/workout.ts', 'export const wibStart'],
+  ['Hapus penjualan kasir: stok kembali sekali saja', 'src/app/api/sales/[saleId]/route.ts', 'marked.count === 0'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);

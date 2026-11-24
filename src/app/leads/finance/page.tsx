@@ -3,7 +3,7 @@ import { startOfMonth, subMonths, addMonths, format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { todayDateKey } from "@/lib/workout";
+import { todayDateKey, wibStart } from "@/lib/workout";
 import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -33,30 +33,30 @@ export default async function FinancePage() {
     salesForTrend,
     expensesForTrend,
   ] = await Promise.all([
-    prisma.payment.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart }, deletedAt: null } }),
+    prisma.payment.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: wibStart(monthStart) }, deletedAt: null } }),
     prisma.payment.aggregate({ _sum: { amount: true }, where: { deletedAt: null } }),
     prisma.payment.findMany({
-      where: { paidAt: { gte: monthStart }, deletedAt: null },
+      where: { paidAt: { gte: wibStart(monthStart) }, deletedAt: null },
       select: { amount: true, packageName: true, paymentMethod: true },
     }),
-    prisma.sale.aggregate({ _sum: { price: true }, where: { createdAt: { gte: monthStart }, deletedAt: null } }),
+    prisma.sale.aggregate({ _sum: { price: true }, where: { createdAt: { gte: wibStart(monthStart) }, deletedAt: null } }),
     prisma.sale.aggregate({ _sum: { price: true }, where: { deletedAt: null } }),
     prisma.sale.findMany({
-      where: { createdAt: { gte: monthStart }, deletedAt: null },
+      where: { createdAt: { gte: wibStart(monthStart) }, deletedAt: null },
       select: { price: true, productName: true },
     }),
-    prisma.expense.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart } } }),
+    prisma.expense.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: wibStart(monthStart) } } }),
     prisma.expense.aggregate({ _sum: { amount: true } }),
-    prisma.expense.findMany({ where: { paidAt: { gte: monthStart } }, select: { amount: true, category: true } }),
+    prisma.expense.findMany({ where: { paidAt: { gte: wibStart(monthStart) } }, select: { amount: true, category: true } }),
     prisma.payment.findMany({
-      where: { paidAt: { gte: trendRangeStart }, deletedAt: null },
+      where: { paidAt: { gte: wibStart(trendRangeStart) }, deletedAt: null },
       select: { amount: true, paidAt: true },
     }),
     prisma.sale.findMany({
-      where: { createdAt: { gte: trendRangeStart }, deletedAt: null },
+      where: { createdAt: { gte: wibStart(trendRangeStart) }, deletedAt: null },
       select: { price: true, createdAt: true },
     }),
-    prisma.expense.findMany({ where: { paidAt: { gte: trendRangeStart } }, select: { amount: true, paidAt: true } }),
+    prisma.expense.findMany({ where: { paidAt: { gte: wibStart(trendRangeStart) } }, select: { amount: true, paidAt: true } }),
   ]);
 
   // Bucket the last TREND_MONTHS months in JS — small enough datasets (a
@@ -65,7 +65,7 @@ export default async function FinancePage() {
   const trendData: RevenueTrendPoint[] = Array.from({ length: TREND_MONTHS }, (_, i) => {
     const bucketStart = startOfMonth(subMonths(monthStart, TREND_MONTHS - 1 - i));
     const bucketEnd = addMonths(bucketStart, 1);
-    const inBucket = (d: Date) => d >= bucketStart && d < bucketEnd;
+    const inBucket = (d: Date) => d >= wibStart(bucketStart) && d < wibStart(bucketEnd);
     const revenue =
       paymentsForTrend.filter((p) => inBucket(p.paidAt)).reduce((sum, p) => sum + p.amount, 0) +
       salesForTrend.filter((s) => inBucket(s.createdAt)).reduce((sum, s) => sum + s.price, 0);

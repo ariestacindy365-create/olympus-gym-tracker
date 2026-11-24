@@ -2,7 +2,7 @@ import Link from "next/link";
 import { addDays, subMonths, startOfMonth } from "date-fns";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { todayDateKey } from "@/lib/workout";
+import { todayDateKey, wibStart } from "@/lib/workout";
 import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
 import { Button } from "@/components/ui/Button";
@@ -71,9 +71,9 @@ export default async function LeadsOwnerPage() {
   // clicking the Keuangan card below.
   const monthStart = startOfMonth(today);
   const [membershipRevenueThisMonth, salesRevenueThisMonth, expensesThisMonth] = await Promise.all([
-    prisma.payment.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart }, deletedAt: null } }),
-    prisma.sale.aggregate({ _sum: { price: true }, where: { createdAt: { gte: monthStart }, deletedAt: null } }),
-    prisma.expense.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: monthStart } } }),
+    prisma.payment.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: wibStart(monthStart) }, deletedAt: null } }),
+    prisma.sale.aggregate({ _sum: { price: true }, where: { createdAt: { gte: wibStart(monthStart) }, deletedAt: null } }),
+    prisma.expense.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: wibStart(monthStart) } } }),
   ]);
   const revenueThisMonthTotal = (membershipRevenueThisMonth._sum.amount ?? 0) + (salesRevenueThisMonth._sum.price ?? 0);
   const netProfitThisMonth = revenueThisMonthTotal - (expensesThisMonth._sum.amount ?? 0);
@@ -90,9 +90,9 @@ export default async function LeadsOwnerPage() {
         await Promise.all([
           prisma.target.findUnique({ where: { adminId: admin.id } }),
           prisma.lead.count({
-            where: { capturedById: admin.id, capturedAt: { gte: today, lt: tomorrow }, deletedAt: null },
+            where: { capturedById: admin.id, capturedAt: { gte: wibStart(today), lt: wibStart(tomorrow) }, deletedAt: null },
           }),
-          prisma.followUp.count({ where: { completedById: admin.id, completedAt: { gte: today, lt: tomorrow } } }),
+          prisma.followUp.count({ where: { completedById: admin.id, completedAt: { gte: wibStart(today), lt: wibStart(tomorrow) } } }),
           prisma.lead.count({ where: { capturedById: admin.id, trialMarkedAt: { not: null }, deletedAt: null } }),
           // Headline "how many members" — includes DM->MEMBER direct signups.
           prisma.lead.count({

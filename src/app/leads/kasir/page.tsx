@@ -1,6 +1,6 @@
 import { getCurrentUser, requireAnyRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { todayDateKey } from "@/lib/workout";
+import { todayDateKey, wibStart } from "@/lib/workout";
 import { KasirPage as KasirPageView } from "@/components/leads/KasirPage";
 
 export default async function KasirRoute() {
@@ -10,7 +10,7 @@ export default async function KasirRoute() {
 
   const today = todayDateKey();
   const [salesToday, products] = await Promise.all([
-    prisma.sale.findMany({ where: { createdAt: { gte: today }, deletedAt: null }, orderBy: { createdAt: "desc" } }),
+    prisma.sale.findMany({ where: { createdAt: { gte: wibStart(today) }, deletedAt: null }, orderBy: { createdAt: "desc" } }),
     prisma.product.findMany({ orderBy: [{ isActive: "desc" }, { name: "asc" }] }),
   ]);
 
