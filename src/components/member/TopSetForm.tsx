@@ -307,8 +307,13 @@ export function TopSetForm({
 
   return (
     <Card>
-      <h3 className="font-display text-lg font-semibold">Catat Latihan Hari Ini</h3>
-      <p className="mb-4 text-xs text-muted">Catat setiap set (beban &amp; reps). Setelah set terakhir, tekan Selesai.</p>
+      <details className="group mb-4">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 [&::-webkit-details-marker]:hidden">
+          <h3 className="font-display text-lg font-semibold">Catat Latihan Hari Ini</h3>
+          <span className="shrink-0 text-xs font-semibold text-accent">Cara catat? <span className="inline-block transition group-open:rotate-180">▾</span></span>
+        </summary>
+        <p className="mt-1 text-xs text-muted">Pilih gerakan, isi beban &amp; reps tiap set, lalu tekan ✓. Setelah set terakhir, tekan Selesai.</p>
+      </details>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>

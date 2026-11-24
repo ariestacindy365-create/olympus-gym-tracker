@@ -5,19 +5,28 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 
-export function LogoutButton() {
+/** `full`: a plain "Keluar dari akun" button (the member's Akun page) instead of the header icon. */
+export function LogoutButton({ full = false }: { full?: boolean }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const confirmDialog = useConfirm();
 
   async function handleLogout() {
     // The icon sits next to others on a phone: ask before signing out.
-    const ok = await confirmDialog({ title: "Keluar dari akun?", description: "Kamu perlu masuk lagi dengan email dan PIN.", confirmLabel: "Keluar" });
+    const ok = await confirmDialog({ title: "Yakin mau keluar?", description: "Nanti masuk lagi pakai email dan PIN kamu.", confirmLabel: "Keluar" });
     if (!ok) return;
     setPending(true);
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
     router.refresh();
+  }
+
+  if (full) {
+    return (
+      <Button variant="secondary" onClick={handleLogout} disabled={pending} className="w-full !text-danger">
+        {pending ? "Keluar..." : "Keluar dari akun"}
+      </Button>
+    );
   }
 
   return (
