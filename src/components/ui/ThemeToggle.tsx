@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { SunIcon, MoonIcon, MonitorIcon } from "@/components/ui/Icons";
 
-type Theme = "system" | "light" | "dark";
+export type Theme = "system" | "light" | "dark";
 const STORAGE_KEY = "theme";
 const ORDER: Theme[] = ["system", "light", "dark"];
 
-function readStoredTheme(): Theme {
+export function readStoredTheme(): Theme {
   try {
     const v = localStorage.getItem(STORAGE_KEY);
     return v === "light" || v === "dark" ? v : "system";
@@ -16,7 +16,7 @@ function readStoredTheme(): Theme {
   }
 }
 
-function applyTheme(theme: Theme) {
+export function applyTheme(theme: Theme) {
   if (theme === "system") {
     document.documentElement.removeAttribute("data-theme");
     try {
@@ -40,7 +40,7 @@ const ICON: Record<Theme, React.ComponentType<{ className?: string }>> = {
   dark: MoonIcon,
 };
 
-const LABEL: Record<Theme, string> = {
+export const LABEL: Record<Theme, string> = {
   system: "Ikuti Sistem",
   light: "Terang",
   dark: "Gelap",

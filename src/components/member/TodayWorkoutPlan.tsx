@@ -95,6 +95,8 @@ export function TodayWorkoutPlan({
     })
   );
   const [kgOpen, setKgOpen] = useState<Record<number, boolean>>({});
+  // Muscle map and slide link, folded away so the movements come first.
+  const [showExtra, setShowExtra] = useState(false);
   const [storageWarning, setStorageWarning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<AchievementCelebrationData | null>(null);
@@ -136,6 +138,14 @@ export function TodayWorkoutPlan({
   // collapsed until opened ("Catat beban"), then show reps with optional + kg.
   const [logAnyway, setLogAnyway] = useState<Set<number>>(() => new Set());
   const logged = (i: number) => !items[i].noInput || logAnyway.has(i) || rows[i].some((r) => r.saved || r.queued);
+  // A movement is done when every set row is saved (or waiting for signal).
+  const complete = (i: number, rs: Row[][] = rows) => rs[i].length > 0 && rs[i].every((x) => x.saved || x.queued);
+  const firstOpen = (rs: Row[][], after = -1) => {
+    for (let k = after + 1; k < items.length; k++) if (!items[k].noInput && !complete(k, rs)) return k;
+    return null;
+  };
+  // Only the movement being worked on is open; the rest show a count.
+  const [open, setOpen] = useState<number | null>(() => firstOpen(rows));
   const inputRows = rows.filter((_, i) => logged(i)).flat();
   const done = rows.flat().filter((r) => r.saved);
   const queuedCount = rows.flat().filter((r) => r.queued).length;
@@ -196,6 +206,11 @@ export function TodayWorkoutPlan({
     };
     const tappedAt = new Date().toISOString();
     const result = await send(p);
+    // The movement's last set is in: open the next one still to do.
+    if ((result === "ok" || result === "offline") && rows[i].every((x, b) => b === j || x.saved || x.queued)) {
+      const after = rows.map((rs, a) => (a === i ? rs.map((x) => ({ ...x, queued: true })) : rs));
+      setOpen(firstOpen(after, i) ?? firstOpen(after));
+    }
     if (result === "offline") {
       // Keep the tap time so the late set still counts at the right moment.
       const stored = addPending({ ...p, body: { ...p.body, loggedAt: tappedAt } });
@@ -327,9 +342,9 @@ export function TodayWorkoutPlan({
   const roundStart = plan.rounds.map((_, r) => plan.rounds.slice(0, r).reduce((a, x) => a + x.items.length, 0));
   return (
     <section className="flex flex-col gap-3">
-      <div className="rounded-2xl bg-nav-bg p-4 text-white shadow-raised [background-image:radial-gradient(28rem_10rem_at_100%_0%,rgb(37_99_235/0.5),transparent)]">
+      <div className="rounded-2xl bg-nav-bg px-4 py-3 text-white shadow-raised [background-image:radial-gradient(28rem_10rem_at_100%_0%,rgb(37_99_235/0.5),transparent)]">
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-nav-muted">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-nav-muted">
             {plan.dayLabel} · {plan.pt ? `${plan.pt.coachName}${plan.pt.partners.length ? ` · bareng ${plan.pt.partners.join(", ")}` : ""}` : plan.klass ? `Kelas ${plan.klass.label}` : "Program dari pelatih"}
           </p>
           {plan.classOptions.length > 1 && (
@@ -359,11 +374,21 @@ export function TodayWorkoutPlan({
             </label>
           )}
         </div>
-        <h2 className="mt-0.5 font-display text-2xl font-bold uppercase tracking-wide">{plan.title}</h2>
+        <div className="mt-0.5 flex items-center justify-between gap-2">
+          <h2 className="min-w-0 truncate font-display text-xl font-bold uppercase tracking-wide">{plan.title}</h2>
+          <button
+            type="button"
+            aria-expanded={showExtra}
+            onClick={() => setShowExtra((v) => !v)}
+            className="shrink-0 rounded-full bg-white/10 px-3 py-1 text-[12px] font-semibold ring-1 ring-white/20 hover:bg-white/20"
+          >
+            {plan.pt || date ? "Otot" : "Otot & slide"} {showExtra ? "▴" : "▾"}
+          </button>
+        </div>
         {plan.borrowedFrom && (
           <p className="text-[12px] text-white/65">Coach kelas ini belum mengisi program minggu ini, jadi yang tampil program {plan.borrowedFrom}.</p>
         )}
-        <div className="mt-2 flex justify-between text-sm text-white/75">
+        <div className="mt-1.5 flex justify-between text-[13px] text-white/75">
           <span>
             {done.length} / {total} set
           </span>
@@ -372,6 +397,8 @@ export function TodayWorkoutPlan({
         <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/15">
           <div className="h-full rounded-full bg-[#22c55e] transition-[width]" style={{ width: `${total ? (done.length / total) * 100 : 0}%` }} />
         </div>
+        {showExtra && (
+        <>
         <div className="mt-3 flex items-center gap-3">
           <MuscleMap levels={levels} height={104} tone="dark" />
           <p className="text-[13px] text-white/70">
@@ -385,6 +412,8 @@ export function TodayWorkoutPlan({
           >
             📋 Lihat slide program · ▶ Slideshow
           </Link>
+        )}
+        </>
         )}
       </div>
 
@@ -405,12 +434,31 @@ export function TodayWorkoutPlan({
             const last = lastWeights[it.exerciseId];
             return (
               <div key={it.label + it.exerciseId} className="border-b border-border px-4 pb-3 pt-2.5 last:border-0">
-                <p className="flex flex-wrap items-baseline gap-x-2">
-                  <span className="font-display text-sm font-bold text-accent">{it.label}</span>
-                  <span className="font-semibold">{it.name}</span>
-                  {it.note && <span className="text-sm text-foreground/80">({it.note})</span>}
-                  {it.target && <span className="text-xs text-muted">· {it.target}</span>}
-                </p>
+                <button
+                  type="button"
+                  aria-expanded={open === i}
+                  onClick={() => setOpen(open === i ? null : i)}
+                  className="flex w-full items-center gap-2 text-left"
+                >
+                  <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
+                    <span className="font-display text-sm font-bold text-accent">{it.label}</span>
+                    <span className="font-semibold">{it.name}</span>
+                    {it.note && <span className="text-sm text-foreground/80">({it.note})</span>}
+                    {it.target && <span className="text-xs text-muted">· {it.target}</span>}
+                  </span>
+                  {!logged(i) ? (
+                    <span className="shrink-0 text-[11px] font-semibold text-muted">tanpa catat</span>
+                  ) : complete(i) ? (
+                    <span className="shrink-0 rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-bold text-success">✓ selesai</span>
+                  ) : (
+                    <span className="shrink-0 text-xs font-semibold tabular-nums text-muted">
+                      {rows[i].filter((x) => x.saved || x.queued).length}/{rows[i].length}
+                    </span>
+                  )}
+                  <span aria-hidden className="shrink-0 text-xs text-muted">{open === i ? "▴" : "▾"}</span>
+                </button>
+                {open === i && (
+                <>
                 {muscles.length > 0 && <p className="text-[11.5px] font-semibold text-accent">🎯 {muscles.join(" · ")}</p>}
                 {!logged(i) ? (
                   <div className="mt-1 flex items-center justify-between gap-3 text-[12px]">
@@ -553,6 +601,8 @@ export function TodayWorkoutPlan({
                     </button>
                   </>
                 )}
+                </>
+                )}
               </div>
             );
           })}
@@ -594,7 +644,7 @@ export function TodayWorkoutPlan({
         </div>
       )}
 
-      <div className="sticky bottom-[5.5rem] z-20 sm:bottom-4">
+      <div>
         <button
           type="button"
           onClick={() => setFinishing(true)}
