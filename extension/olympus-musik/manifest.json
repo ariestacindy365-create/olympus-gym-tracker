@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Olympus Musik",
+  "version": "1.0.0",
+  "description": "Mengecilkan musik YouTube di tab lain saat slideshow Olympus mengumumkan PR, lalu membesarkannya lagi.",
+  "icons": { "48": "icon-48.png", "128": "icon-128.png" },
+  "background": { "service_worker": "background.js" },
+  "host_permissions": ["https://www.youtube.com/*", "https://music.youtube.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://olympus-gym-tracker.vercel.app/*", "http://localhost/*"],
+      "js": ["olympus.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://www.youtube.com/*", "https://music.youtube.com/*"],
+      "js": ["youtube.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ]
+}

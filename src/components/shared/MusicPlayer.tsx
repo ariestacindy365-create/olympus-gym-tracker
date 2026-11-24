@@ -78,6 +78,12 @@ export function MusicPlayer() {
   const [playing, setPlaying] = useState(false);
   const [ducked, setDucked] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The "Olympus Musik" Chrome extension turns down YouTube in another tab; it marks the page.
+  const [extension, setExtension] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setExtension(document.documentElement.dataset.olympusMusik === "1"), 0);
+    return () => clearTimeout(id);
+  }, []);
   const shown = useRef(0);
   const volumeRef = useRef(volume);
   const duckedRef = useRef(false);
@@ -203,6 +209,20 @@ export function MusicPlayer() {
             />
           </label>
           <p className="text-[11px] text-white/60">Musik otomatis mengecil saat ada pengumuman PR, lalu naik lagi.</p>
+          {extension ? (
+            <p className="text-[11px] text-emerald-300">✓ Extension Olympus Musik aktif: YouTube di tab lain juga ikut mengecil, jadi link di sini boleh dikosongkan.</p>
+          ) : (
+            <details className="text-[11px] text-white/70">
+              <summary className="cursor-pointer font-semibold text-blue-300">Lebih suka YouTube di tab lain? Pasang extension</summary>
+              <ol className="mt-1 list-decimal space-y-0.5 pl-4">
+                <li>
+                  <a href="/olympus-musik.zip" download className="font-semibold text-blue-300 underline">Unduh olympus-musik.zip</a>, lalu ekstrak.
+                </li>
+                <li>Buka chrome://extensions, nyalakan Mode developer.</li>
+                <li>Klik Load unpacked, pilih folder olympus-musik.</li>
+              </ol>
+            </details>
+          )}
           <div className="flex gap-2">
             <button type="submit" className="rounded-full bg-accent px-4 py-1.5 text-xs font-bold">▶ Putar</button>
             <button type="button" onClick={() => setView(link ? "mini" : "hidden")} className={btn}>Batal</button>
@@ -227,7 +247,7 @@ export function MusicPlayer() {
             )}
           </>
         ) : view !== "edit" ? (
-          <button type="button" onClick={() => setView("edit")} className={btn}>🎵 Musik</button>
+          <button type="button" onClick={() => setView("edit")} className={btn}>{extension ? "🎵 Musik · extension aktif" : "🎵 Musik"}</button>
         ) : null}
       </div>
     </div>
