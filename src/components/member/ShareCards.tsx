@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MuscleMap } from "@/components/shared/MuscleMap";
 import { drawSticker, figureImages, type WorkoutStickerModalProps } from "@/components/shared/WorkoutStickerModal";
 import {
@@ -47,6 +47,9 @@ const ICONS = {
   video: "M4 6h11v12H4zM15 10l5-3v10l-5-3",
   more: "M5 12h.01M12 12h.01M19 12h.01",
   photo: "M4 7h4l2-2h4l2 2h4v12H4zM12 10a3 3 0 100 6 3 3 0 000-6z",
+  camera: "M4 7h4l2-2h4l2 2h4v12H4zM12 10a3 3 0 100 6 3 3 0 000-6z",
+  gallery: "M4 5h16v14H4zM4 15l4-4 4 4 3-3 5 5M15 9h.01",
+  sticker: "M5 5h10l4 4v10H5zM15 5v4h4",
 };
 
 function Icon({ name }: { name: keyof typeof ICONS }) {
@@ -58,14 +61,14 @@ function Icon({ name }: { name: keyof typeof ICONS }) {
 }
 
 /** A secondary button next to the main one. */
-function Action({ icon, label, onClick, disabled, expanded }: { icon: keyof typeof ICONS; label: string; onClick: () => void; disabled?: boolean; expanded?: boolean }) {
+function Action({ icon, label, onClick, disabled, expanded, strong }: { icon: keyof typeof ICONS; label: string; onClick: () => void; disabled?: boolean; expanded?: boolean; strong?: boolean }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
       aria-expanded={expanded}
-      className="flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl border border-border px-1 py-1.5 text-xs font-semibold disabled:opacity-50"
+      className={`flex min-h-14 min-w-0 flex-1 basis-0 flex-col items-center justify-center gap-1 rounded-xl border px-1 py-1.5 text-xs font-semibold disabled:opacity-50 ${strong ? "border-2 border-accent text-accent" : "border-border"}`}
     >
       <Icon name={icon} />
       <span className="w-full truncate text-center">{label}</span>
@@ -88,8 +91,11 @@ function MoreItem({ icon, label, onClick }: { icon: keyof typeof ICONS; label: s
  * row of actions applies to the card in view (instead of a button and a
  * separate screen per card).
  */
+/** The volume card ("Total angkatan") is what members share most: it comes first. */
+const volumeFirst = (cards: ShareCard[]) => [...cards.filter((c) => c.kind === "total"), ...cards.filter((c) => c.kind !== "total")];
+
 export function ShareCards({
-  cards,
+  cards: incoming,
   memberName,
   shareText,
   fileSlug,
@@ -101,9 +107,13 @@ export function ShareCards({
   shareText: string;
   fileSlug: string;
   onVideo: (kind: "volume" | "kalori") => void;
-  /** Opens "Foto + stiker" (photos + the workout sticker). */
-  onPhotoStory?: () => void;
+  /** Opens "Foto + stiker" with the photos just taken or picked. */
+  onPhotoStory?: (files: File[]) => void;
 }) {
+  const cards = volumeFirst(incoming);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+  const [photoOpen, setPhotoOpen] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const canvases = useRef<(HTMLCanvasElement | null)[]>([]);
   const hostRef = useRef<HTMLDivElement>(null);
@@ -158,7 +168,7 @@ export function ShareCards({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [backdrop, ink, memberName, cards.map((c) => JSON.stringify(c.kind === "sticker" ? c.id + c.sticker.title : c)).join("|")]);
 
-  const onScroll = useCallback(() => {
+  const onScroll = () => {
     const el = scroller.current;
     if (!el) return;
     // The card nearest the middle of the screen is the one being shared
@@ -175,7 +185,7 @@ export function ShareCards({
       }
     });
     setIndex(Math.min(cards.length - 1, best));
-  }, [cards.length]);
+  };
 
   const toBlob = () =>
     new Promise<Blob>((resolve, reject) => {
@@ -288,13 +298,6 @@ export function ShareCards({
         ))}
       </div>
 
-      {/* Only on cards with an animated version (Total angkatan, Kalori). */}
-      {current.video && (
-        <button type="button" onClick={() => onVideo(current.video!)} className="-mt-1 inline-flex min-h-10 items-center gap-1.5 self-center px-2 text-sm font-semibold text-accent hover:underline">
-          <Icon name="video" />
-          Versi video
-        </button>
-      )}
 
       <div role="radiogroup" aria-label="Warna kartu" className="flex justify-center gap-2">
         {BACKDROPS.map((b) => (
@@ -323,18 +326,54 @@ export function ShareCards({
         </button>
       )}
 
+      {/* One row, four equal buttons: Foto and Video stand out. */}
       <div className="flex gap-2">
-        {onPhotoStory && <Action icon="photo" label="Foto + stiker" onClick={onPhotoStory} />}
-        {videos.length > 0 && <Action icon="more" label="Lainnya" onClick={() => setMoreOpen((o) => !o)} expanded={moreOpen} />}
-        <Action icon="text" label="Teks" onClick={shareTextOnly} />
+        {onPhotoStory && <Action icon="photo" label="Foto" strong onClick={() => { setMoreOpen(false); setPhotoOpen((o) => !o); }} expanded={photoOpen} />}
+        {videos.length > 0 && <Action icon="video" label="Video" strong onClick={() => onVideo(current.video ?? (videos.includes("volume") ? "volume" : videos[0]))} />}
         <Action icon="download" label="Simpan" onClick={download} disabled={pending} />
+        <Action icon="more" label="Lainnya" onClick={() => { setPhotoOpen(false); setMoreOpen((o) => !o); }} expanded={moreOpen} />
       </div>
-      {moreOpen && videos.length > 0 && (
+      {photoOpen && onPhotoStory && (
         <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
-          {videos.includes("volume") && <MoreItem icon="video" label="Video volume" onClick={() => { setMoreOpen(false); onVideo("volume"); }} />}
-          {videos.includes("kalori") && <MoreItem icon="video" label="Video kalori" onClick={() => { setMoreOpen(false); onVideo("kalori"); }} />}
+          <MoreItem icon="camera" label="Ambil foto sekarang" onClick={() => cameraRef.current?.click()} />
+          <MoreItem icon="gallery" label="Pilih dari galeri" onClick={() => galleryRef.current?.click()} />
         </div>
       )}
+      {moreOpen && (
+        <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
+          <MoreItem icon="text" label="Kirim teks ringkasan" onClick={() => { setMoreOpen(false); void shareTextOnly(); }} />
+          <MoreItem icon="sticker" label="Stiker transparan" onClick={() => { setMoreOpen(false); setBackdrop("bening"); }} />
+          {videos.includes("volume") && current.video !== "volume" && <MoreItem icon="video" label="Video volume" onClick={() => { setMoreOpen(false); onVideo("volume"); }} />}
+          {videos.includes("kalori") && <MoreItem icon="video" label="Kartu kalori (video)" onClick={() => { setMoreOpen(false); onVideo("kalori"); }} />}
+        </div>
+      )}
+      {/* Camera (back) or gallery (several photos): straight into Foto + stiker. */}
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        aria-label="Ambil foto"
+        onChange={(e) => {
+          const files = [...(e.target.files ?? [])];
+          e.target.value = "";
+          if (files.length) { setPhotoOpen(false); onPhotoStory?.(files); }
+        }}
+      />
+      <input
+        ref={galleryRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        aria-label="Pilih foto dari galeri"
+        onChange={(e) => {
+          const files = [...(e.target.files ?? [])];
+          e.target.value = "";
+          if (files.length) { setPhotoOpen(false); onPhotoStory?.(files); }
+        }}
+      />
 
       {note && (
         <p role="status" className={`rounded-xl px-3 py-2 text-center text-[13px] ${note.tone === "ok" ? "bg-surface-2" : "bg-danger/10 text-danger"}`}>

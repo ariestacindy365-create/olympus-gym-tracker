@@ -40,6 +40,8 @@ interface NavBarProps {
   mobileTabs?: boolean;
   /** Extra controls before the theme toggle, e.g. the member's notification bell. */
   extra?: React.ReactNode;
+  /** Just the extra controls (the member's bell): theme and Keluar live on their Akun page. */
+  minimal?: boolean;
 }
 
 function initials(name: string) {
@@ -120,7 +122,7 @@ function MoreMenu({ links, activeHref }: { links: NavLink[]; activeHref: string 
   );
 }
 
-export function NavBar({ links: mainLinks, more = NO_LINKS, userName, role, mobileTabs = true, extra }: NavBarProps) {
+export function NavBar({ links: mainLinks, more = NO_LINKS, userName, role, mobileTabs = true, extra, minimal = false }: NavBarProps) {
   const pathname = usePathname();
   // Every page, for the active highlight and the phone strip.
   const links = useMemo(() => [...mainLinks, ...more], [mainLinks, more]);
@@ -205,8 +207,12 @@ export function NavBar({ links: mainLinks, more = NO_LINKS, userName, role, mobi
             <span className="hidden max-w-[8rem] truncate text-sm text-nav-foreground/90 md:inline">{userName}</span>
           </div>
           {extra}
-          <ThemeToggle />
-          <LogoutButton />
+          {!minimal && (
+            <>
+              <ThemeToggle />
+              <LogoutButton />
+            </>
+          )}
         </div>
       </div>
 

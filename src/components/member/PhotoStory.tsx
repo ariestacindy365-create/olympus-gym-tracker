@@ -95,6 +95,7 @@ export function PhotoStory({
   memberName,
   shareText,
   fileSlug,
+  initialFiles = [],
   onClose,
 }: {
   sticker: Omit<WorkoutStickerModalProps, "onClose">;
@@ -102,12 +103,16 @@ export function PhotoStory({
   memberName: string;
   shareText: string;
   fileSlug: string;
+  /** Taken with the camera or picked from the gallery on the share screen. */
+  initialFiles?: File[];
   onClose: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
-  const [layout, setLayout] = useState<Layout>(1);
+  const [layout, setLayout] = useState<Layout>(() => Math.min(4, Math.max(1, initialFiles.length)) as Layout);
+  // Layout, sticker kind, look and size: folded under "Atur stiker ▾".
+  const [tuneOpen, setTuneOpen] = useState(false);
   const [photos, setPhotos] = useState<(Photo | null)[]>([null, null, null, null]);
   const [selected, setSelected] = useState<number | null>(null);
   const [content, setContent] = useState<Content>("stiker");
@@ -322,7 +327,7 @@ export function PhotoStory({
     input.click();
   }
 
-  async function onFiles(files: FileList | null) {
+  async function onFiles(files: FileList | File[] | null) {
     const list = [...(files ?? [])].filter((f) => f.type.startsWith("image/")).slice(0, 4);
     if (!list.length) return;
     let loaded: Photo[];
@@ -356,6 +361,20 @@ export function PhotoStory({
       setSelected(null);
     } else setSelected(slot);
   }
+
+  // Opened from the camera or the gallery: those photos are in straight away.
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current || !initialFiles.length) return;
+    started.current = true;
+    const id = setTimeout(() => {
+      pickFor.current = null;
+      void onFiles(initialFiles);
+    }, 0);
+    return () => clearTimeout(id);
+    // Once, with the files it was opened with.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function changeLayout(l: Layout) {
     setLayout(l);
@@ -426,7 +445,7 @@ export function PhotoStory({
         </button>
         <p className="font-display text-lg font-bold">Foto + stiker</p>
         <button type="button" onClick={() => choose(null)} className="min-h-11 text-sm font-semibold text-accent">
-          Pilih foto
+          {photos.some(Boolean) ? "Ganti foto" : "Pilih foto"}
         </button>
       </div>
 
@@ -462,6 +481,20 @@ export function PhotoStory({
         )}
 
         <div className="flex w-full max-w-md flex-col gap-2">
+          {/* Where the sticker sits: the one setting most people need. */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold uppercase tracking-wide text-muted">Posisi</span>
+            {(Object.entries(STICKER_POSITIONS) as [keyof typeof STICKER_POSITIONS, number][]).map(([label, cy]) => (
+              <button key={label} type="button" onClick={() => setPlace((p) => clampSticker({ ...p, cx: 0.5, cy }, aspect))} className={chip(Math.abs(place.cy - cy) < 0.06)}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <button type="button" aria-expanded={tuneOpen} onClick={() => setTuneOpen((o) => !o)} className="self-start text-sm font-semibold text-accent">
+            Atur stiker {tuneOpen ? "▴" : "▾"}
+          </button>
+          {tuneOpen && (
+          <>
           <p className="text-xs font-bold uppercase tracking-wide text-muted">Bentuk</p>
           <div className="flex gap-2">
             {LAYOUTS.map((l) => (
@@ -489,17 +522,12 @@ export function PhotoStory({
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-2">
-            {(Object.entries(STICKER_POSITIONS) as [keyof typeof STICKER_POSITIONS, number][]).map(([label, cy]) => (
-              <button key={label} type="button" onClick={() => setPlace((p) => clampSticker({ ...p, cx: 0.5, cy }, aspect))} className={chip(false)}>
-                {label}
-              </button>
-            ))}
-          </div>
           <label className="flex items-center gap-3 text-sm font-semibold">
             Ukuran
             <input type="range" min={0.35} max={1} step={0.01} value={place.w} onChange={(e) => setPlace((p) => clampSticker({ ...p, w: Number(e.target.value) }, aspect))} className="flex-1 accent-[var(--color-accent)]" />
           </label>
+          </>
+          )}
         </div>
 
         {note && (

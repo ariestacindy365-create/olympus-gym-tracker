@@ -95,7 +95,8 @@ export function DayFinishFlow({
   const [totals, setTotals] = useState<Totals | null>(null);
   const [story, setStory] = useState(false);
   const [calCard, setCalCard] = useState(false);
-  const [photoStory, setPhotoStory] = useState(false);
+  // The photos taken or picked for "Foto + stiker" (null = closed).
+  const [photoStory, setPhotoStory] = useState<File[] | null>(null);
   // "Bagikan latihan" opens by itself after Simpan; it can be closed and opened again.
   const [sharing, setSharing] = useState(true);
   const [bodyWeightKg, setBodyWeightKg] = useState<number | null>(null);
@@ -279,7 +280,7 @@ export function DayFinishFlow({
                 shareText={shareText}
                 fileSlug={(title || defaultTitle).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "latihan"}
                 onVideo={(kind) => (kind === "kalori" ? setCalCard(true) : setStory(true))}
-                onPhotoStory={() => setPhotoStory(true)}
+                onPhotoStory={(files) => setPhotoStory(files)}
                 cards={[
                   ...(() => {
                     const recs = [...(totals.records ?? [])].sort((a, b) => b.weight - a.weight);
@@ -574,7 +575,8 @@ export function DayFinishFlow({
           memberName={memberName}
           shareText={shareText}
           fileSlug={(title || defaultTitle).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "latihan"}
-          onClose={() => setPhotoStory(false)}
+          initialFiles={photoStory}
+          onClose={() => setPhotoStory(null)}
         />
       )}
     </div>

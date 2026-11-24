@@ -57,7 +57,7 @@ const FEATURES = [
   ['Jual paket di meja: tunai / debit / kartu kredit / QRIS / transfer', 'src/components/leads/PackageDesk.tsx', 'KARTU_KREDIT'],
   ['Owner atur rekening tujuan transfer', 'src/app/leads/paket/page.tsx', '<BankInfoForm'],
   ['Pricelist 2026 di aplikasi', 'prisma/migrations/20261117072958_add_membership_orders/migration.sql', 'Bootcamp Unlimited 1 Bulan'],
-  ['Tautan Versi video di bawah kartu Total angkatan / Kalori', 'src/components/member/ShareCards.tsx', 'onVideo(current.video!)'],
+  ['Tombol Video (versi video kartu Total angkatan / Kalori)', 'src/components/member/ShareCards.tsx', 'onVideo(current.video ??'],
   ['Saran beban di tiap gerakan program', 'src/components/member/TodayWorkoutPlan.tsx', 'Saran beban'],
   ['Kartu share Fokus otot', 'src/components/member/DayFinishFlow.tsx', 'id: "fokus"'],
   ['Kartu share Gerakan', 'src/components/member/DayFinishFlow.tsx', 'id: "gerakan"'],
@@ -147,6 +147,14 @@ const FEATURES = [
   ['Extension Chrome Olympus Musik: YouTube tab lain mengecil saat PR', 'extension/olympus-musik/youtube.js', 'olympusDuck'],
   ['Extension Olympus Musik bisa diunduh dari slideshow', 'src/components/shared/MusicPlayer.tsx', '/olympus-musik.zip'],
   ['File unduhan extension Olympus Musik', 'public/olympus-musik.zip', ''],
+  ['Bagikan: kartu volume pertama', 'src/components/member/ShareCards.tsx', 'const volumeFirst'],
+  ['Bagikan: Foto dari kamera atau galeri langsung ke stiker', 'src/components/member/ShareCards.tsx', 'capture="environment"'],
+  ['Foto + stiker: posisi Atas/Tengah/Bawah, Atur stiker dilipat', 'src/components/member/PhotoStory.tsx', 'Atur stiker'],
+  ['Suara PR hanya untuk kalimat pengumuman', 'src/app/api/coach/pr-voice/route.ts', 'ANNOUNCEMENT.test(text)'],
+  ['Latihan: kartu program ringkas, Otot & slide dilipat', 'src/components/member/TodayWorkoutPlan.tsx', 'setShowExtra'],
+  ['Latihan: gerakan dilipat, berikutnya terbuka otomatis', 'src/components/member/TodayWorkoutPlan.tsx', 'firstOpen(after, i)'],
+  ['Latihan: belum ada program → pesan + form catat langsung', 'src/app/member/dashboard/page.tsx', 'belum diisi coach'],
+  ['Member: Keluar & tampilan pindah ke Akun', 'src/app/member/account/page.tsx', '<LogoutButton full'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
