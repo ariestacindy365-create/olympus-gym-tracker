@@ -21,6 +21,8 @@ const HOLD_SPOKEN = 6;
 const OUT = 2.2;
 // One PR at a time for the first few; the rest of a burst share one board.
 const SOLO_PER_BURST = 3;
+// How much louder the ElevenLabs announcement plays than its file.
+const VOICE_BOOST = 2.5;
 // Names listed on a shared board before "+N lagi".
 const BOARD_ROWS = 6;
 
@@ -341,7 +343,16 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
       if (aiBuffer && a) {
         aiSource = a.createBufferSource();
         aiSource.buffer = aiBuffer;
-        aiSource.connect(a.destination);
+        // Louder than the file: boosted, with a compressor so it doesn't crackle.
+        const boost = a.createGain();
+        boost.gain.value = VOICE_BOOST;
+        const limiter = a.createDynamicsCompressor();
+        limiter.threshold.value = -10;
+        limiter.knee.value = 6;
+        limiter.ratio.value = 12;
+        limiter.attack.value = 0.003;
+        limiter.release.value = 0.2;
+        aiSource.connect(boost).connect(limiter).connect(a.destination);
         aiSource.start();
         // Stand still until it has been said.
         hold = Math.max(hold, t - IN + aiBuffer.duration + 0.6);
@@ -352,6 +363,7 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
         say.voice = voice;
         say.lang = voice.lang;
         say.rate = 1.02;
+        say.volume = 1;
         window.speechSynthesis.speak(say);
       }
     };

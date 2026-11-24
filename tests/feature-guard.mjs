@@ -158,6 +158,7 @@ const FEATURES = [
   ['Slideshow: tombol Tes pengumuman PR', 'src/components/shared/SlideShow.tsx', 'requestTestAnnouncement'],
   ['Musik slideshow: link bisa dihapus, pemutar hilang kalau extension aktif', 'src/components/shared/MusicPlayer.tsx', 'function removeMusic'],
   ['Pengumuman PR gelombang besar: nama dibatasi + jumlah lainnya', 'src/components/shared/PRCelebration.tsx', 'member lainnya'],
+  ['Suara pengumuman PR dikeraskan (gain + kompresor)', 'src/components/shared/PRCelebration.tsx', 'VOICE_BOOST'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
