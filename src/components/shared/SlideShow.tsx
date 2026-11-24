@@ -59,6 +59,21 @@ export function SlideShow({ slides, startIndex = 0, celebratePRs = false, onClos
     });
   }
 
+  // The test needs the sound on: switch it on first (and keep it on).
+  function testAnnouncement() {
+    if (prSound) {
+      requestTestAnnouncement();
+      return;
+    }
+    setPrSound(true);
+    try {
+      localStorage.setItem(PR_SOUND_KEY, "on");
+    } catch {
+      // Storage blocked: on for this slideshow only.
+    }
+    setTimeout(requestTestAnnouncement, 100);
+  }
+
   const showControls = useCallback(() => {
     setControls(true);
     if (hideTimer.current) clearTimeout(hideTimer.current);
@@ -196,7 +211,7 @@ export function SlideShow({ slides, startIndex = 0, celebratePRs = false, onClos
           {celebratePRs && (
             <button
               type="button"
-              onClick={requestTestAnnouncement}
+              onClick={testAnnouncement}
               title="Putar contoh pengumuman PR (musik mengecil + suara)"
               className="rounded-full bg-black/70 px-3 py-2 text-xs font-semibold ring-1 ring-white/30 hover:bg-black/85"
             >

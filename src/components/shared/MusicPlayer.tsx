@@ -156,7 +156,24 @@ export function MusicPlayer() {
     return () => window.clearInterval(id);
   }, [volume, ducked, link]);
 
+  // No music here any more (e.g. YouTube plays in another tab with the extension).
+  function removeMusic() {
+    try {
+      localStorage.removeItem(LINK_KEY);
+    } catch {
+      // Storage blocked: gone for this slideshow only.
+    }
+    setLink("");
+    setDraft("");
+    setError(null);
+    setView("hidden");
+  }
+
   function start() {
+    if (!draft.trim()) {
+      removeMusic();
+      return;
+    }
     const src = parseYouTube(draft);
     if (!src) {
       setError("Tempel link video atau playlist YouTube.");
@@ -180,6 +197,10 @@ export function MusicPlayer() {
   }
 
   const btn = "rounded-full bg-black/70 px-3 py-1.5 text-xs font-semibold text-white ring-1 ring-white/30 hover:bg-black/85";
+  // The extension turns down YouTube in its own tab: with no link here,
+  // nothing of this player shows on the TV.
+  if (extension && !link) return null;
+
   return (
     <div className={`fixed bottom-16 left-4 z-[55] flex flex-col items-start gap-2 text-white transition-opacity ${link && view === "hidden" ? "opacity-30 hover:opacity-100" : ""}`} data-music-player>
       {/* The player keeps playing while hidden (just invisible). */}
@@ -226,6 +247,11 @@ export function MusicPlayer() {
           <div className="flex gap-2">
             <button type="submit" className="rounded-full bg-accent px-4 py-1.5 text-xs font-bold">▶ Putar</button>
             <button type="button" onClick={() => setView(link ? "mini" : "hidden")} className={btn}>Batal</button>
+            {link && (
+              <button type="button" onClick={removeMusic} className={`${btn} !text-red-300`}>
+                Hapus musik
+              </button>
+            )}
           </div>
         </form>
       )}

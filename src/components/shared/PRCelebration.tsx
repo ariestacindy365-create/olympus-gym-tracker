@@ -35,7 +35,11 @@ const namesText = (names: string[]) =>
 /** What the TV says out loud, in Indonesian. */
 function announcement(show: Show): string {
   if (show.kind === "group") {
-    return `Perhatian, perhatian! Rekor baru untuk ${namesText(show.events.map((e) => e.memberName))}. Keren banget, lanjutkan semuanya!`;
+    // The names on the board, then a count: a long burst stays short to say
+    // (and within what the ElevenLabs voice reads).
+    const names = show.events.map((e) => e.memberName);
+    const who = names.length > BOARD_ROWS ? `${names.slice(0, BOARD_ROWS).join(", ")}, dan ${names.length - BOARD_ROWS} member lainnya` : namesText(names);
+    return `Perhatian, perhatian! Rekor baru untuk ${who}. Keren banget, lanjutkan semuanya!`;
   }
   const e = show.e;
   const up = e.delta != null && e.delta > 0 ? ` Naik ${kgText(e.delta)} kilo.` : "";
