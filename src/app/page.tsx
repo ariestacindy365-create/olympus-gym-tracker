@@ -76,7 +76,7 @@ export default async function RootPage() {
       {/* Hero */}
       <section className="relative overflow-hidden bg-[#f3f6fb] dark:bg-background">
         <div aria-hidden className="absolute -right-40 -top-40 h-[34rem] w-[34rem] rounded-full bg-[#bfdbfe]/60 blur-3xl dark:bg-[#1d3f9a]/40" />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 md:grid-cols-2 md:py-20">
+        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 md:grid-cols-2 md:py-10">
           <div className="flex flex-col gap-5">
             <span className="w-fit rounded-full bg-accent/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-accent">{GYM.name}</span>
             <h1 className="font-display text-5xl font-bold uppercase leading-[0.95] tracking-tight sm:text-7xl">
@@ -86,8 +86,8 @@ export default async function RootPage() {
             </h1>
             <p className="max-w-md text-lg text-muted">Latihan terprogram bersama coach. Catat beban, kejar rekor pribadi, dan lihat progresmu naik dari minggu ke minggu.</p>
             <div className="flex flex-wrap items-center gap-3">
-              <a href={GYM.whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full bg-nav-bg px-6 py-3 font-semibold text-white hover:bg-black">
-                Mulai latihan <span aria-hidden className="flex h-6 w-6 items-center justify-center rounded-full bg-accent">→</span>
+              <a href={GYM.whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full bg-nav-bg px-6 py-3 font-semibold text-white hover:bg-black dark:bg-accent dark:hover:bg-accent/90">
+                Mulai latihan <span aria-hidden className="flex h-6 w-6 items-center justify-center rounded-full bg-accent dark:bg-white/20">→</span>
               </a>
               <a href="#paket" className="rounded-full px-5 py-3 font-semibold text-foreground ring-1 ring-border hover:bg-surface">
                 Lihat paket
@@ -106,7 +106,7 @@ export default async function RootPage() {
           </div>
 
           <div className="relative">
-            <PhotoSpot label="Member Olympus mengangkat beban" src="/web/hero.jpg" className="aspect-[4/5] w-full rounded-[2rem] shadow-overlay" />
+            <PhotoSpot label="Member Olympus mengangkat beban" src="/web/hero.jpg" className="aspect-[4/5] w-full rounded-[2rem] shadow-overlay md:aspect-auto md:h-[clamp(26rem,calc(100svh-8rem),40rem)]" />
             {/* Like the app's progress card */}
             <div className="absolute left-3 bottom-6 w-60 rounded-2xl bg-surface p-4 shadow-overlay ring-1 ring-border md:-left-10">
               <p className="text-xs font-semibold text-muted">Progres hari ini</p>
@@ -134,22 +134,39 @@ export default async function RootPage() {
       </section>
 
       {/* Why Olympus */}
-      <section className="relative z-10 mx-auto -mt-6 max-w-6xl px-4">
-        <div className="grid gap-6 rounded-3xl bg-nav-bg p-6 text-nav-foreground shadow-overlay sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            ["📋", "Program terarah", "Program mingguan dari coach, tampil di aplikasi dan layar kelas."],
-            ["🧑‍🏫", "Coach berpengalaman", "Teknik angkatan diawasi, beban disesuaikan kemampuanmu."],
-            ["📈", "Catat & pantau", "Set, beban, dan rekor pribadi tercatat otomatis di HP."],
-            ["🤝", "Komunitas solid", "Latihan bareng, rayakan setiap PR bersama di kelas."],
-          ].map(([icon, title, text]) => (
-            <div key={title} className="flex gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 text-xl">{icon}</span>
-              <div>
-                <p className="font-semibold">{title}</p>
-                <p className="mt-0.5 text-sm text-nav-muted">{text}</p>
+      <section id="kenapa" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-14 md:py-20">
+        <div className="grid gap-8 lg:grid-cols-[1fr_1.6fr] lg:gap-12">
+          <div className="flex flex-col gap-4">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">Kenapa Olympus?</p>
+            <h2 className="font-display text-3xl font-bold uppercase leading-tight sm:text-4xl">
+              Latihan yang terarah,
+              <br />
+              <span className="text-accent">suasana yang seru.</span>
+            </h2>
+            <p className="text-muted">
+              Di Olympus kamu tidak latihan sendirian dan tidak menebak-nebak. Coach menyusun programnya, mengawasi tekniknya, dan teman satu kelas ikut menyemangati
+              sampai kamu pecah rekor.
+            </p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/web/why.jpg" alt="Member Olympus berpose bersama setelah kelas" className="mt-2 hidden aspect-[4/3] w-full rounded-3xl object-cover shadow-overlay lg:block" />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {[
+              ["📋", "Program terarah", "Coach menyusun program mingguan: gerakan, set, dan target beban. Programnya tampil di aplikasi dan di layar kelas, jadi kamu tahu persis apa yang dikerjakan hari ini."],
+              ["🧑‍🏫", "Diawasi coach", "Teknik angkatanmu diperhatikan dari pemanasan sampai set terakhir. Beban dinaikkan pelan-pelan sesuai kemampuan, supaya kuat tanpa cedera."],
+              ["📈", "Progres kelihatan", "Setiap set dan beban tercatat di HP. Rekor pribadi muncul otomatis, dan kamu bisa lihat kekuatanmu naik dari minggu ke minggu."],
+              ["🎉", "Kelas yang seru", "Latihan bareng teman satu kelas, saling semangati, dan setiap PR dirayakan bersama di layar kelas. Capek, tapi pulangnya senyum."],
+            ].map(([icon, title, text], i) => (
+              <div key={title} className="flex flex-col gap-3 rounded-3xl bg-surface p-6 ring-1 ring-border">
+                <div className="flex items-center justify-between">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-2xl">{icon}</span>
+                  <span className="font-display text-3xl font-bold text-accent/25">0{i + 1}</span>
+                </div>
+                <p className="font-display text-xl font-bold uppercase">{title}</p>
+                <p className="text-sm leading-relaxed text-muted">{text}</p>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 

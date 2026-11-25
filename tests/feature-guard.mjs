@@ -165,6 +165,7 @@ const FEATURES = [
   ['Website publik: profil, paket & harga, lokasi, kontak (untuk Midtrans)', 'src/app/page.tsx', 'id="paket"'],
   ['Website publik: footer dengan S&K, refund, privasi', 'src/components/public/PublicShell.tsx', '/kebijakan-refund'],
   ['Website publik: hero, Kenapa Olympus, Pilih jalurmu, statistik, ajakan WA', 'src/app/page.tsx', 'Latihan sesuai tujuanmu'],
+  ['Website publik: section Kenapa Olympus (4 alasan + foto)', 'src/app/page.tsx', 'id="kenapa"'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);

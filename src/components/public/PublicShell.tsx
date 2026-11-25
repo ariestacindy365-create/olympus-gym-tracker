@@ -12,6 +12,9 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
             <OlympusLogo height={30} variant="light" />
           </Link>
           <nav className="flex items-center gap-1 text-sm font-semibold">
+            <Link href="/#kenapa" className="hidden rounded-lg px-3 py-2 text-nav-muted hover:text-nav-foreground sm:inline">
+              Kenapa Olympus
+            </Link>
             <Link href="/#paket" className="hidden rounded-lg px-3 py-2 text-nav-muted hover:text-nav-foreground sm:inline">
               Paket
             </Link>
