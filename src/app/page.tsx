@@ -139,23 +139,25 @@ export default async function RootPage() {
           <div className="flex flex-col gap-4">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">Kenapa Olympus?</p>
             <h2 className="font-display text-3xl font-bold uppercase leading-tight sm:text-4xl">
-              Latihan yang terarah,
+              Ramah untuk pemula,
               <br />
-              <span className="text-accent">suasana yang seru.</span>
+              <span className="text-accent">seru untuk semua.</span>
             </h2>
             <p className="text-muted">
-              Di Olympus kamu tidak latihan sendirian dan tidak menebak-nebak. Coach menyusun programnya, mengawasi tekniknya, dan teman satu kelas ikut menyemangati
-              sampai kamu pecah rekor.
+              Belum pernah angkat beban? Tidak apa-apa. Banyak member Olympus juga mulai dari nol. Coach menemani dari gerakan pertama, bebannya disesuaikan
+              kemampuanmu, dan teman satu kelas ikut menyemangati.
             </p>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/web/why.jpg" alt="Member Olympus berpose bersama setelah kelas" className="mt-2 hidden aspect-[4/3] w-full rounded-3xl object-cover shadow-overlay lg:block" />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             {[
-              ["📋", "Program terarah", "Coach menyusun program mingguan: gerakan, set, dan target beban. Programnya tampil di aplikasi dan di layar kelas, jadi kamu tahu persis apa yang dikerjakan hari ini."],
-              ["🧑‍🏫", "Diawasi coach", "Teknik angkatanmu diperhatikan dari pemanasan sampai set terakhir. Beban dinaikkan pelan-pelan sesuai kemampuan, supaya kuat tanpa cedera."],
-              ["📈", "Progres kelihatan", "Setiap set dan beban tercatat di HP. Rekor pribadi muncul otomatis, dan kamu bisa lihat kekuatanmu naik dari minggu ke minggu."],
-              ["🎉", "Kelas yang seru", "Latihan bareng teman satu kelas, saling semangati, dan setiap PR dirayakan bersama di layar kelas. Capek, tapi pulangnya senyum."],
+              ["🌱", "Mulai dari nol", "Coach mengajarkan gerakan dasar dari awal: cara berdiri, cara memegang beban, cara bernapas. Mulai dengan beban ringan dulu, tidak perlu langsung berat."],
+              ["🧑‍🏫", "Selalu diawasi coach", "Teknikmu diperhatikan dan dikoreksi langsung di setiap set. Beban dinaikkan pelan-pelan sesuai kemampuan, supaya kuat tanpa cedera."],
+              ["📋", "Tinggal ikuti program", "Tidak perlu bingung mau latihan apa. Coach sudah menyiapkan gerakan, set, dan bebannya, tampil di layar kelas dan di aplikasi."],
+              ["🤝", "Teman yang menyemangati", "Semua member pernah jadi pemula. Suasananya santai, tidak ada yang menghakimi, saling semangati, dan setiap PR dirayakan bersama."],
+              ["📈", "Progres kelihatan", "Setiap set dan beban tercatat di HP. Kamu bisa lihat sendiri kekuatanmu naik dari minggu ke minggu, jadi makin semangat datang."],
+              ["💬", "Boleh tanya dulu", "Masih ragu? Chat kami di WhatsApp untuk tanya paket dan jadwal yang paling pas untuk pemula sebelum mulai."],
             ].map(([icon, title, text], i) => (
               <div key={title} className="flex flex-col gap-3 rounded-3xl bg-surface p-6 ring-1 ring-border">
                 <div className="flex items-center justify-between">
