@@ -162,6 +162,9 @@ const FEATURES = [
   ['Kasir/Keuangan/Overview: hari & bulan dihitung jam WIB', 'src/lib/workout.ts', 'export const wibStart'],
   ['Hapus penjualan kasir: stok kembali sekali saja', 'src/app/api/sales/[saleId]/route.ts', 'marked.count === 0'],
   ['PR muncul di TV dalam ±4 detik (cek tiap 4 dtk + saat tab dibuka)', 'src/components/shared/PRCelebration.tsx', 'const POLL_MS = 4_000'],
+  ['Website publik: profil, paket & harga, lokasi, kontak (untuk Midtrans)', 'src/app/page.tsx', 'id="paket"'],
+  ['Website publik: footer dengan S&K, refund, privasi', 'src/components/public/PublicShell.tsx', '/kebijakan-refund'],
+  ['Website publik: hero, Kenapa Olympus, Pilih jalurmu, statistik, ajakan WA', 'src/app/page.tsx', 'Latihan sesuai tujuanmu'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
