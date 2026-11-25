@@ -164,7 +164,8 @@ const FEATURES = [
   ['PR muncul di TV dalam ±4 detik (cek tiap 4 dtk + saat tab dibuka)', 'src/components/shared/PRCelebration.tsx', 'const POLL_MS = 4_000'],
   ['Website publik: profil, paket & harga, lokasi, kontak (untuk Midtrans)', 'src/app/page.tsx', 'id="paket"'],
   ['Website publik: footer dengan S&K, refund, privasi', 'src/components/public/PublicShell.tsx', '/kebijakan-refund'],
-  ['Website publik: hero, Kenapa Olympus, Pilih jalurmu, statistik, ajakan WA', 'src/app/page.tsx', 'Latihan sesuai tujuanmu'],
+  ['Website publik: hero, Kenapa Olympus, Program, ajakan WA', 'src/app/page.tsx', 'Latihan sesuai tujuanmu'],
+  ['Website publik: section Kenapa Olympus (ramah pemula + foto)', 'src/app/page.tsx', 'id="kenapa"'],
   ['Tanggal hari ini (Jakarta) tidak bergantung format en-CA browser', 'src/lib/birthDate.ts', 'jakartaDateKey as jakartaToday'],
 ];
 for (const [name, file, marker] of FEATURES) {

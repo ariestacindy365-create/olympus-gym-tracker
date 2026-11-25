@@ -12,23 +12,20 @@ export const metadata: Metadata = {
   description: "Gym kelas bootcamp, lifting, dan personal training di Ogan Permata Indah, Banyuasin. Lihat paket membership, harga, lokasi, dan jam buka.",
 };
 
-/** A picture spot: the gym's own photos in public/web, over a gradient while loading. */
-function PhotoSpot({ label, src, tone = "blue", className = "" }: { label: string; src?: string; tone?: "blue" | "dark" | "sky"; className?: string }) {
-  const bg =
-    tone === "dark"
-      ? "from-[#0b1220] via-[#13245a] to-[#1d3f9a]"
-      : tone === "sky"
-        ? "from-[#dbeafe] via-[#bfdbfe] to-[#93c5fd]"
-        : "from-[#1e3a8a] via-[#2563eb] to-[#60a5fa]";
+/** A small blue label with a line in front, above a section heading. */
+function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <div className={`relative overflow-hidden bg-gradient-to-br ${bg} ${className}`} role="img" aria-label={label}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      {src && <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />}
-      <svg viewBox="0 0 120 120" className={`absolute inset-0 m-auto h-1/2 w-1/2 opacity-25 ${src ? "hidden" : ""}`} fill="none" stroke="white" strokeWidth="3" aria-hidden>
-        <path d="M18 60h84M28 46v28M38 40v40M82 40v40M92 46v28" strokeLinecap="round" />
-      </svg>
-    </div>
+    <p className="flex items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-accent">
+      <span aria-hidden className="h-0.5 w-8 bg-accent" />
+      {children}
+    </p>
   );
+}
+
+/** A real photo from the gym (public/web), with a soft background while it loads. */
+function Photo({ src, alt, className = "" }: { src: string; alt: string; className?: string }) {
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt={alt} className={`bg-surface-2 object-cover ${className}`} />;
 }
 
 // Signed-in people go to their dashboard; everyone else sees the gym's
@@ -64,189 +61,147 @@ export default async function RootPage() {
     return items?.length ? Math.min(...items.map((p) => p.price)) : null;
   };
 
-  const paths: { title: string; text: string; group: string; photo: string; src: string }[] = [
-    { title: "Bootcamp Class", text: "Kelas berkelompok, program mingguan dari coach.", group: "Bootcamp Class", photo: "Kelas bootcamp", src: "/web/bootcamp.jpg" },
-    { title: "Private Training", text: "1 on 1 bareng coach, program khusus untukmu.", group: "Private Training", photo: "Latihan privat", src: "/web/private.jpg" },
-    { title: "Couple Training", text: "Latihan berdua dengan satu coach.", group: "Couple Training", photo: "Latihan berdua", src: "/web/couple.jpg" },
-    { title: "Private Group", text: "Kelas privat untuk grup hingga 5 orang.", group: "Private Group Class", photo: "Grup privat", src: "/web/group.jpg" },
+  const paths: { title: string; text: string; group: string; src: string; alt: string }[] = [
+    { title: "Bootcamp Class", text: "Kelas berkelompok dengan program mingguan dari coach. Cocok untuk mulai.", group: "Bootcamp Class", src: "/web/bootcamp.jpg", alt: "Member Olympus di kelas bootcamp" },
+    { title: "Private Training", text: "Satu coach untuk kamu sendiri, program disusun sesuai tujuanmu.", group: "Private Training", src: "/web/private.jpg", alt: "Coach membimbing member saat private training" },
+    { title: "Couple Training", text: "Latihan berdua dengan satu coach. Untuk pasangan, teman, atau saudara.", group: "Couple Training", src: "/web/couple.jpg", alt: "Dua member Olympus setelah latihan" },
+    { title: "Private Group", text: "Kelas privat untuk grup sampai 5 orang, jadwal menyesuaikan grupmu.", group: "Private Group Class", src: "/web/group.jpg", alt: "Satu kelas Olympus berpose bersama" },
   ];
+
+  const reasons: [string, string][] = [
+    ["Mulai dari nol", "Coach mengajarkan gerakan dasar dari awal: cara berdiri, cara memegang beban, cara bernapas. Mulai dengan beban ringan dulu."],
+    ["Selalu diawasi coach", "Teknikmu diperhatikan dan dikoreksi langsung di setiap set. Beban naik pelan-pelan sesuai kemampuan, supaya kuat tanpa cedera."],
+    ["Tinggal ikuti program", "Tidak perlu bingung mau latihan apa. Gerakan, set, dan bebannya sudah disiapkan coach, tampil di layar kelas dan di aplikasi."],
+    ["Teman yang menyemangati", "Semua member pernah jadi pemula. Suasananya santai, saling semangati, dan setiap rekor baru dirayakan bersama."],
+    ["Progres kelihatan", "Setiap set dan beban tercatat di HP, jadi kamu bisa lihat sendiri kekuatanmu naik dari minggu ke minggu."],
+    ["Boleh tanya dulu", "Masih ragu? Chat kami di WhatsApp untuk tanya paket dan jadwal yang paling pas sebelum mulai."],
+  ];
+  const h2 = "mt-3 text-3xl leading-tight sm:text-5xl";
 
   return (
     <PublicShell>
       {/* Hero */}
-      <section className="relative overflow-hidden bg-[#f3f6fb] dark:bg-background">
-        <div aria-hidden className="absolute -right-40 -top-40 h-[34rem] w-[34rem] rounded-full bg-[#bfdbfe]/60 blur-3xl dark:bg-[#1d3f9a]/40" />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 md:grid-cols-2 md:py-20">
-          <div className="flex flex-col gap-5">
-            <span className="w-fit rounded-full bg-accent/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-accent">{GYM.name}</span>
-            <h1 className="font-display text-5xl font-bold uppercase leading-[0.95] tracking-tight sm:text-7xl">
-              Lebih kuat
-              <br />
-              <span className="text-accent">setiap hari.</span>
-            </h1>
-            <p className="max-w-md text-lg text-muted">Latihan terprogram bersama coach. Catat beban, kejar rekor pribadi, dan lihat progresmu naik dari minggu ke minggu.</p>
-            <div className="flex flex-wrap items-center gap-3">
-              <a href={GYM.whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full bg-nav-bg px-6 py-3 font-semibold text-white hover:bg-black">
-                Mulai latihan <span aria-hidden className="flex h-6 w-6 items-center justify-center rounded-full bg-accent">→</span>
-              </a>
-              <a href="#paket" className="rounded-full px-5 py-3 font-semibold text-foreground ring-1 ring-border hover:bg-surface">
-                Lihat paket
-              </a>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex -space-x-2" aria-hidden>
-                {["#2563eb", "#0ea5e9", "#1e3a8a", "#60a5fa"].map((c) => (
-                  <span key={c} className="h-9 w-9 rounded-full border-2 border-[#f3f6fb] dark:border-background" style={{ background: c }} />
-                ))}
-              </div>
-              <p className="text-sm text-muted">
-                <b className="text-foreground">150+ member</b> sudah latihan bareng Olympus
-              </p>
-            </div>
+      <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 md:grid-cols-[1.05fr_1fr] md:py-16">
+        <div className="flex flex-col gap-5">
+          <Eyebrow>{GYM.name} · Banyuasin</Eyebrow>
+          <h1 className="text-5xl leading-[1.02] sm:text-7xl">
+            Olahraga
+            <br />
+            <span className="text-accent">jadi seru.</span>
+          </h1>
+          <span aria-hidden className="-mt-1 h-1.5 w-40 rounded-full bg-accent/25 sm:w-72" />
+          <p className="max-w-md text-lg leading-relaxed text-muted">
+            Kelas lifting dan bootcamp yang ramah untuk pemula. Latihan terprogram bersama coach, ditemani teman satu kelas, dan progresmu tercatat di HP.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <a href={GYM.whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-md bg-accent px-5 py-3 font-semibold text-white hover:bg-accent-2">
+              Tanya lewat WhatsApp <span aria-hidden>↗</span>
+            </a>
+            <a href="#paket" className="rounded-md border border-border px-5 py-3 font-semibold hover:border-accent hover:text-accent">
+              Lihat paket &amp; harga
+            </a>
           </div>
-
-          <div className="relative">
-            <PhotoSpot label="Member Olympus mengangkat beban" src="/web/hero.jpg" className="aspect-[4/5] w-full rounded-[2rem] shadow-overlay" />
-            {/* Like the app's progress card */}
-            <div className="absolute left-3 bottom-6 w-60 rounded-2xl bg-surface p-4 shadow-overlay ring-1 ring-border md:-left-10">
-              <p className="text-xs font-semibold text-muted">Progres hari ini</p>
-              <div className="mt-2 flex items-center gap-3">
-                <div className="relative h-16 w-16 shrink-0">
-                  <svg viewBox="0 0 36 36" className="h-16 w-16 -rotate-90" aria-hidden>
-                    <circle cx="18" cy="18" r="15.5" fill="none" stroke="currentColor" strokeOpacity="0.12" strokeWidth="4" />
-                    <circle cx="18" cy="18" r="15.5" fill="none" stroke="#2563eb" strokeWidth="4" strokeDasharray="97.4" strokeDashoffset="21.4" strokeLinecap="round" />
-                  </svg>
-                  <span className="absolute inset-0 flex items-center justify-center font-display text-lg font-bold">78%</span>
-                </div>
-                <div className="text-xs">
-                  <p className="font-semibold">6 / 8 set</p>
-                  <p className="text-muted">Lower Body</p>
-                </div>
-              </div>
-              <ul className="mt-3 flex flex-col gap-1.5 text-xs">
-                <li className="flex justify-between"><span>🏆 Back Squat</span><b>100 kg × 5</b></li>
-                <li className="flex justify-between"><span>🏋️ Volume</span><b>2.960 kg</b></li>
-                <li className="flex justify-between"><span>🔥 Streak</span><b>5 hari</b></li>
-              </ul>
-            </div>
-          </div>
+          <p className="text-sm text-muted">{GYM.hours}</p>
         </div>
+        <Photo src="/web/hero.jpg" alt="Coach Olympus membimbing member yang tertawa saat latihan" className="aspect-[4/5] w-full rounded-[1.5rem] rounded-tl-[6rem] md:aspect-auto md:h-[clamp(24rem,calc(100svh-9rem),36rem)] md:rounded-[2rem] md:rounded-tl-[9rem]" />
       </section>
 
       {/* Why Olympus */}
-      <section className="relative z-10 mx-auto -mt-6 max-w-6xl px-4">
-        <div className="grid gap-6 rounded-3xl bg-nav-bg p-6 text-nav-foreground shadow-overlay sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            ["📋", "Program terarah", "Program mingguan dari coach, tampil di aplikasi dan layar kelas."],
-            ["🧑‍🏫", "Coach berpengalaman", "Teknik angkatan diawasi, beban disesuaikan kemampuanmu."],
-            ["📈", "Catat & pantau", "Set, beban, dan rekor pribadi tercatat otomatis di HP."],
-            ["🤝", "Komunitas solid", "Latihan bareng, rayakan setiap PR bersama di kelas."],
-          ].map(([icon, title, text]) => (
-            <div key={title} className="flex gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 text-xl">{icon}</span>
-              <div>
-                <p className="font-semibold">{title}</p>
-                <p className="mt-0.5 text-sm text-nav-muted">{text}</p>
-              </div>
+      <section id="kenapa" className="scroll-mt-20 border-t border-border">
+        <div className="mx-auto max-w-6xl px-4 py-14 md:py-20">
+          <div className="grid gap-8 md:grid-cols-2 md:items-end">
+            <div>
+              <Eyebrow>Kenapa Olympus</Eyebrow>
+              <h2 className={h2}>Ramah untuk pemula, seru untuk semua.</h2>
             </div>
-          ))}
+            <p className="leading-relaxed text-muted">
+              Belum pernah angkat beban? Tidak apa-apa. Banyak member Olympus juga mulai dari nol. Coach menemani dari gerakan pertama, bebannya disesuaikan
+              kemampuanmu, dan teman satu kelas ikut menyemangati.
+            </p>
+          </div>
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {reasons.map(([title, text]) => (
+              <div key={title} className="rounded-xl border border-border bg-surface p-5">
+                <h3 className="text-lg">{title}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted">{text}</p>
+              </div>
+            ))}
+          </div>
+          <Photo src="/web/why.jpg" alt="Member Olympus berpose bersama setelah kelas" className="mt-12 aspect-[16/9] w-full rounded-[1.5rem] rounded-br-[6rem] sm:aspect-[21/9]" />
         </div>
       </section>
 
       {/* Choose your path */}
-      <section className="mx-auto max-w-6xl px-4 py-14">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">Pilih jalurmu</p>
-        <h2 className="mt-1 font-display text-3xl font-bold uppercase sm:text-4xl">Latihan sesuai tujuanmu</h2>
-        <div className="mt-6 grid gap-4 lg:grid-cols-[2fr_1fr]">
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <section id="program" className="scroll-mt-20 border-t border-border">
+        <div className="mx-auto max-w-6xl px-4 py-14 md:py-20">
+          <Eyebrow>Program</Eyebrow>
+          <h2 className={h2}>Latihan sesuai tujuanmu</h2>
+          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {paths.map((p) => {
               const price = from(p.group);
               return (
-                <a key={p.title} href="#paket" className="group overflow-hidden rounded-2xl bg-surface shadow-card ring-1 ring-border transition hover:-translate-y-0.5">
-                  <PhotoSpot label={p.photo} src={p.src} tone="sky" className="aspect-[4/3] w-full" />
-                  <div className="p-3">
-                    <p className="font-semibold">{p.title}</p>
-                    <p className="mt-0.5 text-xs text-muted">{p.text}</p>
-                    {price != null && <p className="mt-2 text-xs font-bold text-accent">mulai {formatRupiah(price)}</p>}
+                <a key={p.title} href="#paket" className="group flex flex-col gap-3">
+                  <Photo src={p.src} alt={p.alt} className="aspect-[4/3] w-full rounded-xl transition group-hover:opacity-90" />
+                  <div>
+                    <h3 className="text-lg group-hover:text-accent">{p.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-muted">{p.text}</p>
+                    {price != null && <p className="mt-2 text-sm font-semibold">Mulai {formatRupiah(price)}</p>}
                   </div>
                 </a>
               );
             })}
           </div>
-          <div className="relative min-h-64 overflow-hidden rounded-2xl">
-            <PhotoSpot label="Suasana latihan di kelas" src="/web/video.jpg" tone="dark" className="absolute inset-0" />
-            <div aria-hidden className="absolute inset-0 bg-gradient-to-r from-[#0b1220]/85 via-[#0b1220]/40 to-transparent" />
-            <div className="relative flex h-full flex-col justify-between p-5 text-white">
-              <p className="font-display text-3xl font-bold uppercase leading-tight">
-                Badan kuat.
-                <br />
-                Pikiran tajam.
-                <br />
-                Hidup lebih baik.
-              </p>
-              <div className="flex items-center justify-between">
-                <p className="max-w-[12rem] text-sm text-white/80">Lihat suasana kelas Olympus di Instagram.</p>
-                <a href={GYM.instagramUrl} target="_blank" rel="noreferrer" aria-label="Instagram Olympus" className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-nav-bg">
-                  ▶
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Results */}
-      <section className="mx-auto max-w-6xl px-4 pb-14">
-        <div className="grid grid-cols-2 gap-6 rounded-3xl bg-surface p-6 shadow-card ring-1 ring-border sm:grid-cols-[1.2fr_repeat(4,1fr)] sm:items-center">
-          <p className="col-span-2 font-display text-2xl font-bold uppercase leading-tight sm:col-span-1">
-            Hasil yang
-            <br />
-            <span className="text-accent">bicara sendiri</span>
-          </p>
-          {[
-            ["150+", "Member aktif"],
-            ["2.000+", "Rekor pribadi tercatat"],
-            ["6 hari", "Kelas setiap minggu"],
-            ["4,9/5", "Rating member"],
-          ].map(([n, l]) => (
-            <div key={l}>
-              <p className="font-display text-3xl font-bold">{n}</p>
-              <p className="text-sm text-muted">{l}</p>
-            </div>
-          ))}
+          <a href={GYM.instagramUrl} target="_blank" rel="noreferrer" className="mt-8 inline-block text-sm font-semibold text-accent hover:underline">
+            Lihat suasana kelas di Instagram {GYM.instagram} →
+          </a>
         </div>
       </section>
 
       {/* Packages & prices */}
-      <section id="paket" className="scroll-mt-20 bg-[#f3f6fb] dark:bg-surface-2">
-        <div className="mx-auto max-w-6xl px-4 py-14">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">Paket & harga</p>
-          <h2 className="mt-1 font-display text-3xl font-bold uppercase sm:text-4xl">Pilih paketmu</h2>
-          <p className="mt-1 text-sm text-muted">Harga dalam Rupiah. Paket aktif setelah pembayaran dikonfirmasi.</p>
+      <section id="paket" className="scroll-mt-20 border-t border-border bg-surface-2">
+        <div className="mx-auto max-w-6xl px-4 py-14 md:py-20">
+          <Eyebrow>Paket &amp; harga</Eyebrow>
+          <h2 className={h2}>Pilih paketmu</h2>
+          <p className="mt-2 text-muted">Harga dalam Rupiah. Paket aktif setelah pembayaran dikonfirmasi.</p>
           {packages.length === 0 && <p className="mt-6 text-muted">Daftar paket sedang diperbarui. Hubungi kami lewat WhatsApp untuk info harga.</p>}
-          {[...groups.entries()].map(([group, items]) => (
-            <div key={group} className="mt-8">
-              <h3 className="font-display text-xl font-bold">{group}</h3>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {items.map((p) => {
-                  const duration = packageDuration(p);
-                  return (
-                    <div key={p.id} className="flex flex-col gap-1 rounded-2xl bg-surface p-5 shadow-card ring-1 ring-border">
-                      <p className="font-semibold">{p.name}</p>
-                      <p className="font-display text-3xl font-bold text-accent">{formatRupiah(p.price)}</p>
-                      <p className="text-sm text-muted">
-                        {[p.credits != null ? `${p.credits} sesi` : p.kind ? "Sesi tidak terbatas" : null, duration ? `berlaku ${duration}` : null].filter(Boolean).join(" · ")}
-                      </p>
-                      {p.fineprint && <p className="text-xs text-muted">{p.fineprint}</p>}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-          <div className="mt-10 rounded-2xl bg-surface p-5 ring-1 ring-border">
-            <h3 className="font-display text-xl font-bold">Cara membeli</h3>
-            <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-foreground/90">
+          {/* One dropdown per program: tap the name to see its prices. */}
+          <div className="mt-8 flex flex-col gap-3">
+            {[...groups.entries()].map(([group, items]) => (
+              <details key={group} className="group rounded-xl border border-border bg-surface open:shadow-card">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-xl px-5 py-4 hover:bg-surface-2/60 [&::-webkit-details-marker]:hidden">
+                  <span>
+                    <span className="block text-lg font-bold tracking-tight">{group}</span>
+                    <span className="text-sm text-muted">
+                      {items.length} paket · mulai <b className="text-accent">{formatRupiah(Math.min(...items.map((p) => p.price)))}</b>
+                    </span>
+                  </span>
+                  <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-accent transition group-open:rotate-180">
+                    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="m5 8 5 5 5-5" />
+                    </svg>
+                  </span>
+                </summary>
+                <div className="grid gap-3 border-t border-border p-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {items.map((p) => {
+                    const duration = packageDuration(p);
+                    return (
+                      <div key={p.id} className="flex flex-col gap-1 rounded-lg bg-surface-2 p-4">
+                        <p className="font-medium">{p.name}</p>
+                        <p className="text-2xl font-bold text-accent">{formatRupiah(p.price)}</p>
+                        <p className="text-sm text-muted">
+                          {[p.credits != null ? `${p.credits} sesi` : p.kind ? "Sesi tidak terbatas" : null, duration ? `berlaku ${duration}` : null].filter(Boolean).join(" · ")}
+                        </p>
+                        {p.fineprint && <p className="text-xs text-muted">{p.fineprint}</p>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </details>
+            ))}
+          </div>
+          <div className="mt-12 rounded-xl border border-border bg-surface p-6">
+            <h3 className="text-xl">Cara membeli</h3>
+            <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm leading-relaxed">
               <li>Buat akun member di aplikasi Olympus (tombol &quot;Masuk member&quot; → &quot;Buat akun member&quot;).</li>
               <li>Pilih paket di menu Paket, lalu bayar dengan QRIS (semua e-wallet &amp; m-banking), virtual account bank, atau transfer bank.</li>
               <li>Paket aktif otomatis setelah pembayaran QRIS / virtual account berhasil; transfer manual aktif setelah diverifikasi admin.</li>
@@ -256,40 +211,29 @@ export default async function RootPage() {
         </div>
       </section>
 
-      {/* Call to action */}
-      <section className="mx-auto max-w-6xl px-4 py-14">
-        <div className="flex flex-col items-start justify-between gap-5 rounded-3xl bg-accent p-8 text-white shadow-overlay sm:flex-row sm:items-center [background-image:radial-gradient(30rem_12rem_at_100%_0%,rgb(255_255_255/0.18),transparent)]">
-          <div>
-            <p className="font-display text-3xl font-bold uppercase leading-tight">Transformasimu mulai hari ini</p>
-            <p className="mt-1 text-white/85">Datang coba kelas, atau tanya dulu lewat WhatsApp.</p>
-          </div>
-          <a href={GYM.whatsappUrl} target="_blank" rel="noreferrer" className="shrink-0 rounded-full bg-white px-6 py-3 font-semibold text-accent hover:bg-white/90">
-            Chat WhatsApp →
-          </a>
-        </div>
-      </section>
-
       {/* Location & contact */}
-      <section id="lokasi" className="mx-auto grid max-w-6xl scroll-mt-20 gap-6 px-4 pb-14 sm:grid-cols-2">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">Lokasi</p>
-          <h2 className="mt-1 font-display text-3xl font-bold uppercase">Lokasi &amp; jam buka</h2>
-          <p className="mt-3">{GYM.address}</p>
-          <a href={GYM.mapsUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block font-semibold text-accent hover:underline">
-            Buka di Google Maps →
-          </a>
-          <p className="mt-4 font-semibold">{GYM.hours}</p>
-          <p className="text-sm text-muted">{GYM.closed}</p>
-        </div>
-        <div className="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-card ring-1 ring-border">
-          <h2 className="font-display text-2xl font-bold">Hubungi kami</h2>
-          <a href={GYM.whatsappUrl} target="_blank" rel="noreferrer" className="rounded-xl bg-[#22c55e] px-4 py-3 text-center font-semibold text-white hover:brightness-110">
-            WhatsApp {GYM.whatsapp}
-          </a>
-          <a href={GYM.instagramUrl} target="_blank" rel="noreferrer" className="rounded-xl px-4 py-3 text-center font-semibold ring-1 ring-border hover:bg-surface-2">
-            Instagram {GYM.instagram}
-          </a>
-          <p className="text-xs text-muted">Pertanyaan soal paket, pembayaran, atau refund: hubungi WhatsApp di atas pada jam buka.</p>
+      <section id="lokasi" className="scroll-mt-20 border-t border-border">
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:grid-cols-2 md:py-20">
+          <div>
+            <Eyebrow>Lokasi</Eyebrow>
+            <h2 className={h2}>Lokasi &amp; jam buka</h2>
+            <p className="mt-4 leading-relaxed">{GYM.address}</p>
+            <a href={GYM.mapsUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block font-semibold text-accent hover:underline">
+              Buka di Google Maps →
+            </a>
+            <p className="mt-6 font-semibold">{GYM.hours}</p>
+            <p className="text-sm text-muted">{GYM.closed}</p>
+          </div>
+          <div className="flex flex-col justify-center gap-3 rounded-[1.5rem] rounded-tl-[4rem] bg-accent/[0.07] p-8">
+            <h2 className="text-2xl">Masih ragu? Tanya dulu.</h2>
+            <p className="text-muted">Soal paket, jadwal kelas, pembayaran, atau refund, chat kami di jam buka.</p>
+            <a href={GYM.whatsappUrl} target="_blank" rel="noreferrer" className="mt-2 rounded-md bg-accent px-4 py-3 text-center font-semibold text-white hover:bg-accent-2">
+              WhatsApp {GYM.whatsapp}
+            </a>
+            <a href={GYM.instagramUrl} target="_blank" rel="noreferrer" className="rounded-md border border-border bg-surface px-4 py-3 text-center font-semibold hover:border-accent hover:text-accent">
+              Instagram {GYM.instagram}
+            </a>
+          </div>
         </div>
       </section>
     </PublicShell>
