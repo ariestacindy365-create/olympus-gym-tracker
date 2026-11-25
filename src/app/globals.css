@@ -151,3 +151,25 @@ h1, h2, h3, h4, .font-display {
   size: 58mm 2000mm;
   margin: 2mm;
 }
+
+/* The public website stays white with a blue accent, whatever the
+   visitor's dark-mode setting, and uses plain sentence-case headings. */
+.site-light {
+  color-scheme: light;
+  --background: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f6f8fb;
+  --border: #e5e9f0;
+  --border-strong: #cbd5e1;
+  --foreground: #0f172a;
+  --muted: #5b6678;
+  background: var(--background);
+  color: var(--foreground);
+}
+.site-light h1,
+.site-light h2,
+.site-light h3,
+.site-light h4 {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
