@@ -25,9 +25,9 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
             <Link href="/#lokasi" className={link}>
               Lokasi
             </Link>
-            <Link href="/login" className="ml-2 inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2.5 font-semibold text-white hover:bg-accent-2">
-              Masuk member <span aria-hidden>↗</span>
-            </Link>
+            <a href={GYM.whatsappUrl} target="_blank" rel="noreferrer" className="ml-2 inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2.5 font-semibold text-white hover:bg-accent-2">
+              Chat WhatsApp <span aria-hidden>↗</span>
+            </a>
           </nav>
         </div>
       </header>
