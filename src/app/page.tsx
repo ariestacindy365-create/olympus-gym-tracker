@@ -80,9 +80,9 @@ export default async function RootPage() {
           <div className="flex flex-col gap-5">
             <span className="w-fit rounded-full bg-accent/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-accent">{GYM.name}</span>
             <h1 className="font-display text-5xl font-bold uppercase leading-[0.95] tracking-tight sm:text-7xl">
-              Lebih kuat
+              Olahraga
               <br />
-              <span className="text-accent">setiap hari.</span>
+              <span className="text-accent">jadi seru.</span>
             </h1>
             <p className="max-w-md text-lg text-muted">Latihan terprogram bersama coach. Catat beban, kejar rekor pribadi, dan lihat progresmu naik dari minggu ke minggu.</p>
             <div className="flex flex-wrap items-center gap-3">
