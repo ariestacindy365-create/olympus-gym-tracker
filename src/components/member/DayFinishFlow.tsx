@@ -14,6 +14,7 @@ import { formatDuration } from "@/lib/duration";
 import { estimateCalories, foodEquivalent } from "@/lib/calories";
 import { CalorieShareModal } from "@/components/member/CalorieShareModal";
 import { formatAmount } from "@/lib/setUnits";
+import { jakartaDateKey } from "@/lib/jakartaDate";
 
 type Visibility = "ALL" | "COACH" | "PRIVATE";
 
@@ -36,13 +37,13 @@ interface Totals {
 
 /** "Sabtu, 14 November 2026" for "YYYY-MM-DD" (or today in Jakarta). */
 function dayLabel(date: string | null) {
-  const ymd = date ?? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
+  const ymd = date ?? jakartaDateKey();
   return new Date(`${ymd}T00:00:00Z`).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 }
 
 /** 0 = Monday … 6 = Sunday, for "YYYY-MM-DD" (or today in Jakarta). */
 function weekdayIndex(date: string | null) {
-  const ymd = date ?? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
+  const ymd = date ?? jakartaDateKey();
   return (new Date(`${ymd}T00:00:00Z`).getUTCDay() + 6) % 7;
 }
 

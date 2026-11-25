@@ -1,4 +1,5 @@
 // Durable when localStorage works; otherwise kept in memory with an explicit warning.
+import { jakartaDateKey } from "@/lib/jakartaDate";
 const KEY = "olympus-pending-sets";
 export interface PendingSet {
   owner: string;
@@ -57,5 +58,5 @@ export function downloadPending(owner: string, date: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 export function jakartaToday() {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
+  return jakartaDateKey();
 }

@@ -19,6 +19,7 @@ import { mainMuscles, muscleLoad, muscleLevels, type MuscleKey } from "@/lib/mus
 import type { TodayPlan } from "@/lib/todayPlan";
 import { CLASS_COOKIE } from "@/lib/classCookie";
 import { getPendingStorageError, downloadPending, addPending, jakartaToday, loadPending, removePending, type PendingSet } from "@/lib/pendingSets";
+import { jakartaDateKey } from "@/lib/jakartaDate";
 
 export interface LoggedSet {
   id: string;
@@ -358,7 +359,7 @@ export function TodayWorkoutPlan({
                     return;
                   }
                   // Remembered for today only; the server reads it on refresh.
-                  const day = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
+                  const day = jakartaDateKey();
                   document.cookie = `${CLASS_COOKIE}=${encodeURIComponent(`${day}|${e.target.value}`)}; path=/; max-age=86400; samesite=lax`;
                   router.refresh();
                 }}
