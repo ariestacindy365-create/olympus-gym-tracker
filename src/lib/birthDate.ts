@@ -30,4 +30,4 @@ export function daysInMonth(year: number, month: number) {
   return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
-export const jakartaToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
+export { jakartaDateKey as jakartaToday } from "@/lib/jakartaDate";

@@ -166,6 +166,7 @@ const FEATURES = [
   ['Website publik: footer dengan S&K, refund, privasi', 'src/components/public/PublicShell.tsx', '/kebijakan-refund'],
   ['Website publik: hero, Kenapa Olympus, Pilih jalurmu, statistik, ajakan WA', 'src/app/page.tsx', 'Latihan sesuai tujuanmu'],
   ['Website publik: section Kenapa Olympus (4 alasan + foto)', 'src/app/page.tsx', 'id="kenapa"'],
+  ['Tanggal hari ini (Jakarta) tidak bergantung format en-CA browser', 'src/lib/birthDate.ts', 'jakartaDateKey as jakartaToday'],
 ];
 for (const [name, file, marker] of FEATURES) {
   const path = join(root, file);
@@ -415,6 +416,19 @@ check('Slide menulis gerakan tahan dalam detik', () => {
   assert.equal(formatRepTarget('45', 'Plank'), '45"');
   assert.equal(formatRepTarget('8', 'Back Squat'), '8 reps');
   assert.equal(formatRepTarget('10 reps each', 'Lunge'), '10 reps each');
+});
+
+const { jakartaDateKey } = await load('src/lib/jakartaDate.ts');
+check('Tanggal Jakarta selalu YYYY-MM-DD (tahun lahir tidak NaN)', () => {
+  assert.equal(jakartaDateKey(new Date('2026-11-25T16:59:00Z')), '2026-11-25');
+  assert.equal(jakartaDateKey(new Date('2026-11-25T17:00:00Z')), '2026-11-26');
+  const Real = Intl.DateTimeFormat;
+  try {
+    Intl.DateTimeFormat = function () { throw new RangeError('no tz'); };
+    assert.equal(jakartaDateKey(new Date('2026-12-31T18:00:00Z')), '2027-01-01');
+  } finally {
+    Intl.DateTimeFormat = Real;
+  }
 });
 
 if (failures.length) {
