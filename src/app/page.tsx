@@ -164,26 +164,41 @@ export default async function RootPage() {
           <h2 className={h2}>Pilih paketmu</h2>
           <p className="mt-2 text-muted">Harga dalam Rupiah. Paket aktif setelah pembayaran dikonfirmasi.</p>
           {packages.length === 0 && <p className="mt-6 text-muted">Daftar paket sedang diperbarui. Hubungi kami lewat WhatsApp untuk info harga.</p>}
-          {[...groups.entries()].map(([group, items]) => (
-            <div key={group} className="mt-10">
-              <h3 className="text-xl">{group}</h3>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {items.map((p) => {
-                  const duration = packageDuration(p);
-                  return (
-                    <div key={p.id} className="flex flex-col gap-1 rounded-lg border border-border bg-white p-5">
-                      <p className="font-medium">{p.name}</p>
-                      <p className="text-2xl font-bold text-accent">{formatRupiah(p.price)}</p>
-                      <p className="text-sm text-muted">
-                        {[p.credits != null ? `${p.credits} sesi` : p.kind ? "Sesi tidak terbatas" : null, duration ? `berlaku ${duration}` : null].filter(Boolean).join(" · ")}
-                      </p>
-                      {p.fineprint && <p className="text-xs text-muted">{p.fineprint}</p>}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+          {/* One dropdown per program: tap the name to see its prices. */}
+          <div className="mt-8 flex flex-col gap-3">
+            {[...groups.entries()].map(([group, items]) => (
+              <details key={group} className="group rounded-xl border border-border bg-surface open:shadow-card">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-xl px-5 py-4 hover:bg-surface-2/60 [&::-webkit-details-marker]:hidden">
+                  <span>
+                    <span className="block text-lg font-bold tracking-tight">{group}</span>
+                    <span className="text-sm text-muted">
+                      {items.length} paket · mulai <b className="text-accent">{formatRupiah(Math.min(...items.map((p) => p.price)))}</b>
+                    </span>
+                  </span>
+                  <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-accent transition group-open:rotate-180">
+                    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="m5 8 5 5 5-5" />
+                    </svg>
+                  </span>
+                </summary>
+                <div className="grid gap-3 border-t border-border p-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {items.map((p) => {
+                    const duration = packageDuration(p);
+                    return (
+                      <div key={p.id} className="flex flex-col gap-1 rounded-lg bg-surface-2 p-4">
+                        <p className="font-medium">{p.name}</p>
+                        <p className="text-2xl font-bold text-accent">{formatRupiah(p.price)}</p>
+                        <p className="text-sm text-muted">
+                          {[p.credits != null ? `${p.credits} sesi` : p.kind ? "Sesi tidak terbatas" : null, duration ? `berlaku ${duration}` : null].filter(Boolean).join(" · ")}
+                        </p>
+                        {p.fineprint && <p className="text-xs text-muted">{p.fineprint}</p>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </details>
+            ))}
+          </div>
           <div className="mt-12 rounded-xl border border-border bg-surface p-6">
             <h3 className="text-xl">Cara membeli</h3>
             <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm leading-relaxed">
