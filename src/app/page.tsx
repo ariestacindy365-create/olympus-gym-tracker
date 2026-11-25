@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: "Gym kelas bootcamp, lifting, dan personal training di Ogan Permata Indah, Banyuasin. Lihat paket membership, harga, lokasi, dan jam buka.",
 };
 
-/** A picture spot: for now a sample picture (public/web), to be swapped for the gym's own photos. */
+/** A picture spot: the gym's own photos in public/web, over a gradient while loading. */
 function PhotoSpot({ label, src, tone = "blue", className = "" }: { label: string; src?: string; tone?: "blue" | "dark" | "sky"; className?: string }) {
   const bg =
     tone === "dark"
@@ -27,7 +27,6 @@ function PhotoSpot({ label, src, tone = "blue", className = "" }: { label: strin
       <svg viewBox="0 0 120 120" className={`absolute inset-0 m-auto h-1/2 w-1/2 opacity-25 ${src ? "hidden" : ""}`} fill="none" stroke="white" strokeWidth="3" aria-hidden>
         <path d="M18 60h84M28 46v28M38 40v40M82 40v40M92 46v28" strokeLinecap="round" />
       </svg>
-      <span className="absolute bottom-3 right-3 rounded-full bg-black/35 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur">Gambar contoh</span>
     </div>
   );
 }
