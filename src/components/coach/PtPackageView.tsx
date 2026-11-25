@@ -10,6 +10,7 @@ import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { MovementCombobox, type MovementOption } from "@/components/coach/MovementCombobox";
 import { MemberSearch } from "@/components/coach/PtManager";
 import { isClosedDay, scheduleLabel } from "@/lib/ptSession";
+import { jakartaDateKey } from "@/lib/jakartaDate";
 
 interface SlotDraft {
   slotLabel: string;
@@ -189,7 +190,7 @@ export function PtPackageView({
 
   const nextUp = sessions.find((s) => !s.heldOn && s.slots.length > 0)?.number ?? null;
   // Today in Jakarta as YYYY-MM-DD, to flag a scheduled day that has passed.
-  const todayKey = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
+  const todayKey = jakartaDateKey();
 
   return (
     <div className="flex flex-col gap-4">
