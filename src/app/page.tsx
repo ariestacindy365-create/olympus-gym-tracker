@@ -12,6 +12,16 @@ export const metadata: Metadata = {
   description: "Gym kelas bootcamp, lifting, dan personal training di Ogan Permata Indah, Banyuasin. Lihat paket membership, harga, lokasi, dan jam buka.",
 };
 
+/** A small blue label with a line in front, above a section heading. */
+function Eyebrow({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="flex items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-accent">
+      <span aria-hidden className="h-0.5 w-8 bg-accent" />
+      {children}
+    </p>
+  );
+}
+
 /** A real photo from the gym (public/web), with a soft background while it loads. */
 function Photo({ src, alt, className = "" }: { src: string; alt: string; className?: string }) {
   // eslint-disable-next-line @next/next/no-img-element
@@ -66,24 +76,26 @@ export default async function RootPage() {
     ["Progres kelihatan", "Setiap set dan beban tercatat di HP, jadi kamu bisa lihat sendiri kekuatanmu naik dari minggu ke minggu."],
     ["Boleh tanya dulu", "Masih ragu? Chat kami di WhatsApp untuk tanya paket dan jadwal yang paling pas sebelum mulai."],
   ];
-  const label = "text-sm font-semibold text-accent";
-  const h2 = "mt-2 text-3xl font-bold sm:text-4xl";
+  const h2 = "mt-3 text-3xl leading-tight sm:text-5xl";
 
   return (
     <PublicShell>
       {/* Hero */}
       <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 md:grid-cols-[1.05fr_1fr] md:py-16">
         <div className="flex flex-col gap-5">
-          <p className={label}>{GYM.name} · Banyuasin</p>
-          <h1 className="text-5xl font-bold leading-[1.05] sm:text-6xl">
-            Olahraga <span className="text-accent">jadi seru.</span>
+          <Eyebrow>{GYM.name} · Banyuasin</Eyebrow>
+          <h1 className="text-5xl leading-[1.02] sm:text-7xl">
+            Olahraga
+            <br />
+            <span className="text-accent">jadi seru.</span>
           </h1>
+          <span aria-hidden className="-mt-1 h-1.5 w-40 rounded-full bg-accent/25 sm:w-72" />
           <p className="max-w-md text-lg leading-relaxed text-muted">
             Kelas lifting dan bootcamp yang ramah untuk pemula. Latihan terprogram bersama coach, ditemani teman satu kelas, dan progresmu tercatat di HP.
           </p>
           <div className="flex flex-wrap gap-3">
-            <a href={GYM.whatsappUrl} target="_blank" rel="noreferrer" className="rounded-md bg-accent px-5 py-3 font-semibold text-white hover:bg-accent-2">
-              Tanya lewat WhatsApp
+            <a href={GYM.whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-md bg-accent px-5 py-3 font-semibold text-white hover:bg-accent-2">
+              Tanya lewat WhatsApp <span aria-hidden>↗</span>
             </a>
             <a href="#paket" className="rounded-md border border-border px-5 py-3 font-semibold hover:border-accent hover:text-accent">
               Lihat paket &amp; harga
@@ -91,7 +103,7 @@ export default async function RootPage() {
           </div>
           <p className="text-sm text-muted">{GYM.hours}</p>
         </div>
-        <Photo src="/web/hero.jpg" alt="Coach Olympus membimbing member yang tertawa saat latihan" className="aspect-[4/5] w-full rounded-xl md:aspect-auto md:h-[clamp(24rem,calc(100svh-9rem),36rem)]" />
+        <Photo src="/web/hero.jpg" alt="Coach Olympus membimbing member yang tertawa saat latihan" className="aspect-[4/5] w-full rounded-[1.5rem] rounded-tl-[6rem] md:aspect-auto md:h-[clamp(24rem,calc(100svh-9rem),36rem)] md:rounded-[2rem] md:rounded-tl-[9rem]" />
       </section>
 
       {/* Why Olympus */}
@@ -99,7 +111,7 @@ export default async function RootPage() {
         <div className="mx-auto max-w-6xl px-4 py-14 md:py-20">
           <div className="grid gap-8 md:grid-cols-2 md:items-end">
             <div>
-              <p className={label}>Kenapa Olympus</p>
+              <Eyebrow>Kenapa Olympus</Eyebrow>
               <h2 className={h2}>Ramah untuk pemula, seru untuk semua.</h2>
             </div>
             <p className="leading-relaxed text-muted">
@@ -107,31 +119,31 @@ export default async function RootPage() {
               kemampuanmu, dan teman satu kelas ikut menyemangati.
             </p>
           </div>
-          <div className="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {reasons.map(([title, text]) => (
-              <div key={title} className="border-t-2 border-accent pt-4">
-                <h3 className="text-lg font-semibold">{title}</h3>
+              <div key={title} className="rounded-xl border border-border bg-surface p-5">
+                <h3 className="text-lg">{title}</h3>
                 <p className="mt-1.5 text-sm leading-relaxed text-muted">{text}</p>
               </div>
             ))}
           </div>
-          <Photo src="/web/why.jpg" alt="Member Olympus berpose bersama setelah kelas" className="mt-12 aspect-[16/9] w-full rounded-xl sm:aspect-[21/9]" />
+          <Photo src="/web/why.jpg" alt="Member Olympus berpose bersama setelah kelas" className="mt-12 aspect-[16/9] w-full rounded-[1.5rem] rounded-br-[6rem] sm:aspect-[21/9]" />
         </div>
       </section>
 
       {/* Choose your path */}
       <section id="program" className="scroll-mt-20 border-t border-border">
         <div className="mx-auto max-w-6xl px-4 py-14 md:py-20">
-          <p className={label}>Program</p>
+          <Eyebrow>Program</Eyebrow>
           <h2 className={h2}>Latihan sesuai tujuanmu</h2>
           <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {paths.map((p) => {
               const price = from(p.group);
               return (
                 <a key={p.title} href="#paket" className="group flex flex-col gap-3">
-                  <Photo src={p.src} alt={p.alt} className="aspect-[4/3] w-full rounded-lg transition group-hover:opacity-90" />
+                  <Photo src={p.src} alt={p.alt} className="aspect-[4/3] w-full rounded-xl transition group-hover:opacity-90" />
                   <div>
-                    <h3 className="font-semibold group-hover:text-accent">{p.title}</h3>
+                    <h3 className="text-lg group-hover:text-accent">{p.title}</h3>
                     <p className="mt-1 text-sm leading-relaxed text-muted">{p.text}</p>
                     {price != null && <p className="mt-2 text-sm font-semibold">Mulai {formatRupiah(price)}</p>}
                   </div>
@@ -148,13 +160,13 @@ export default async function RootPage() {
       {/* Packages & prices */}
       <section id="paket" className="scroll-mt-20 border-t border-border bg-surface-2">
         <div className="mx-auto max-w-6xl px-4 py-14 md:py-20">
-          <p className={label}>Paket &amp; harga</p>
+          <Eyebrow>Paket &amp; harga</Eyebrow>
           <h2 className={h2}>Pilih paketmu</h2>
           <p className="mt-2 text-muted">Harga dalam Rupiah. Paket aktif setelah pembayaran dikonfirmasi.</p>
           {packages.length === 0 && <p className="mt-6 text-muted">Daftar paket sedang diperbarui. Hubungi kami lewat WhatsApp untuk info harga.</p>}
           {[...groups.entries()].map(([group, items]) => (
             <div key={group} className="mt-10">
-              <h3 className="text-xl font-semibold">{group}</h3>
+              <h3 className="text-xl">{group}</h3>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {items.map((p) => {
                   const duration = packageDuration(p);
@@ -172,8 +184,8 @@ export default async function RootPage() {
               </div>
             </div>
           ))}
-          <div className="mt-12 rounded-lg border border-border bg-white p-6">
-            <h3 className="text-xl font-semibold">Cara membeli</h3>
+          <div className="mt-12 rounded-xl border border-border bg-surface p-6">
+            <h3 className="text-xl">Cara membeli</h3>
             <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm leading-relaxed">
               <li>Buat akun member di aplikasi Olympus (tombol &quot;Masuk member&quot; → &quot;Buat akun member&quot;).</li>
               <li>Pilih paket di menu Paket, lalu bayar dengan QRIS (semua e-wallet &amp; m-banking), virtual account bank, atau transfer bank.</li>
@@ -188,7 +200,7 @@ export default async function RootPage() {
       <section id="lokasi" className="scroll-mt-20 border-t border-border">
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:grid-cols-2 md:py-20">
           <div>
-            <p className={label}>Lokasi</p>
+            <Eyebrow>Lokasi</Eyebrow>
             <h2 className={h2}>Lokasi &amp; jam buka</h2>
             <p className="mt-4 leading-relaxed">{GYM.address}</p>
             <a href={GYM.mapsUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block font-semibold text-accent hover:underline">
@@ -197,13 +209,13 @@ export default async function RootPage() {
             <p className="mt-6 font-semibold">{GYM.hours}</p>
             <p className="text-sm text-muted">{GYM.closed}</p>
           </div>
-          <div className="flex flex-col justify-center gap-3 rounded-lg bg-accent/5 p-6 ring-1 ring-accent/15">
-            <h2 className="text-2xl font-bold">Masih ragu? Tanya dulu.</h2>
+          <div className="flex flex-col justify-center gap-3 rounded-[1.5rem] rounded-tl-[4rem] bg-accent/[0.07] p-8">
+            <h2 className="text-2xl">Masih ragu? Tanya dulu.</h2>
             <p className="text-muted">Soal paket, jadwal kelas, pembayaran, atau refund, chat kami di jam buka.</p>
             <a href={GYM.whatsappUrl} target="_blank" rel="noreferrer" className="mt-2 rounded-md bg-accent px-4 py-3 text-center font-semibold text-white hover:bg-accent-2">
               WhatsApp {GYM.whatsapp}
             </a>
-            <a href={GYM.instagramUrl} target="_blank" rel="noreferrer" className="rounded-md border border-border bg-white px-4 py-3 text-center font-semibold hover:border-accent hover:text-accent">
+            <a href={GYM.instagramUrl} target="_blank" rel="noreferrer" className="rounded-md border border-border bg-surface px-4 py-3 text-center font-semibold hover:border-accent hover:text-accent">
               Instagram {GYM.instagram}
             </a>
           </div>

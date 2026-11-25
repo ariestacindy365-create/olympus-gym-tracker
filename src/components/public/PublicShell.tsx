@@ -4,11 +4,11 @@ import { GYM } from "@/lib/gymInfo";
 
 /** Header and footer of the public website pages (no login needed). */
 export function PublicShell({ children }: { children: React.ReactNode }) {
-  const link = "hidden rounded-md px-3 py-2 text-muted hover:text-foreground md:inline";
+  const link = "hidden rounded-md px-3 py-2 text-foreground/80 hover:text-accent md:inline";
   return (
     <div className="site-light flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-30 border-b border-border bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+      <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4">
           <Link href="/" aria-label={GYM.name}>
             <OlympusLogo height={30} variant="dark" />
           </Link>
@@ -25,8 +25,8 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
             <Link href="/#lokasi" className={link}>
               Lokasi
             </Link>
-            <Link href="/login" className="ml-2 rounded-md border border-border px-4 py-2 font-semibold text-foreground hover:border-accent hover:text-accent">
-              Masuk member
+            <Link href="/login" className="ml-2 inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2.5 font-semibold text-white hover:bg-accent-2">
+              Masuk member <span aria-hidden>↗</span>
             </Link>
           </nav>
         </div>

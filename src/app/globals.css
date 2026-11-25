@@ -152,17 +152,20 @@ h1, h2, h3, h4, .font-display {
   margin: 2mm;
 }
 
-/* The public website stays white with a blue accent, whatever the
-   visitor's dark-mode setting, and uses plain sentence-case headings. */
+/* The public website stays light (warm white, navy text, blue accent),
+   whatever the visitor's dark-mode setting, with plain sentence-case
+   headings. */
 .site-light {
   color-scheme: light;
-  --background: #ffffff;
+  --background: #faf8f3;
   --surface: #ffffff;
-  --surface-2: #f6f8fb;
-  --border: #e5e9f0;
-  --border-strong: #cbd5e1;
-  --foreground: #0f172a;
-  --muted: #5b6678;
+  --surface-2: #f3f0e7;
+  --border: #e7e2d6;
+  --border-strong: #d6d0c1;
+  --foreground: #16324f;
+  --muted: #5a6b7d;
+  --accent: #2a6fb5;
+  --accent-2: #1d5490;
   background: var(--background);
   color: var(--foreground);
 }
@@ -171,5 +174,6 @@ h1, h2, h3, h4, .font-display {
 .site-light h3,
 .site-light h4 {
   font-family: var(--font-sans), system-ui, sans-serif;
-  letter-spacing: -0.02em;
+  font-weight: 800;
+  letter-spacing: -0.035em;
 }
