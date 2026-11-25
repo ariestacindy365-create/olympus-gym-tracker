@@ -2,7 +2,7 @@
   "name": "OLYMPUS Lifting Club",
   "short_name": "OLYMPUS",
   "description": "Gym tracker untuk member dan pelatih OLYMPUS Lifting Club.",
-  "start_url": "/",
+  "start_url": "/login",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0f172a",
