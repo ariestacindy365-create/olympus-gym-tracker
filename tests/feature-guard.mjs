@@ -109,7 +109,6 @@ const FEATURES = [
   ['Kuota dinaikkan: daftar tunggu ikut naik', 'src/app/api/bookings/settings/route.ts', 'setQuota'],
   ['Daftar tunggu tidak naik ke kelas yang sudah selesai', 'src/lib/booking.ts', 'now >= classEnd(day, session)'],
   ['Tanda uji coba di Booking', 'src/app/member/booking/page.tsx', 'TrialNotice'],
-  ['Tanda uji coba di Beli paket', 'src/app/member/paket/page.tsx', 'TrialNotice'],
   ['Booking hari ini tidak bisa dibatalkan setelah mencatat latihan', 'src/lib/booking.ts', 'Kamu sudah mencatat latihan hari ini'],
   ['Bukti transfer tetap terkirim kalau Drive gagal', 'src/app/api/member/membership-orders/[orderId]/route.ts', 'keeping it on the order'],
   ['Bukti transfer aplikasi tetap ada setelah disetujui', 'src/app/api/payments/[paymentId]/proof/route.ts', 'proofImageData'],
