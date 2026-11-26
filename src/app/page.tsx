@@ -202,7 +202,7 @@ export default async function RootPage() {
           <div className="mt-12 rounded-xl border border-border bg-surface p-6">
             <h3 className="text-xl">Cara membeli</h3>
             <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm leading-relaxed">
-              <li>Buat akun member di aplikasi Olympus (tombol &quot;Masuk member&quot; → &quot;Buat akun member&quot;).</li>
+              <li>Buat akun member di aplikasi Olympus. Belum tahu caranya? Chat kami di WhatsApp, admin akan bantu.</li>
               <li>Pilih paket di menu Paket, lalu bayar dengan QRIS (semua e-wallet &amp; m-banking), virtual account bank, atau transfer bank.</li>
               <li>Paket aktif otomatis setelah pembayaran QRIS / virtual account berhasil; transfer manual aktif setelah diverifikasi admin.</li>
               <li>Bisa juga membeli langsung di meja admin gym (tunai, kartu debit/kredit, atau QRIS).</li>
