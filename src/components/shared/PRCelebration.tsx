@@ -439,7 +439,7 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
         if (a) {
           const bus = fxOut(a).gain;
           bus.setTargetAtTime(FX_UNDER_VOICE, a.currentTime, 0.08);
-          say.onend = () => bus.setTargetAtTime(1, a.currentTime, 0.3);
+          say.onend = say.onerror = () => bus.setTargetAtTime(1, a.currentTime, 0.3);
         }
         window.speechSynthesis.speak(say);
       }
@@ -539,6 +539,12 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
           aiSource?.stop();
         } catch {
           // Already finished.
+        }
+        // Effects back to full for the next one.
+        if (a) {
+          const bus = fxOut(a).gain;
+          bus.cancelScheduledValues(a.currentTime);
+          bus.setValueAtTime(1, a.currentTime);
         }
       }
     };
