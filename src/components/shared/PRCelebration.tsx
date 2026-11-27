@@ -22,8 +22,13 @@ const HOLD_SPOKEN = 6;
 const OUT = 2.2;
 // One PR at a time for the first few; the rest of a burst share one board.
 const SOLO_PER_BURST = 3;
-// How much louder the ElevenLabs announcement plays than its file.
-const VOICE_BOOST = 2.5;
+// The ElevenLabs announcement is levelled to this loudness (speech RMS,
+// dBFS), at most VOICE_MAX_GAIN times the file, then limited and soft
+// clipped so it plays loud without crackling.
+const VOICE_TARGET_DB = -10;
+const VOICE_MAX_GAIN = 16;
+// The fanfare and cheer drop to this share while someone is speaking.
+const FX_UNDER_VOICE = 0.15;
 // Names listed on a shared board before "+N lagi".
 const BOARD_ROWS = 6;
 
@@ -58,6 +63,70 @@ function indonesianVoice(): SpeechSynthesisVoice | null {
 const CONFETTI = ["#facc15", "#fde68a", "#ffffff", "#4ade80", "#f97316", "#f472b6"];
 
 // ---- Sound: synthesized with Web Audio, no files ----
+// Every effect goes through one bus per AudioContext, so it can be turned
+// down while the announcement is read out.
+const fxBuses = new WeakMap<AudioContext, GainNode>();
+function fxOut(a: AudioContext): GainNode {
+  let bus = fxBuses.get(a);
+  if (!bus) {
+    bus = a.createGain();
+    bus.connect(a.destination);
+    fxBuses.set(a, bus);
+  }
+  return bus;
+}
+
+/** Speech loudness (RMS of the parts above silence) of a decoded clip. */
+export function speechRms(buffer: AudioBuffer): number {
+  let sum = 0;
+  let n = 0;
+  for (let c = 0; c < buffer.numberOfChannels; c++) {
+    const d = buffer.getChannelData(c);
+    for (let i = 0; i < d.length; i++) {
+      const v = d[i];
+      if (v > 0.01 || v < -0.01) {
+        sum += v * v;
+        n++;
+      }
+    }
+  }
+  return n ? Math.sqrt(sum / n) : 0;
+}
+
+/** Gain that brings a clip to VOICE_TARGET_DB, capped (a near-silent clip isn't blown up). */
+export function voiceGain(rms: number): number {
+  if (!(rms > 0)) return 1;
+  return Math.min(VOICE_MAX_GAIN, Math.max(1, 10 ** (VOICE_TARGET_DB / 20) / rms));
+}
+
+/** Plays the announcement: levelled, compressed, soft clipped (never above full scale). */
+function playVoice(a: AudioContext, buffer: AudioBuffer): AudioBufferSourceNode {
+  const src = a.createBufferSource();
+  src.buffer = buffer;
+  const level = a.createGain();
+  level.gain.value = voiceGain(speechRms(buffer));
+  const comp = a.createDynamicsCompressor();
+  comp.threshold.value = -16;
+  comp.knee.value = 6;
+  comp.ratio.value = 8;
+  comp.attack.value = 0.002;
+  comp.release.value = 0.15;
+  const clip = a.createWaveShaper();
+  const n = 2048;
+  const curve = new Float32Array(n);
+  for (let i = 0; i < n; i++) curve[i] = Math.tanh(((i / (n - 1)) * 2 - 1) * 1.6) / Math.tanh(1.6);
+  clip.curve = curve;
+  clip.oversample = "none"; // oversampling rings past full scale
+  src.connect(level).connect(comp).connect(clip).connect(a.destination);
+  // Turn the effects down while it speaks, back up after.
+  const bus = fxOut(a).gain;
+  const now = a.currentTime;
+  bus.cancelScheduledValues(now);
+  bus.setTargetAtTime(FX_UNDER_VOICE, now, 0.08);
+  bus.setTargetAtTime(1, now + buffer.duration, 0.3);
+  src.start();
+  return src;
+}
 function noise(a: AudioContext, sec: number) {
   const b = a.createBuffer(1, Math.ceil(a.sampleRate * sec), a.sampleRate);
   const d = b.getChannelData(0);
@@ -73,7 +142,7 @@ function step(a: AudioContext, at: number) {
   const g = a.createGain();
   g.gain.setValueAtTime(0.8, at);
   g.gain.exponentialRampToValueAtTime(0.001, at + 0.11);
-  src.connect(f).connect(g).connect(a.destination);
+  src.connect(f).connect(g).connect(fxOut(a));
   src.start(at);
   src.stop(at + 0.12);
 }
@@ -101,7 +170,7 @@ function brass(a: AudioContext, freq: number, at: number, dur: number, vol = 0.2
   g.gain.linearRampToValueAtTime(0.0001, at + dur);
   o1.connect(f);
   o2.connect(f);
-  f.connect(g).connect(a.destination);
+  f.connect(g).connect(fxOut(a));
   for (const n of [o1, o2, vib]) {
     n.start(at);
     n.stop(at + dur + 0.05);
@@ -116,7 +185,7 @@ function crash(a: AudioContext, at: number) {
   const g = a.createGain();
   g.gain.setValueAtTime(0.45, at);
   g.gain.exponentialRampToValueAtTime(0.001, at + 1.5);
-  src.connect(f).connect(g).connect(a.destination);
+  src.connect(f).connect(g).connect(fxOut(a));
   src.start(at);
 }
 function cheer(a: AudioContext, at: number, dur: number) {
@@ -131,7 +200,7 @@ function cheer(a: AudioContext, at: number, dur: number) {
   g.gain.linearRampToValueAtTime(0.3, at + 0.35);
   g.gain.setValueAtTime(0.3, at + dur - 0.9);
   g.gain.linearRampToValueAtTime(0.0001, at + dur);
-  src.connect(f).connect(g).connect(a.destination);
+  src.connect(f).connect(g).connect(fxOut(a));
   src.start(at);
   // A few "woo!" voices gliding up.
   for (let i = 0; i < 5; i++) {
@@ -145,12 +214,15 @@ function cheer(a: AudioContext, at: number, dur: number) {
     vg.gain.setValueAtTime(0.0001, s);
     vg.gain.linearRampToValueAtTime(0.05, s + 0.08);
     vg.gain.linearRampToValueAtTime(0.0001, s + 0.6);
-    o.connect(vg).connect(a.destination);
+    o.connect(vg).connect(fxOut(a));
     o.start(s);
     o.stop(s + 0.65);
   }
 }
 function fanfare(a: AudioContext, at: number) {
+  const bus = fxOut(a).gain;
+  bus.cancelScheduledValues(a.currentTime);
+  bus.setValueAtTime(1, a.currentTime);
   brass(a, 392, at, 0.16);
   brass(a, 523.25, at + 0.17, 0.16);
   brass(a, 659.25, at + 0.34, 0.16);
@@ -352,19 +424,7 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
     const speak = () => {
       const t = (performance.now() - start) / 1000;
       if (aiBuffer && a) {
-        aiSource = a.createBufferSource();
-        aiSource.buffer = aiBuffer;
-        // Louder than the file: boosted, with a compressor so it doesn't crackle.
-        const boost = a.createGain();
-        boost.gain.value = VOICE_BOOST;
-        const limiter = a.createDynamicsCompressor();
-        limiter.threshold.value = -10;
-        limiter.knee.value = 6;
-        limiter.ratio.value = 12;
-        limiter.attack.value = 0.003;
-        limiter.release.value = 0.2;
-        aiSource.connect(boost).connect(limiter).connect(a.destination);
-        aiSource.start();
+        aiSource = playVoice(a, aiBuffer);
         // Stand still until it has been said.
         hold = Math.max(hold, t - IN + aiBuffer.duration + 0.6);
       } else if (aiPending && t < IN + 4) {
@@ -375,6 +435,12 @@ export function PRCelebration({ sound, clock = null }: { sound: boolean; clock?:
         say.lang = voice.lang;
         say.rate = 1.02;
         say.volume = 1;
+        // The TV's own voice can't be made louder: turn the effects down instead.
+        if (a) {
+          const bus = fxOut(a).gain;
+          bus.setTargetAtTime(FX_UNDER_VOICE, a.currentTime, 0.08);
+          say.onend = () => bus.setTargetAtTime(1, a.currentTime, 0.3);
+        }
         window.speechSynthesis.speak(say);
       }
     };
