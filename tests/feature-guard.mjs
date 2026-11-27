@@ -157,7 +157,7 @@ const FEATURES = [
   ['Slideshow: tombol Tes pengumuman PR', 'src/components/shared/SlideShow.tsx', 'requestTestAnnouncement'],
   ['Musik slideshow: link bisa dihapus, pemutar hilang kalau extension aktif', 'src/components/shared/MusicPlayer.tsx', 'function removeMusic'],
   ['Pengumuman PR gelombang besar: nama dibatasi + jumlah lainnya', 'src/components/shared/PRCelebration.tsx', 'member lainnya'],
-  ['Suara pengumuman PR dikeraskan (gain + kompresor)', 'src/components/shared/PRCelebration.tsx', 'VOICE_BOOST'],
+  ['Suara pengumuman PR dikeraskan (diratakan ke -10 dB, kompresor, soft clip, efek dikecilkan)', 'src/components/shared/PRCelebration.tsx', 'playVoice('],
   ['Kasir/Keuangan/Overview: hari & bulan dihitung jam WIB', 'src/lib/workout.ts', 'export const wibStart'],
   ['Hapus penjualan kasir: stok kembali sekali saja', 'src/app/api/sales/[saleId]/route.ts', 'marked.count === 0'],
   ['PR muncul di TV dalam ±4 detik (cek tiap 4 dtk + saat tab dibuka)', 'src/components/shared/PRCelebration.tsx', 'const POLL_MS = 4_000'],
