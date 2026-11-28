@@ -696,6 +696,9 @@ model Product {
   name              String
   barcode           String   @unique
   price             Int
+  // Harga modal (cost per unit). Optional: products added before it existed
+  // have none until the admin fills it in. Copied onto each Sale.
+  costPrice         Int?
   stock             Int      @default(0)
   // Below this, the product shows up in the "Stok Menipis" warning (Kasir
   // dashboard + daily report). Per-product since sales pace varies a lot
@@ -766,6 +769,9 @@ model Sale {
   product       Product       @relation(fields: [productId], references: [id])
   productName   String
   price         Int
+  // The product's harga modal when it was sold (snapshot, like price), so
+  // the profit report doesn't change when the cost is edited later.
+  costPrice     Int?
   paymentMethod PaymentMethod @default(TUNAI)
   // Optional free-text note, e.g. who it's for ("bos", "tamu") — same idea
   // as Payment.note.

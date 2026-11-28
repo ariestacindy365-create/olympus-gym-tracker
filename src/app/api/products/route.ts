@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
         name: parsed.data.name,
         barcode: parsed.data.barcode,
         price: parsed.data.price,
+        costPrice: parsed.data.costPrice ?? null,
         stock,
         ...(stock > 0 && {
           stockAdjustments: {

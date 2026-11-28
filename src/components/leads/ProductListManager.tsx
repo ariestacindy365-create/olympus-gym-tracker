@@ -13,6 +13,7 @@ export interface ProductRow {
   name: string;
   barcode: string;
   price: number;
+  costPrice: number | null;
   stock: number;
   lowStockThreshold: number;
   isActive: boolean;
@@ -23,6 +24,7 @@ function AddProductForm() {
   const [name, setName] = useState("");
   const [barcode, setBarcode] = useState("");
   const [price, setPrice] = useState("");
+  const [costPrice, setCostPrice] = useState("");
   const [stock, setStock] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +46,7 @@ function AddProductForm() {
           name: name.trim(),
           barcode: barcode.trim(),
           price: priceNum,
+          costPrice: costPrice.trim() === "" ? null : Number(costPrice),
           stock: Number(stock) > 0 ? Number(stock) : 0,
         }),
       });
@@ -55,6 +58,7 @@ function AddProductForm() {
       setName("");
       setBarcode("");
       setPrice("");
+      setCostPrice("");
       setStock("");
       router.refresh();
     } catch {
@@ -78,10 +82,18 @@ function AddProductForm() {
         <Input
           type="number"
           inputMode="numeric"
-          placeholder="Harga (Rp)"
+          placeholder="Harga jual (Rp)"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
           className="sm:max-w-[140px]"
+        />
+        <Input
+          type="number"
+          inputMode="numeric"
+          placeholder="Harga modal (Rp)"
+          value={costPrice}
+          onChange={(e) => setCostPrice(e.target.value)}
+          className="sm:max-w-[150px]"
         />
         <Input
           type="number"
@@ -196,6 +208,7 @@ function ProductRowItem({
   const [name, setName] = useState(product.name);
   const [barcode, setBarcode] = useState(product.barcode);
   const [price, setPrice] = useState(String(product.price));
+  const [costPrice, setCostPrice] = useState(product.costPrice == null ? "" : String(product.costPrice));
   const [stock, setStock] = useState(String(product.stock));
   const [lowStockThreshold, setLowStockThreshold] = useState(String(product.lowStockThreshold));
   const [pending, setPending] = useState(false);
@@ -229,7 +242,14 @@ function ProductRowItem({
       <Card className="flex flex-col gap-2">
         <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nama produk" />
         <Input value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="Barcode" />
-        <Input type="number" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Harga (Rp)" />
+        <div>
+          <label className="mb-1 block text-xs text-muted">Harga jual</label>
+          <Input type="number" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Harga jual (Rp)" />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-muted">Harga modal</label>
+          <Input type="number" inputMode="numeric" value={costPrice} onChange={(e) => setCostPrice(e.target.value)} placeholder="Harga modal (Rp)" />
+        </div>
         <Input type="number" inputMode="numeric" value={stock} onChange={(e) => setStock(e.target.value)} placeholder="Stok" />
         <div>
           <label className="mb-1 block text-xs text-muted">Batas Stok Menipis</label>
@@ -251,6 +271,7 @@ function ProductRowItem({
                 name: name.trim(),
                 barcode: barcode.trim(),
                 price: Number(price),
+                costPrice: costPrice.trim() === "" ? null : Number(costPrice),
                 stock: Number(stock),
                 lowStockThreshold: Number(lowStockThreshold),
               })
@@ -271,7 +292,13 @@ function ProductRowItem({
       <div>
         <p className={`font-medium ${!product.isActive ? "text-muted line-through" : ""}`}>{product.name}</p>
         <p className="text-sm text-muted">
-          {formatRupiah(product.price)} · barcode {product.barcode} ·{" "}
+          {formatRupiah(product.price)}
+          {product.costPrice == null ? (
+            <span className="text-warning"> · modal belum diisi</span>
+          ) : (
+            <> · modal {formatRupiah(product.costPrice)} · laba {formatRupiah(product.price - product.costPrice)}</>
+          )}{" "}
+          · barcode {product.barcode} ·{" "}
           <span className={product.stock <= product.lowStockThreshold ? "font-medium text-danger" : ""}>
             stok {product.stock}
           </span>

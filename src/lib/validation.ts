@@ -230,6 +230,7 @@ export const createProductSchema = z.object({
   name: z.string().trim().min(1, { error: "Isi nama produk." }).max(80),
   barcode: z.string().trim().min(1, { error: "Isi barcode." }).max(80),
   price: z.number().int().positive({ error: "Harga harus lebih dari 0." }).max(100_000_000),
+  costPrice: z.number().int().min(0, { error: "Harga modal tidak boleh minus." }).max(100_000_000).nullable().optional(),
   stock: z.number().int().min(0).max(1_000_000).optional(),
 });
 
@@ -237,6 +238,7 @@ export const updateProductSchema = z.object({
   name: z.string().trim().min(1, { error: "Isi nama produk." }).max(80).optional(),
   barcode: z.string().trim().min(1, { error: "Isi barcode." }).max(80).optional(),
   price: z.number().int().positive({ error: "Harga harus lebih dari 0." }).max(100_000_000).optional(),
+  costPrice: z.number().int().min(0, { error: "Harga modal tidak boleh minus." }).max(100_000_000).nullable().optional(),
   stock: z.number().int().min(0).max(1_000_000).optional(),
   lowStockThreshold: z.number().int().min(0).max(100_000).optional(),
   isActive: z.boolean().optional(),

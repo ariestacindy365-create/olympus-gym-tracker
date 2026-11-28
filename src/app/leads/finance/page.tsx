@@ -9,6 +9,7 @@ import { StatTile } from "@/components/ui/StatTile";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { RevenueTrendChart, type RevenueTrendPoint } from "@/components/leads/RevenueTrendChart";
 import { formatRupiah, PAYMENT_METHOD_LABEL, EXPENSE_CATEGORY_LABEL } from "@/lib/packages";
+import { productProfit } from "@/lib/productProfit";
 
 const TREND_MONTHS = 6;
 
@@ -43,7 +44,7 @@ export default async function FinancePage() {
     prisma.sale.aggregate({ _sum: { price: true }, where: { deletedAt: null } }),
     prisma.sale.findMany({
       where: { createdAt: { gte: wibStart(monthStart) }, deletedAt: null },
-      select: { price: true, productName: true },
+      select: { price: true, productName: true, productId: true, costPrice: true, product: { select: { costPrice: true } } },
     }),
     prisma.expense.aggregate({ _sum: { amount: true }, where: { paidAt: { gte: wibStart(monthStart) } } }),
     prisma.expense.aggregate({ _sum: { amount: true } }),
@@ -84,6 +85,7 @@ export default async function FinancePage() {
     salesByProduct.set(s.productName, p);
   }
   const topProductsThisMonth = [...salesByProduct.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 5);
+  const profit = productProfit(salesThisMonthList, new Map(salesThisMonthList.map((s) => [s.productId, s.product.costPrice])));
 
   const revenueByPackage = new Map<string, { count: number; total: number }>();
   const revenueByMethod = new Map<string, { count: number; total: number }>();
@@ -198,6 +200,63 @@ export default async function FinancePage() {
               </li>
             ))}
           </ul>
+        )}
+      </Card>
+
+      <Card className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-lg font-semibold">Laba-Rugi Produk Bulan Ini</h2>
+          <Link href="/leads/kasir" className="text-xs font-medium text-accent hover:underline">
+            Isi harga modal →
+          </Link>
+        </div>
+        <p className="-mt-1 text-xs text-muted">Hanya penjualan produk di kasir (terpisah dari membership). Laba kotor = harga jual − harga modal.</p>
+        {profit.rows.length === 0 ? (
+          <EmptyState title="Belum ada penjualan" description="Belum ada penjualan produk bulan ini." />
+        ) : (
+          <>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-xl bg-surface-2 p-3">
+                <p className="text-xs text-muted">Penjualan</p>
+                <p className="font-display text-lg font-bold tabular-nums">{formatRupiah(profit.total.revenue)}</p>
+              </div>
+              <div className="rounded-xl bg-surface-2 p-3">
+                <p className="text-xs text-muted">Modal</p>
+                <p className="font-display text-lg font-bold tabular-nums">{formatRupiah(profit.total.cost)}</p>
+              </div>
+              <div className="rounded-xl bg-success/10 p-3">
+                <p className="text-xs text-muted">Laba kotor</p>
+                <p className={`font-display text-lg font-bold tabular-nums ${profit.total.profit < 0 ? "text-danger" : "text-success"}`}>{formatRupiah(profit.total.profit)}</p>
+              </div>
+            </div>
+            <ul className="flex flex-col divide-y divide-border/60 text-sm">
+              {profit.rows.map((r) => {
+                const noCost = r.missing === r.count;
+                return (
+                  <li key={r.name} className="flex items-start justify-between gap-3 py-2">
+                    <div className="min-w-0">
+                      <p className="font-medium">{r.name}</p>
+                      <p className="text-xs text-muted">
+                        {r.count} terjual · jual {formatRupiah(r.revenue)}
+                        {!noCost && <> · modal {formatRupiah(r.cost)}</>}
+                      </p>
+                      {r.missing > 0 && <p className="text-xs text-warning">Modal belum diisi ({r.missing} penjualan)</p>}
+                      {r.estimated > 0 && <p className="text-xs text-muted">{r.estimated} penjualan pakai harga modal saat ini</p>}
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-xs text-muted">Laba</p>
+                      <p className={`font-semibold tabular-nums ${r.profit < 0 ? "text-danger" : ""}`}>{noCost ? "–" : formatRupiah(r.profit)}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+            {profit.total.missing > 0 && (
+              <p className="text-xs text-warning">
+                {profit.total.missing} penjualan belum punya harga modal, jadi belum dihitung di modal dan laba. Isi harga modal produknya di Kasir → Produk.
+              </p>
+            )}
+          </>
         )}
       </Card>
 
