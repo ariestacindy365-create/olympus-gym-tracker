@@ -73,6 +73,7 @@ export async function POST(request: NextRequest) {
           productId: product.id,
           productName: product.name,
           price: product.price,
+          costPrice: product.costPrice,
           paymentMethod: parsed.data.paymentMethod,
           note: parsed.data.note || undefined,
           createdById: admin.id,

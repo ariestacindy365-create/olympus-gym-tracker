@@ -164,6 +164,9 @@ const FEATURES = [
   ['Website publik: profil, paket & harga, lokasi, kontak (untuk Midtrans)', 'src/app/page.tsx', 'id="paket"'],
   ['Website publik: footer dengan S&K, refund, privasi', 'src/components/public/PublicShell.tsx', '/kebijakan-refund'],
   ['Website publik: hero, Kenapa Olympus, Program, ajakan WA', 'src/app/page.tsx', 'Latihan sesuai tujuanmu'],
+  ['Kasir: harga modal produk (tambah & edit)', 'src/components/leads/ProductListManager.tsx', 'Harga modal (Rp)'],
+  ['Kasir: harga modal disimpan di setiap penjualan', 'src/app/api/sales/scan/route.ts', 'costPrice: product.costPrice'],
+  ['Keuangan: laba-rugi produk bulan ini', 'src/app/leads/finance/page.tsx', 'Laba-Rugi Produk Bulan Ini'],
   ['Website publik: section Kenapa Olympus (ramah pemula + foto)', 'src/app/page.tsx', 'id="kenapa"'],
   ['Tanggal hari ini (Jakarta) tidak bergantung format en-CA browser', 'src/lib/birthDate.ts', 'jakartaDateKey as jakartaToday'],
 ];
@@ -428,6 +431,24 @@ check('Tanggal Jakarta selalu YYYY-MM-DD (tahun lahir tidak NaN)', () => {
   } finally {
     Intl.DateTimeFormat = Real;
   }
+});
+
+const { productProfit } = await load('src/lib/productProfit.ts');
+check('Laba produk: modal saat dijual, cadangan modal sekarang, tanpa modal tidak dihitung', () => {
+  const r = productProfit(
+    [
+      { productId: 'a', productName: 'Air', price: 5000, costPrice: 3000 },
+      { productId: 'a', productName: 'Air', price: 5000, costPrice: null },
+      { productId: 'b', productName: 'Bar', price: 20000, costPrice: null },
+    ],
+    new Map([['a', 3500], ['b', null]])
+  );
+  assert.equal(r.total.revenue, 30000);
+  assert.equal(r.total.cost, 6500);
+  assert.equal(r.total.profit, 3500);
+  assert.equal(r.total.estimated, 1);
+  assert.equal(r.total.missing, 1);
+  assert.equal(r.rows[0].name, 'Air');
 });
 
 if (failures.length) {
